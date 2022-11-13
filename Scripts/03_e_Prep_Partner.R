@@ -23,7 +23,7 @@
 # those variables are NA. 
 #++++
 # -> note: "current" and "previous" refers to the respective interview date
-
+# --> FINAL DATA FRAME IS A PANEL DATA SET (one row for each respondent-wave combination).
 
 
 #%%%%%%%%%#
@@ -262,6 +262,14 @@ table(data_partner_final$partner_study_current, useNA = "always")
 table(data_partner_final$partner_emp_current, useNA = "always")
 table(data_partner_final$partner_daily, useNA = "always")
 table(data_partner_final$partner_monthly, useNA = "always")
+
+
+# number of respondents
+print(paste("The final data frame includes", length(unique(data_partner_final$ID_t)),
+            "respondents."))
+# number of rows and columns
+print(paste("Number of rows", nrow(data_partner_final)))
+print(paste("Number of columns", ncol(data_partner_final)))
 
 # save data frame
 length(unique(data_partner_final$ID_t))

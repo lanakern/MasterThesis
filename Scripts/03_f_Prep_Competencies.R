@@ -26,6 +26,8 @@
 # on competence measure mathematics in wave 1. The next competence measure test
 # on mathematics is conducted in wave 12. Hence, from wave 2 to wave 11, the
 # values from wave 1 are used.
+#++++
+# --> FINAL DATA FRAME IS A PANEL DATA SET (one row for each respondent-wave combination).
 
 
 #%%%%%%%%%#
@@ -184,6 +186,10 @@ data_competencies_final <- data_competencies_final %>%
 print(paste("The final sample size includes", 
             length(unique(data_competencies_final$ID_t)),
             "respondents."))
+
+# number of rows and columns
+print(paste("Number of rows", nrow(data_competencies_final)))
+print(paste("Number of columns", ncol(data_competencies_final)))
 
 # save prepared competence data
 saveRDS(data_competencies_final, "Data/Prep_3/prep_3_competencies.rds")
