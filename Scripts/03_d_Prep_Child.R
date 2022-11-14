@@ -7,13 +7,11 @@
 #++++
 # In this file, the child information of each respondent is prepared.
 #++++
-# 1.) Missing values are replaced downwards
-#++++
-# 2.) Merge with cohort profile: Only respondents who are included in
+# 1.) Merge with cohort profile: Only respondents who are included in
 # cohort profile are kept. This reduces the sample size from 2,575 respondents
 # having children to 2,115 respondents.
 #++++
-# 3.) Restructure data set: Information from previous children is copied
+# 2.) Restructure data set: Information from previous children is copied
 # downwards so that at each interview date, the full information about 
 # children is provided. For instance, respondent reports in wave 1 that he/she
 # has 1 child. In wave 3, respondents reports to have another child. The date
@@ -26,11 +24,12 @@
 # wave 3 - info on child 2
 # -> This simplifies further computations.
 #++++
-# 4.) Generate variables: total number of children, age of children, and dummy
+# 3.) Generate variables: total number of children, age of children, and dummy
 # variables indicating the gender, if the children is the respondents
 # biological child, living always in the same household and going already
 # to school. All those variables are created with respect to the interview
 # date.
+# -> extra dummies for NA categories.
 #++++
 # --> FINAL DATA FRAME IS A PANEL DATA SET (one row for each respondent-wave combination).
 
@@ -80,17 +79,20 @@ num_child <- length(unique(data_child$ID_t))
 #### Missing Values ####
 #%%%%%%%%%%%%%%%%%%%%%%#
 
+# DOES NOT MAKE SENSE HERE: One row per respondent and child -> info on this
+# child cannot be transferred to other children of respondents.
 
-# number of missing values
-sum(is.na(data_child))
-colSums(is.na(data_child))
-
-# fill missing values downwards
-data_child <- data_child %>% 
-  group_by(ID_t) %>%
-  fill(names(data_child), .direction = "down")
-
-colSums(is.na(data_child)) # only 24 missing values in child_school left
+# # number of missing values
+# sum(is.na(data_child))
+# colSums(is.na(data_child))
+# 
+# # fill missing values downwards for ID_t and child
+# data_child <- data_child %>% 
+#   arrange(ID_t, wave) %>%
+#   group_by(ID_t, child_num) %>%
+#   fill(names(data_child), .direction = "down")
+# 
+# colSums(is.na(data_child)) 
 
 
 
@@ -149,6 +151,7 @@ test_2
 
 
 # apply idea to full data frame
+data_child_merge <- data_child %>% select(-wave)
 data_child_2 <- 
   # group by ID_t and wave in order to complete missing child information
   # for those waves (in every wave full sequence of children mus be reported)
@@ -158,7 +161,7 @@ data_child_2 <-
   complete(child_num = seq(1, max(child_num), by = 1), interview_date) %>%
   # left_join merge data in order to fill missing values
   left_join(
-    test_merge, by = c("ID_t", "child_num")
+    data_child_merge, by = c("ID_t", "child_num")
   ) %>%
   # combine .x and .y variables
   split.default(str_remove(names(.), "\\.[x|y]$")) %>%
@@ -175,6 +178,7 @@ data_child_2 <-
 
 
 ## AGE ##
+#+++++++#
 
 # load function to convert month and year variable to date
 source("Functions/func_generate_date.R")
@@ -199,9 +203,64 @@ data_child_2 <- data_child_2 %>%
   )
 summary(data_child_2$child_age) # respondents with old children are also old at the start of studying
 
+# in the analysis, the age of the youngest and oldest child is used
+data_child_2 <- left_join(
+  data_child_2,
+  data_child_2 %>%
+    group_by(ID_t, wave) %>%
+    summarise(
+      child_age_youngest = min(child_age),
+      child_age_oldest = max(child_age)
+    ),
+  by = c("ID_t", "wave")
+) %>%
+  # replace variables where dummy is NA with 0
+  mutate(
+    child_age_youngest = replace_na(child_age_youngest, 0),
+    child_age_oldest = replace_na(child_age_oldest, 0)
+  )
+
+# generate dummy for missing NA (equals 1 if at least for one child respondent has not reported a birth date)
+data_child_2 <- left_join(
+  data_child_2, 
+  data_child_2 %>%
+    select(ID_t, wave, child_age) %>%
+    group_by(ID_t, wave) %>%
+    mutate(child_age_na = if_else(is.na(child_age), 1, 0)) %>%
+    group_by(ID_t, wave) %>%
+    mutate(child_age_na = sum(child_age_na)) %>%
+    distinct() %>%
+    mutate(child_age_na = if_else(child_age_na > 0, 1, 0)) %>%
+    select(-child_age),
+  by = c("ID_t", "wave")
+) 
+
+
+# create age categories and dummy for missing age
+## https://www.cdc.gov/ncbddd/childdevelopment/positiveparenting/middle.html (Centers for Disease Control and Prevention)
+## https://amchp.org/adolescent-health/
+# data_child_2 <- data_child_2 %>%
+#   mutate(
+#     # infants (0-1) & toddlers (1-3)
+#     child_age_3 = if_else(child_age <= 3, 1, 0),
+#     # preschoolers (3-5)
+#     child_age_5 = if_else(child_age <= 5 & child_age > 3, 1, 0),
+#     # middle childhood (6-11)
+#     child_age_11 = if_else(child_age <= 11 & child_age > 5, 1, 0),
+#     # young teens (12-14) & teenagers (15-17)
+#     child_age_17 = if_else(child_age <= 17 & child_age > 11, 1, 0),
+#     # Young adulthood (18-25)
+#     child_age_25 = if_else(child_age <= 25 & child_age > 17, 1, 0),
+#     # Adults (above 25)
+#     child_age_25plus = if_else(child_age > 25, 1, 0),
+#     # Missing age
+#     child_age_na = if_else(is.na(child_age), 1, 0)
+#   )
+
 
 
 ## TOTAL NUMBER OF CHILDREN ##
+#++++++++++++++++++++++++++++#
 
 # generate the total number of children for each respondent at each interview date
 data_child_2 <- data_child_2 %>%
@@ -209,10 +268,12 @@ data_child_2 <- data_child_2 %>%
   mutate(child_total_num = max(child_num))
 
 summary(data_child_2$child_total_num)
+sum(is.na(data_child_2$child_total_num))
 
 
 
 ## SCHOOL VARIABLE ##
+#+++++++++++++++++++#
 
 # child_school variable has many missing values
   ## adjusted according to age of the child
@@ -222,57 +283,10 @@ data_child_2$child_school <- as.character(data_child_2$child_school) # needed fo
 data_child_2 <- data_child_2 %>%
   mutate(child_school = case_when(is.na(child_school) & child_age >= 6 & child_age <= 20 ~ "yes",
                                   TRUE ~ "no"))
+sum(is.na(data_child_2$child_school))
 
 
-## NUMBER BIOLOGICAL CHILDREN ##
-
-# number of biological children is counted for each ID_t and wave group
-data_child_2 <- left_join(
-  data_child_2,
-  data_child_2 %>%
-    filter(child_type == "Biological child") %>%
-    group_by(ID_t, wave) %>%
-    count() %>%
-    rename(child_biological_num = n),
-  by = c("ID_t", "wave")
-) %>%
-  # missing values are replaced with zero
-  mutate(child_biological_num = replace_na(child_biological_num, 0))
-
-
-## NUMBER CHILDREN ALWAYS LIVING IN HOUSEHOLD ##
-
-data_child_2 <- left_join(
-  data_child_2,
-  data_child_2 %>%
-    filter(child_hh == "yes, always") %>%
-    group_by(ID_t, wave) %>%
-    count() %>%
-    rename(child_living_hh_num = n),
-  by = c("ID_t", "wave")
-) %>%
-  # missing values are replace with zero
-  mutate(child_living_hh_num = replace_na(child_living_hh_num, 0))
-
-
-
-## NUMBER MALE CHILDREN ##
-
-data_child_2 <- left_join(
-  data_child_2,
-  data_child_2 %>%
-    filter(!grepl("female", child_gender)) %>%
-    group_by(ID_t, wave) %>%
-    count() %>%
-    rename(child_male_num = n),
-  by = c("ID_t", "wave")
-) %>%
-  # missing values are replace with zero
-  mutate(child_male_num = replace_na(child_male_num, 0))
-
-
-
-## NUMBER CHILDREN SCHOOL ##
+# NUMBER CHILDREN SCHOOL 
 
 data_child_2 <- left_join(
   data_child_2,
@@ -284,22 +298,83 @@ data_child_2 <- left_join(
   by = c("ID_t", "wave")
 ) %>%
   # missing values are replace with zero
-  mutate(child_school_num = replace_na(child_school_num, 0))
+  # no dummy for NA needed as child_school has no missing values
+  mutate(child_school_num = replace_na(child_school_num, 0)) 
 
 
 
-## AGE YOUNGEST AND OLDEST CHILD ##
+## NUMBER BIOLOGICAL CHILDREN ##
+#++++++++++++++++++++++++++++++#
+
+# number of biological children is counted for each ID_t and wave group
+sum(is.na(data_child$child_type))
 
 data_child_2 <- left_join(
   data_child_2,
   data_child_2 %>%
+    filter(child_type == "Biological child") %>%
     group_by(ID_t, wave) %>%
-    summarise(
-      child_age_youngest = min(child_age),
-      child_age_oldest = max(child_age)
-    ),
+    count() %>%
+    rename(child_biological_num = n),
   by = c("ID_t", "wave")
-) 
+) %>%
+  # missing values are replaced with zero
+  mutate(child_biological_num = replace_na(child_biological_num, 0)) 
+
+
+
+## NUMBER CHILDREN ALWAYS LIVING IN HOUSEHOLD ##
+#++++++++++++++++++++++++++++++++++++++++++++++#
+
+sum(is.na(data_child_2$child_hh)) 
+
+data_child_2 <- left_join(
+  data_child_2,
+  data_child_2 %>%
+    filter(child_hh == "yes, always") %>%
+    group_by(ID_t, wave) %>%
+    count() %>%
+    rename(child_living_hh_num = n),
+  by = c("ID_t", "wave")
+) %>%
+  # missing values are replace with zero
+  mutate(child_living_hh_num = replace_na(child_living_hh_num, 0)) 
+
+# add dummy indicating if at least for one child in the current wave
+# the respondent did not answer
+data_child_2 <- left_join(
+  data_child_2, 
+  data_child_2 %>%
+    select(ID_t, wave, child_hh) %>%
+    group_by(ID_t, wave) %>%
+    mutate(child_living_hh_num_na = if_else(is.na(child_hh), 1, 0)) %>%
+    group_by(ID_t, wave) %>%
+    mutate(child_living_hh_num_na = sum(child_living_hh_num_na)) %>%
+    distinct() %>%
+    mutate(child_living_hh_num_na = if_else(child_living_hh_num_na > 0, 1, 0)) %>%
+    select(-child_hh),
+  by = c("ID_t", "wave")
+)
+
+
+
+## NUMBER MALE CHILDREN ##
+#++++++++++++++++++++++++#
+
+sum(is.na(data_child_2$child_gender))
+
+data_child_2 <- left_join(
+  data_child_2,
+  data_child_2 %>%
+    filter(!grepl("female", child_gender)) %>%
+    group_by(ID_t, wave) %>%
+    count() %>%
+    rename(child_male_num = n),
+  by = c("ID_t", "wave")
+) %>%
+  # missing values are replace with zero
+  # no dummy for missing (is okay because only 5 missings (not worth an extra variaböl))
+  mutate(child_male_num = replace_na(child_male_num, 0)) 
 
 
 
@@ -309,12 +384,19 @@ data_child_2 <- left_join(
 
 # keep only variables of interest
 data_child_final <- data_child_2 %>%
-  select(ID_t, wave, interview_date, child_age_youngest, child_age_oldest, 
-         ends_with("_num")) %>%
-  select(-child_num) %>%
+  select(ID_t, wave, interview_date, child_total_num, 
+         child_age_youngest, child_age_oldest, child_age_na, 
+         child_school_num, child_biological_num,
+         child_living_hh_num, child_living_hh_num_na, child_male_num) %>%
   ungroup() %>%
   distinct() %>%
   arrange(ID_t, wave)
+
+# check for remaining missing values (should not be any left)
+sum(is.na(data_child_final))
+
+# check for duplicates in ID_t and wave (there should not be any)
+data_child_final %>% select(ID_t, wave) %>% duplicated() %>% sum() == 0
 
 # check variables
 summary(data_child_final$child_age_youngest)

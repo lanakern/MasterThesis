@@ -19,8 +19,14 @@
 # partnership
 #++++
 # 3.) Detail variables such as education background are only kept for the 
-# current partnership. If a respondent does not have a current partnership,
-# those variables are NA. 
+# current partnership. 
+#++++
+# 4.) Handling missing values: If a respondent does not have a current partnership,
+# those variables are set to 0; to re-identify individuals without a current partner
+# a dummy is generated which equals 1 if a respondent does not have a partner
+# at the interview day. For age and education year there are also missing values
+# for the current partnership; those are set to zero and a dummy variable
+# indicating that those were NA is generated. 
 #++++
 # -> note: "current" and "previous" refers to the respective interview date
 # --> FINAL DATA FRAME IS A PANEL DATA SET (one row for each respondent-wave combination).
@@ -223,7 +229,10 @@ id_no_current <- setdiff(unique(data_partner$ID_t), unique(data_partner_current$
   
 data_partner_no_current <- data_partner %>% 
   subset(ID_t %in% id_no_current) %>%
-  select(ID_t, wave, interview_date, partner_num_total, partner_length_previous)
+  select(ID_t, wave, interview_date, partner_num_total, partner_length_previous) %>%
+  # create dummy for not having a partner
+  mutate(partner_current_no = 1)
+
 length(unique(data_partner_no_current$ID_t))
 
 
@@ -234,6 +243,52 @@ data_partner_final <- full_join(
 length(unique(data_partner_final$ID_t))
 
 
+#%%%%%%%%%%%%%%%%%%%%%%#
+#### Missing Values ####
+#%%%%%%%%%%%%%%%%%%%%%%#
+
+# number of missing values per column
+colSums(is.na(data_partner_final))
+
+# partner_current_nois 0 if NA, i.e., respondent has a partner
+data_partner_final <- data_partner_final %>%
+  mutate(partner_current_no = replace_na(partner_current_no, 0))
+
+# all current partner variables are 0 if respondent does not have a partner
+var_replace_vector <- 
+  c("partner_length_current", "partner_age", "partner_male", "partner_educ_years",
+    "partner_school_degree_highest", "partner_uni_degree_highest", "partner_study_current",
+    "partner_emp_current", "partner_daily", "partner_monthly")
+
+for (var_replace in var_replace_vector) {
+  data_partner_final <- data_partner_final %>%
+    # only replace missing value with 0 if respondent does not have a 
+    # partner at the interview date
+    mutate(
+      {{var_replace}} := ifelse(
+        partner_current_no == 1, 0, !!! rlang::syms(var_replace)
+        )
+      )
+}
+
+# number of missing values per column
+colSums(is.na(data_partner_final))
+
+# remaining missing values are due to missing responses
+# for those variables NA dummies are generated
+# the NAs in original variable are set to zero
+names(colSums(is.na(data_partner_final))[colSums(is.na(data_partner_final)) != 0])
+
+data_partner_final <- data_partner_final %>%
+  mutate(
+    partner_age_na = ifelse(is.na(partner_age), 1, 0),
+    partner_educ_years_na = ifelse(is.na(partner_educ_years), 1, 0)
+    ) %>%
+  mutate(
+    partner_age = replace_na(partner_age, 0), 
+    partner_educ_years = replace_na(partner_educ_years, 0)
+  ) 
+
 
 
 #%%%%%%%%%%%%%%%%%%%#
@@ -243,10 +298,13 @@ length(unique(data_partner_final$ID_t))
 # keep only variables needed
 data_partner_final <- data_partner_final %>%
   select(ID_t, wave, interview_date,
-         partner_num_total, starts_with("partner_length_"), partner_age,
-         partner_male, partner_educ_years, partner_school_degree_highest,
+         partner_num_total, starts_with("partner_length_"), partner_age, partner_age_na, 
+         partner_male, partner_educ_years, partner_educ_years_na, partner_school_degree_highest,
          partner_uni_degree_highest, partner_study_current, partner_emp_current,
-         partner_daily, partner_monthly)
+         partner_daily, partner_monthly, partner_current_no)
+
+# now no missing values should be left
+sum(is.na(data_partner_final))
 
 # check
 summary(data_partner_final$partner_num_total)
