@@ -22,10 +22,13 @@
 # Next, only respondents who are in both data sets, cohort profile and
 # competence measures, are kept. This reduces the sample size to 10,226 respondents.
 #++++
-# 3.) Downward replacement of missing values. For example, respondent has info
+# 3.) Handle missing values: 
+# 3.1) Downward replacement of missing values. For example, respondent has info
 # on competence measure mathematics in wave 1. The next competence measure test
 # on mathematics is conducted in wave 12. Hence, from wave 2 to wave 11, the
 # values from wave 1 are used.
+# 3.2) Domain-general competencies are paper-, computer-based or online. Missing
+# values are repalced across those survey methods.
 #++++
 # --> FINAL DATA FRAME IS A PANEL DATA SET (one row for each respondent-wave combination).
 
@@ -106,7 +109,7 @@ for (wave_sel in c("w1", "w5", "w12")) {
       rename(wave = paste0("wave_", wave_sel)) %>%
       mutate(wave = wave_comp[iter_num]) %>%
       # drop suffix of variables
-      rename_with(~ str_remove(., wave_sel))
+      rename_with(~ str_remove(., paste0("_", wave_sel)))
   
   # define columns for merge
     ## columns which are in both data sets except wave
@@ -136,7 +139,8 @@ for (wave_sel in c("w1", "w5", "w12")) {
 # this ensures that I can downward replace competence measures across waves
 length(unique(data_competencies_long$ID_t)) # 11,810
 data_competencies_final <- right_join(
-  data_competencies_long, data_cohort_profile, by = c("ID_t", "wave")
+  data_competencies_long, data_cohort_profile %>% select(ID_t, wave, interview_date), 
+  by = c("ID_t", "wave")
 )
 length(unique(data_competencies_final$ID_t)) # 12,670
 
@@ -170,13 +174,33 @@ data_competencies_final <-
   fill(data_competencies_final %>% select(-c(ID_t, wave)) %>% colnames(), 
        .direction = "down")
 
+# domain-general competencies can be paper-based, computer-based or online.
+# hence, missing values are replaced across those survey possibilities
+colSums(is.na(data_competencies_final))
+data_competencies_final <- data_competencies_final %>%
+  mutate(
+    # reasoning
+    reasoning_sum = ifelse(is.na(reasoning_paper_sum), reasoning_comp_sum, reasoning_paper_sum),
+    reasoning_sum = ifelse(is.na(reasoning_sum), reasoning_online_sum, reasoning_sum), 
+    # perceptual speed
+    percspeed_sum = ifelse(is.na(percspeed_paper_sum), percspeed_comp_sum, percspeed_paper_sum),
+    percspeed_sum = ifelse(is.na(reasoning_sum), percspeed_online_sum, reasoning_sum)
+  ) %>%
+  select(-c(matches(".*_comp_.*"), matches(".*_paper_.*"), matches(".*_online_.*")))
+colSums(is.na(data_competencies_final))
+
+
+
+# Ideas: for missing values in WLE 0 is inserted (average)
+# for missing values in share 0.5
+# for missing values in sum average
+# -> OR: use plausible values
 
 
 
 #%%%%%%%%%%%%%%%%%%%#
 #### Final Steps ####
 #%%%%%%%%%%%%%%%%%%%#
-
 
 # sort data frame
 data_competencies_final <- data_competencies_final %>%
