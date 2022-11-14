@@ -7,7 +7,7 @@
 #++++
 # In this file, all data files are loaded which are needed for the
 # upcoming analysis. Moreover, minor adjustments such as renaming variables,
-# replacing missing values, etc., are made.
+# replacing missing values, recoding "(not) specified" variables etc., are made.
 #++++
 # The data sets used in the upcoming analysis are:
 # - Biography (SC5_Biography_D_16-0-0.dta)
@@ -734,9 +734,9 @@ data_target_cawi <- data_target_cawi %>%
 data_school <- read.dta13("Data/Raw/SC5_spSchool_D_16-0-0.dta",
                           convert.factors = FALSE)
 
-# add factor labels
-vars_label_educ <- c("wave", "ts11205", "ts1120s_g2", "tg2232b_g1", "tg2232b_g2R",
-                     "ts11209", "ts11218", "t724712", "t724714")
+# add factor labels for specific variables
+vars_label_educ <- 
+  c("wave", "ts11205", "ts1120s_g2", "tg2232b_g1", "tg2232b_g2R","ts11209")
 for (var_sel in vars_label_educ) {
   data_school[, var_sel] <- 
     set.label(data_school, var_sel, lang = "en")
@@ -1013,8 +1013,7 @@ data_emp <- read.dta13("Data/Raw/SC5_spEmp_D_16-0-0.dta", convert.factors = FALS
 
 
 # add value labels for variables needed
-vars_label_emp <- c("ts23901_v1", "ts23203", "ts23256", "tg2608b", "ts23257",
-                    "ts23410", "ts23223")
+vars_label_emp <- c("ts23901_v1", "ts23203", "ts23256", "tg2608b", "ts23257")
 for (var_sel in vars_label_emp) {
   data_emp[, var_sel] <- 
     set.label(data_emp, var_sel, lang = "en")
@@ -1223,12 +1222,13 @@ data_competencies <- data_competencies %>%
 source("Functions/func_replace_missings.R")
 
 # create vector with missing values
-vec_missings_char <- c("not reached", "implausible value", "refused", "don’t know",
+vec_missings_char <- c("not reached", "implausible value", "refused", "don’t know", "don.+t_know",
                        "various", "missing by design", "unspecific missing",
                        "survey aborted", "question erroneously not asked",
                        "does not apply", "filtered", "system", 
                        "implausible value removed", "anonymized", 
-                       "not determinable", "not participated")
+                       "not determinable", "not participated", 
+                       "value from the last sub-episode")
 vec_missings_num <- c(-20:-29, -52:-56, -91:-99, -99.0)
 
 # apply function to all loaded data frames in the environment
@@ -1243,6 +1243,21 @@ remove(dfs_list, dfs_list_adj)
 
 
 
+#### Recode "(not) specified" variables ####
+#+++++++++++++++++++++++++++++++++++++++++#
+
+# load function
+source("Functions/func_recode_specified.R")
+
+# apply function to all loaded data frames in the environment
+dfs_list <- Filter(function(x) is(x, "data.frame"), mget(ls()))
+dfs_list_adj <- lapply(dfs_list, func_recode_specified)
+list2env(dfs_list_adj, envir = .GlobalEnv)
+remove(dfs_list, dfs_list_adj)
+
+
+
+
 #### Save all data frames ####
 #+++++++++++++++++++++++++++++#
 
@@ -1253,6 +1268,7 @@ saveRDS(data_target_cawi, "Data/Prep_1/prep_1_target_cawi.rds")
 saveRDS(data_school, "Data/Prep_1/prep_1_school.rds")
 saveRDS(data_education, "Data/Prep_1/prep_1_educ.rds")
 saveRDS(data_voc_train, "Data/Prep_1/prep_1_voctrain.rds")
+saveRDS(data_voc_break, "Data/Prep_1/prep_1_vocbreak.rds")
 saveRDS(data_gap, "Data/Prep_1/prep_1_gap.rds")
 saveRDS(data_emp, "Data/Prep_1/prep_1_emp.rds")
 saveRDS(data_internship, "Data/Prep_1/prep_1_internship.rds")
