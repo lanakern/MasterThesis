@@ -112,7 +112,7 @@ cbind(addmargins(table(data_cohort_profile$wave, data_cohort_profile$tx80220)))
   # hence, I drop all rows where a respondent does not take part because
   # for this wave no information is available
 data_cohort_profile <- data_cohort_profile %>%
-  filter(tx80220 == 1)
+  filter(tx80220 == "Participation")
 
 # rename variables and keep only variables of interest
 data_cohort_profile <- data_cohort_profile %>%
@@ -148,7 +148,26 @@ data_target_cati <- read.dta13("Data/Raw/SC5_pTargetCATI_D_16-0-0.dta",
 
 
 # add value labels
-vars_label_cati <- colnames(data_target_cati)[-1] # drop ID_t (would result in NA)
+  ## define variables which should be labelled; some such as ID_t and numeric
+  ## variables (especially those which are aggregated later) are dropped. 
+vars_label_cati <- data_target_cati %>%
+  select(-c(ID_t, t67809a, t67809b, t67809e, t67809f, t67809h, t67810a, t67810b,
+            t67810d, t67810e, t67810h, t66003a, t66003b, t66003c, t66003d, t66003e,
+            t66003f, t66003g, t66003h, t66003i, t66003j, tg15001,
+            tg15003, tg15002, tg15004, t31300a, t31300b, t31300c, t31300d,
+            t31300e, t31300f, t31300g, t31300h, t31300i, t31300j, t31300k,
+            t31300l, t31300m, t31300n, t31300o, t66406a, t66407a, t66408a,
+            t66406b, t66407b, t66408b, t66406c, t66407c, t66408c, t66406d,
+            t66408d, t66407d, t66405a, t66405b, t66405c, t66405d, tg2411b,
+            tg2411c, tg2411d, tg2411e, tg2411f, tg2411g, tg2411h, tg2411i,
+            t514008, t514001, t514002, t514003, t514004, t514005, t514009,
+            t66201a, t66201b, t66201c, t66201d, t66208a, t66208b, t66208c,
+            t66208d, t34001h, t34001j, t516005, t516009, t516106, 
+            t516105, t516300, t34010f, t515052, t515053, t515054, t515051,
+            t724403, t70000y, t70000m, t741001, t510010, t731301_g3, t731351_g3,
+            t531260, t531261, tg09002, t525015, t521050, t521051, t521052,
+            t520002, t520003, t34001h, t34001j, t34009j, t34009h)
+         ) %>% colnames()
 for (var_sel in vars_label_cati) {
   data_target_cati[, var_sel] <- 
     set.label(data_target_cati, var_sel, lang = "en")
@@ -159,9 +178,9 @@ for (var_sel in vars_label_cati) {
 data_target_cati <- data_target_cati %>%
   rename(
     # treatment: sport frequency (independent of university sport)
-    # sport_leisure_freq = t527102,
+    sport_leisure_freq = t527102,
     # outcome: final grade
-    # grade_final = t724403, 
+    grade_final = t724403,
     # outcome: big five personality traits
     bigfive_extraversion = t66800a, 
     bigfive_agreeableness = t66800b, 
@@ -454,7 +473,28 @@ data_target_cawi <- read.dta13("Data/Raw/SC5_pTargetCAWI_D_16-0-0.dta",
                                convert.factors = FALSE)
 
 # add factor labels
-vars_label_cawi <- colnames(data_target_cawi)[-1] # drop ID_t
+vars_label_cawi <- data_target_cawi %>%
+  # drop variables which will make trouble such as ID_t and grades (tg52020)
+  # also variables which will be aggregated should not take on any label
+  select(-c(ID_t, tg52020, t67001a, t67001b, t67001c, t67001d, t67001e,
+            t67000a, t67000b, t67000c, t67000d, t67000e, t320410, t320406, t320405,
+            t320106, t320105, t320110, t241001, t241002, t241003,
+            t241004, t241005, t241006, t241007, t241008, t241009, t241000, t242001,
+            t242002, t242003, t242004, t242005, t242006, t242007, t242008, t242009,
+            t242000, t242011, t242012, t242013, t242014, t242015, t242016, t242017,
+            t242018, t242019, t242010, t242020, t242021, t242022, t242023, t242024,
+            t242025, t242026, t242027, t242028, t242033, tg54112, tg54113, tg54211, 
+            tg54212, tg53231, tg53232, tg53233, tg53234, tg53235, tg53236, tg52042, 
+            tg52043, tg53221, tg53223, tg53224, tg53225, t291541, t291542, t291543,
+            t291544, t291545, t291546, t291525, t291526, t291527, t291528, t66007a,
+            t66007d, t66007b, t66007e, t66010d, t66010b, t66010a, tg53111, tg53112,
+            tg53113, tg53114, tg53121, tg53122, tg53123, t527003, t527004, t527010,
+            t527017, t527019, t527021, t527022, t527028, t527029, t527032, t527034,
+            t30300b, tg52010, tg52011, tg52012, tg52013, tg52014, t261501,
+            t261503, t66007a_g1, t66010a_g1, t241011, t241013, t241014, t241015,
+            t241016, t241021)
+  ) %>%
+  colnames()
 for (var_sel in vars_label_cawi) {
   data_target_cawi[, var_sel] <- 
     set.label(data_target_cawi, var_sel, lang = "en")
@@ -551,16 +591,16 @@ data_target_cawi <- data_target_cawi %>%
     friends_opinion_degree_2 = t320105, 
     friends_opinion_degree_3 = t320110, 
     # counseling services at university
-    uni_counsel_admission = t241001, 
-    uni_counsel_finance = t241002, 
-    uni_counsel_orga = t241003, 
-    uni_counsel_accommo = t241004, 
-    uni_counsel_degree = t241005, 
-    uni_counsel_parent = t241006, 
-    uni_counsel_law = t241007, 
-    uni_counsel_abroad = t241008, 
-    uni_counsel_psycho = t241009,
-    uni_counsel_other = t241000, 
+    uni_counsel_admission_offer = t241001, 
+    uni_counsel_finance_offer = t241002, 
+    uni_counsel_orga_offer = t241003, 
+    uni_counsel_accommo_offer = t241004, 
+    uni_counsel_degree_offer = t241005, 
+    uni_counsel_parent_offer = t241006, 
+    uni_counsel_law_offer = t241007, 
+    uni_counsel_abroad_offer = t241008, 
+    uni_counsel_psycho_offer = t241009,
+    uni_counsel_other_offer = t241000, 
     uni_counsel_admission_use = t242001, 
     uni_counsel_finance_use = t242002, 
     uni_counsel_orga_use = t242003, 
