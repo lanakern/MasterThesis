@@ -60,13 +60,12 @@ data_cohort_profile <- readRDS("Data/Prep_2/prep_2_cohort_profile.rds")
 length(unique(data_target_cati$ID_t)) # 17,909 respondents
 length(unique(data_cohort_profile$ID_t)) # 12,670 respondents
 
-# handle many missing values: unless a new value has been reported,
+# handle many missing values in CATI: unless a new value has been reported,
 # value is copied downwards, i.e., to later waves. 
 data_target_cati <- data_target_cati %>%
   arrange(ID_t, wave) %>%
   group_by(ID_t) %>%
   fill(names(data_target_cati), .direction = "down")
-
 
 # merge cati data to cohort date -> only respondents which are 
 # also in cohort data are kept. Moreover, only information for waves used
@@ -136,7 +135,7 @@ print(paste("Number of columns:", ncol(data_cati)))
 # select outcome and treatment variables
 data_cati_treatment <- data_cati %>%
   ungroup() %>%
-  select(ID_t, wave, treatment_starts, grade_final, sport_leisure_freq)
+  select(ID_t, wave, interview_date, treatment_starts, grade_final, sport_leisure_freq)
 
 # factor variables as character
 data_cati_treatment <- data_cati_treatment %>% mutate_if(is.factor, as.character)
