@@ -22,7 +22,6 @@
 
 
 
-
 #### Setup ####
 #+++++++++++++#
 
@@ -62,7 +61,7 @@ data_target_cawi <- data_target_cawi %>%
 data_cawi <- inner_join(
   data_target_cawi, 
   data_cohort_profile %>% 
-    select(-c(controls_invariant, starts_with("competence"))), 
+    select(-c(starts_with("competence"))), 
   by = c("ID_t", "wave")
 )
 
