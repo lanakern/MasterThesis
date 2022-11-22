@@ -539,10 +539,10 @@ length(unique(data_uni$ID_t)) # all individuals are kept (10432)
 
   # subset data for faster computation
   ## DELETE LATER ##
-data_uni <- data_uni %>%
-  subset(ID_t %in% c(7001969, 7002033, 7019370, 7017362))
-data_cati_cawi <- data_cati_cawi %>%
-  subset(ID_t %in% c(7001969, 7002033, 7019370, 7017362))
+# data_uni <- data_uni %>%
+#   subset(ID_t %in% c(7001969, 7002033, 7019370, 7017362))
+# data_cati_cawi <- data_cati_cawi %>%
+#   subset(ID_t %in% c(7001969, 7002033, 7019370, 7017362))
 
   ## show example for merging
 data_uni %>% select(ID_t, start_date, end_date) %>% 
@@ -562,44 +562,70 @@ data_check_outcome <-
     d1.interview_date_treatment between d2.start_date and d2.end_date"
   ) %>%
   distinct()
-data_check_outcome
   ## drop rows where outcome interview is not inside uni spell
   ## this is done via an inner join
 data_cati_cawi_eps <- data_cati_cawi %>%
   inner_join(data_check_outcome, by = c("ID_t", "treatment_starts"))
+length(unique(data_cati_cawi_eps$ID_t)) # 9053
 data_cati_cawi_eps %>%
   select(ID_t, treatment_starts, treatment_ends, starts_with("interview_date")) %>% 
   subset(ID_t %in% c(7001969, 7002033, 7019370, 7017362))
 
 # perform the same check of CAWI and CATI interval
 # the interview date for the control variables must be within the uni spell
-data_check_controls <- 
-  sqldf(
-    "select d1.ID_t, treatment_starts
-    from data_cati_cawi AS d1
-    inner join data_life_course AS d2 on d1.ID_t = d1.ID_t and 
+# subset calculation because of memory problems
+ids_sub <- data_cati_cawi %>% pull(ID_t) %>% unique()
+
+# loop to iterate over IDs -> necessary because of memory issues
+loop_index_end <- seq(1000, length(unique(data_cati_cawi$ID_t)), by = 1000)
+loop_index_end[length(loop_index_end)] <- length(unique(data_cati_cawi$ID_t))
+loop_index_start <- 1
+
+data_check_controls <- data.frame()
+
+for (i in loop_index_end) {
+  
+  # garbage collector
+  gc() 
+  
+  # subset data 
+  data_cati_cawi_sub <- data_cati_cawi %>% 
+    subset(ID_t %in% ids_sub[loop_index_start:i]) %>% 
+    select(ID_t, treatment_starts, interview_date_cati, interview_date_cawi)
+  
+  data_life_course_sub <- data_life_course %>%
+    subset(ID_t %in% ids_sub[loop_index_start:i]) %>%
+    select(ID_t, start_date, end_date)
+  
+  # adjust loop start index, by last used value + 1
+  loop_index_start <- i + 1
+  
+  # SQL: keep only treatment periods where interview dates are in uni spell
+  data_check_controls_sub <- 
+    sqldf(
+      "select d1.ID_t, treatment_starts
+    from data_cati_cawi_sub AS d1
+    inner join data_life_course_sub AS d2 on d1.ID_t = d1.ID_t and 
     d1.interview_date_cati between d2.start_date and d2.end_date and
     d1.interview_date_cawi between d2.start_date and d2.end_date
     "
-  ) %>%
-  distinct()
+    ) %>%
+    distinct()
+  
+  # final data frame
+  data_check_controls <- rbind(data_check_controls, data_check_controls_sub)
+  
+}
+
+length(unique(data_check_controls$ID_t)) # 10439
+
+# keep only respondents with CATI and CAWI survey inside uni spell
 data_cati_cawi_eps <- data_cati_cawi_eps %>%
   inner_join(data_check_controls, by = c("ID_t", "treatment_starts")) 
 
-
 # check number of respondents
-length(unique(data_cati_cawi_eps$ID_t))
+length(unique(data_cati_cawi_eps$ID_t)) # 9053
   
-
-# data_check_cawi <- 
-#   sqldf(
-#     "select d1.ID_t, treatment_starts
-#     from data_cati_cawi AS d1
-#     inner join data_life_course AS d2 on d1.ID_t = d1.ID_t and 
-#     d1.interview_date_cawi between d2.start_date and d2.end_date"
-#   ) %>% distinct()
-# data_cati_cawi <- data_cati_cawi %>%
-#   inner_join(data_check_cawi, by = c("ID_t", "treatment_starts")) 
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -979,6 +1005,12 @@ data_merge_6 <- left_join(data_merge_5, data_competencies,
 #### FINAL STEPS ####
 #%%%%%%%%%%%%%%%%%%%#
 
+# number of respondents, rows and columns
+print(paste("Number of respondents after merge process:", length(unique(data_merge_6$ID_t))))
+print(paste("Number of rows after merge process:", nrow(data_merge_6)))
+print(paste("Number of columns after merge process:", ncol(data_merge_6)))
+
+
 # save
 saveRDS(data_merge_6, "Data/prep_4_merge.rds")
 
@@ -987,113 +1019,3 @@ saveRDS(data_merge_6, "Data/prep_4_merge.rds")
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-# check number of missings for sport
-# data_all_3 %>% group_by(ID_t) %>% 
-#   mutate(missing_sport = if_else(is.na(sport_uni) | is.na(sport_uni_freq), 1, 0)) %>% 
-#   select(ID_t, missing_sport) %>% distinct() %>% ungroup() %>% 
-#   summarize(total_missing = sum(missing_sport))
-
-
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-
-
-#### OLD ####
-
-
-# #### Merge Cross-Sectional Data Sets ####
-# #+++++++++++++++++++++++++++++++++++++++#
-# 
-# # Merge socio-parents with siblings information
-# data_socio_parents <- readRDS("Data/Prep_2/socio_parents_prep.rds")
-# data_siblings <- readRDS("Data/Prep_2/sibling_prep.rds")
-# 
-# # check number of rows
-#   ## number of rows probably do not coincide because some respondents do
-#   ## not have siblings at all and therefore are not included in the
-#   ## siblings data frame
-# nrow(data_siblings)
-# nrow(data_socio_parents)
-# 
-# # merge via ID, keeping all respondents in the socio_parents data frame
-# # therefore: left-join
-# data_cross_section <- left_join(
-#   data_socio_parents, data_siblings, by = "ID_t"
-# )
-# 
-# # adjust number of siblings variables: NAs indicate the persons not having siblings
-# # but also activity of siblings is replaced with 0 to avoid having
-# # missing values in final data frame
-# data_cross_section <- data_cross_section %>%
-#   mutate(
-#     across(starts_with("sibling"), ~replace_na(.x, 0))
-#   )
-# 
-# 
-# 
-# #### Merge Cati and Cawi ####
-# #+++++++++++++++++++++++++++#
-# 
-# 
-# # load data
-# data_cati <- readRDS("Data/Prep_2/cati_outcome_treatment_prep.rds")
-# data_cawi_out_tr <- readRDS("Data/Prep_2/cawi_outcome_treatment_prep.rds")
-# 
-# # merge via ID and wave
-# data_cati_cawi <- inner_join(
-#   data_cati, data_cawi_out_tr, by = c("ID_t", "wave")
-# )
-# 
-# # check number of respondents
-# length(unique(data_cati_cawi$ID_t))
-# 
-# 
-# #### Merge Edcuation and Cati/Cawi ####
-# #+++++++++++++++++++++++++++++++++++++#
-# 
-# # load education data
-# data_educ <- readRDS("Data/Prep_2/educ_prep.rds")
-# 
-# # merge with education
-# data_educ_cati_cawi <- left_join(
-#   data_cati_cawi, data_educ, by = c("ID_t", "wave")
-# )
-# 
-# 
-# # for development: look only at specific variables
-# data_test <- data_educ_cati_cawi %>%
-#   select(ID_t, wave, interview_date, start_date, end_date, educ_uni_voctrain_type,
-#          sport_leisure_freq, sport_uni, sport_uni_freq, 
-#          grade_current, grade_final,
-#          sptype, educ_uni_start, educ_uni_eps_num) %>%
-#   arrange(ID_t, wave)
-# 
-# 
-# # select specific students fof better understanding
-# data_test_spec_1 <- data_test %>% subset(ID_t == 7002013)
-# 
-# 
-# 
-# 
-# #### Other try ####
-# #+++++++++++++++++#
-# 
-# data_educ <- readRDS("Data/Prep_2/educ_prep.rds")
-# data_cawi_out_treat <- readRDS("Data/Prep_2/cawi_outcome_treatment_prep.rds")
-# data_cawi_controls <- readRDS("Data/Prep_2/cawi_controls_prep.rds")
-# data_cati <- readRDS("Data/Prep_2/cati_outcome_treatment_prep.rds")
-# data_cati_controls <- readRDS("Data/Prep_2/cati_controls_prep.rds")
-# 
-# data_educ_test <- data_educ %>% subset(ID_t == 7002013) %>% 
-#   select(ID_t, wave, interview_date, sptype, start_date, end_date, 
-#          educ_uni_voctrain_type, educ_uni_start, educ_uni_eps_num)
-# data_cawi_test <- data_cawi_out_treat %>% subset(ID_t == 7002013)
-# data_cawi_contr_test <- data_cawi_controls %>% subset(ID_t == 7002013)
-# data_cati_test <- data_cati %>% subset(ID_t == 7002013)
-# data_cati_contr_test <- data_cati_controls %>% subset(ID_t == 7002013)
-# 
-# data_educ_test_2 <- data_educ %>% subset(ID_t == 7002017) %>% 
-#   select(ID_t, wave, interview_date, sptype, start_date, end_date, 
-#          educ_uni_voctrain_type, educ_uni_start, educ_uni_eps_num)
-# data_cawi_test_2 <- data_cawi_out_treat %>% subset(ID_t == 7002017)
-# data_cati_test_2 <- data_cati %>% subset(ID_t == 7002017)
