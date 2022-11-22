@@ -28,7 +28,10 @@
 # on mathematics is conducted in wave 12. Hence, from wave 2 to wave 11, the
 # values from wave 1 are used.
 # 3.2) Domain-general competencies are paper-, computer-based or online. Missing
-# values are repalced across those survey methods.
+# values are replaced across those survey methods.
+# 3.3) Replacement
+# -> "NA_dummies": missing values are replaced and NA dummies are generated
+# -> "plausible": missing values are replaced by plausible values
 #++++
 # --> FINAL DATA FRAME IS A PANEL DATA SET (one row for each respondent-wave combination).
 
@@ -59,7 +62,10 @@ library(tidyr)  # for fill() function
 # for German language
 Sys.setlocale("LC_TIME", "German")
 
-
+# define data preparation type for missing values
+  ## "NA_dummies": for missing values replacements are made and NA dummies are generated
+  ## "plausible": plausible values are inserted for missing values
+competencies <- "NA_dummies" 
 
 
 #%%%%%%%%%%%%%%%%%#
@@ -139,7 +145,8 @@ for (wave_sel in c("w1", "w5", "w12")) {
 # this ensures that I can downward replace competence measures across waves
 length(unique(data_competencies_long$ID_t)) # 11,810
 data_competencies_final <- right_join(
-  data_competencies_long, data_cohort_profile %>% select(ID_t, wave, interview_date), 
+  data_competencies_long, 
+  data_cohort_profile %>% select(ID_t, wave, interview_date, treatment_starts), 
   by = c("ID_t", "wave")
 )
 length(unique(data_competencies_final$ID_t)) # 12,670
@@ -190,6 +197,37 @@ data_competencies_final <- data_competencies_final %>%
 colSums(is.na(data_competencies_final))
 
 
+# handle missing values
+  ## 1.) Create NA variables
+  ## 2.) Insert plausible values
+if (competencies == "NA_dummies") {
+  # NAs in WLE are replaced by 0 (average)
+  # for share 0.5 and for sum average sum across population
+  # in addition an indicator is generated telling that for those
+  # respondents no competence measures are available
+    ## extract columsn with NAs
+  cols_NA <- names(colSums(is.na(data_competencies_final))[colSums(is.na(data_competencies_final)) > 0])
+    ## create NA dummies
+  for (cols_NA_sel in cols_NA) {
+    cols_NA_mut <- paste0(cols_NA_sel, "_NA")
+    data_competencies_final <- data_competencies_final %>%
+      mutate(
+        {{cols_NA_mut}} := ifelse(is.na(!!!syms(cols_NA_sel)), 1, 0),
+        {{cols_NA_sel}} := ifelse(is.na(!!!syms(cols_NA_sel)), 0, !!!syms(cols_NA_sel))
+      )
+  }
+    ## replace missing values
+  data_competencies_final <- data_competencies_final %>%
+    mutate(
+      across(matches("wle"), ~ replace_na(., 0)),
+      across(matches("share"), ~ replace_na(., 0.5)),
+      across(matches("sum"), ~ replace_na(., mean(., na.rm = TRUE)))
+    )
+} else if (competencies == "plausible") {
+  data_competencies_final <- data_competencies_final
+} else {
+  data_competencies_final <- data_competencies_final
+}
 
 # Ideas: for missing values in WLE 0 is inserted (average)
 # for missing values in share 0.5
@@ -202,9 +240,20 @@ colSums(is.na(data_competencies_final))
 #### Final Steps ####
 #%%%%%%%%%%%%%%%%%%%#
 
-# sort data frame
+# keep only unique values across treatment periods
+sum(duplicated(data_competencies_final[, c("ID_t", "treatment_starts")]))
+
 data_competencies_final <- data_competencies_final %>%
-  arrange(ID_t, wave)
+  arrange(ID_t, treatment_starts, wave) %>%
+  group_by(ID_t, treatment_starts) %>%
+  slice(n())
+
+sum(duplicated(data_competencies_final[, c("ID_t", "treatment_starts")]))
+
+# sort data frame and drop wave column
+data_competencies_final <- data_competencies_final %>%
+  arrange(ID_t, treatment_starts) %>%
+  select(-wave)
 
 # sample size: 10,266
 print(paste("The final sample size includes", 
