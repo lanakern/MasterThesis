@@ -281,8 +281,8 @@ names(colSums(is.na(data_partner_final))[colSums(is.na(data_partner_final)) != 0
 
 data_partner_final <- data_partner_final %>%
   mutate(
-    partner_age_na = ifelse(is.na(partner_age), 1, 0),
-    partner_educ_years_na = ifelse(is.na(partner_educ_years), 1, 0)
+    partner_age_NA = ifelse(is.na(partner_age), 1, 0),
+    partner_educ_years_NA = ifelse(is.na(partner_educ_years), 1, 0)
     ) %>%
   mutate(
     partner_age = replace_na(partner_age, 0), 
@@ -298,8 +298,8 @@ data_partner_final <- data_partner_final %>%
 # keep only variables needed
 data_partner_final <- data_partner_final %>%
   select(ID_t, wave, interview_date,
-         partner_num_total, starts_with("partner_length_"), partner_age, partner_age_na, 
-         partner_male, partner_educ_years, partner_educ_years_na, partner_school_degree_highest,
+         partner_num_total, starts_with("partner_length_"), partner_age, partner_age_NA, 
+         partner_male, partner_educ_years, partner_educ_years_NA, partner_school_degree_highest,
          partner_uni_degree_highest, partner_study_current, partner_emp_current,
          partner_daily, partner_monthly, partner_current_no)
 

@@ -226,11 +226,11 @@ data_child_2 <- left_join(
   data_child_2 %>%
     select(ID_t, wave, child_age) %>%
     group_by(ID_t, wave) %>%
-    mutate(child_age_na = if_else(is.na(child_age), 1, 0)) %>%
+    mutate(child_age_NA = if_else(is.na(child_age), 1, 0)) %>%
     group_by(ID_t, wave) %>%
-    mutate(child_age_na = sum(child_age_na)) %>%
+    mutate(child_age_NA = sum(child_age_NA)) %>%
     distinct() %>%
-    mutate(child_age_na = if_else(child_age_na > 0, 1, 0)) %>%
+    mutate(child_age_NA = if_else(child_age_NA > 0, 1, 0)) %>%
     select(-child_age),
   by = c("ID_t", "wave")
 ) 
@@ -347,11 +347,11 @@ data_child_2 <- left_join(
   data_child_2 %>%
     select(ID_t, wave, child_hh) %>%
     group_by(ID_t, wave) %>%
-    mutate(child_living_hh_num_na = if_else(is.na(child_hh), 1, 0)) %>%
+    mutate(child_living_hh_num_NA = if_else(is.na(child_hh), 1, 0)) %>%
     group_by(ID_t, wave) %>%
-    mutate(child_living_hh_num_na = sum(child_living_hh_num_na)) %>%
+    mutate(child_living_hh_num_NA = sum(child_living_hh_num_NA)) %>%
     distinct() %>%
-    mutate(child_living_hh_num_na = if_else(child_living_hh_num_na > 0, 1, 0)) %>%
+    mutate(child_living_hh_num_NA = if_else(child_living_hh_num_NA > 0, 1, 0)) %>%
     select(-child_hh),
   by = c("ID_t", "wave")
 )
@@ -385,9 +385,9 @@ data_child_2 <- left_join(
 # keep only variables of interest
 data_child_final <- data_child_2 %>%
   select(ID_t, wave, interview_date, child_total_num, 
-         child_age_youngest, child_age_oldest, child_age_na, 
+         child_age_youngest, child_age_oldest, child_age_NA, 
          child_school_num, child_biological_num,
-         child_living_hh_num, child_living_hh_num_na, child_male_num) %>%
+         child_living_hh_num, child_living_hh_num_NA, child_male_num) %>%
   ungroup() %>%
   distinct() %>%
   arrange(ID_t, wave)
