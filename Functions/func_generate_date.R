@@ -2,24 +2,35 @@
 #### FUNCTION: GENERATE DATE VARIABLES FROM MONTH AND YEAR ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
+#++++
 # by Lana Kern
+#++++
+# In this file a function is generated which generates a date variable. This is
+# done because this operation is carried out frequently across the scripts. 
+#++++
+# Inputs: 
+# -> data: dataset containing month and year as numeric variables; day may be excluded,
+# -> day: column name as character string of day variable in data (not mandatory; if NULL 1 is used)
+# -> month: column name as character string of month variable in data (values must be numeric)
+# -> year: column name as character string of year variable in date (values must be numeric)
+# -> varname: variable name of generated variable as character string
+#++++
+# Output: The output is the dataset including the generated date variable
+#++++
 
-# In this file a function is generated which generates a date variable
-# from a given month and year. To do so, some data preparation steps are
-# carried out such as replacing month names.
+
+## LOAD PACKAGES ##
+#+++++++++++++++++#
+
+library(lubridate) # for mdy() function
+library(dplyr) # for data manipulations
 
 
 ## WRITE FUNCTION ##
 #++++++++++++++++++#
 
-# input: 
-  ## data: dataset containing day, month and year
-  ## day (not necessary, if not provided it is set to 1)
-  ## month (as name in German)
-  ## year (as number)
-  ## varname: name of the new variable
-
 func_generate_date <- function(data, day = NULL, month, year, varname){
+  
   # set day to 1 if it is not given
   if (is.null(day)) {
     data$day <- "1"
@@ -27,52 +38,28 @@ func_generate_date <- function(data, day = NULL, month, year, varname){
     data$day <- data %>% select({{day}}) %>% pull()
   }
   
-  data <- data %>%
-    mutate({{month}} := recode(!!! rlang::syms(month),
-                               "Jahresanfang/Winter" = "Januar",
-                               "Frühjahr/Ostern" = "April",
-                               "Jahresmitte/Sommer" = "Juli", 
-                               "Herbst" = "Oktober", 
-                               "Jahresende" = "Dezember"
-                         ))
-
-  
-  # recode month names as numbers (otherwise problems)
+  # recode month variable
   data <- data %>%
     mutate(
-      {{month}} := recode(
-        !!! rlang::syms(month),
-        "Januar" = 1, "Februar" = 2, "März" = 3, "April" = 4, "Mai" = 5,
-        "Juni" = 6, "Juli" = 7, "August" = 8, "September" = 9,
-        "Oktober" = 10, "November" = 11, "Dezember" = 12
-      ))
-  
-  # if month name is missing replace by March (3) -> temporary solution
-  # until problem with recode of März is found; then June (6) (middle of the year)
+      {{month}} := replace(!!! rlang::syms(month), !!sym(month) == 21, 1), # Beginning of the year is set to January
+      {{month}} := replace(!!! rlang::syms(month), !!sym(month) == 24, 4), # Spring/Eastern -> April
+      {{month}} := replace(!!! rlang::syms(month), !!sym(month) == 27, 7), # Midyear/Summer -> Juli
+      {{month}} := replace(!!! rlang::syms(month), !!sym(month) == 30, 10), # Fall -> October
+      {{month}} := replace(!!! rlang::syms(month), !!sym(month) == 32, 11) # End of the year -> December
+    )
+
+  # if month name is missing replace by June (6) (middle of the year)
   data <- data %>%
-    mutate({{month}} := if_else(is.na(!!! rlang::syms(month)), 3, !!! rlang::syms(month)))
+    mutate({{month}} := if_else(is.na(!!! rlang::syms(month)), 6, !!! rlang::syms(month)))
   
   # generate date
-    ## generate column name
-  #colname_date <- paste0(prefix, "_date") 
-    ## create date 
-    ## month and year are determined by function argument
-    ## day is adjusted previousöy
   data <- data %>%
     mutate(
       {{varname}} := mdy(paste(paste( !!! rlang::syms(month),  day),
                               !!! rlang::syms(year), sep = ","))
     )
   
+  # return data set with new variable
   return(data)
   
-  
 }
-
-#data_partner <- readRDS("Data/Prep_1/prep_1_partner.rds") 
-#test <- data_partner %>% select(ID_t, starts_with("partner_end"), starts_with("partner_start"))
-#test  <- test %>% arrange(desc(partner_start_m)) %>% head(20)
-#test$start_d <- 1
-
-#func_generate_date(data = test, month = "partner_start_m", year = "partner_start_y", varname = "start")
-#func_generate_date(data = test, day = "start_d", month = "partner_start_m", year = "partner_start_y", prefix = "start")
