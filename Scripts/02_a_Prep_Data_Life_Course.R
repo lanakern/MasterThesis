@@ -371,10 +371,43 @@ data_life_course <- data_life_course %>%
 
 
 
+#### Handle duplicates ####
+#+++++++++++++++++++++++++#
+
+
+## COMPLETE DUPLICATES ##
+
+# check for complete duplicates
+sum(duplicated(data_life_course))
+
+# remove them
+data_life_course <- data_life_course %>% distinct()
+sum(duplicated(data_life_course))
+
+
+
+## PARTIAL DUPLICATES ##
+
+# there are duplicates in ID_t, start_date, end_date, sptype_2
+# in this case, some other variable differ
+# However, since I am interested in spell lengths, I only keep the last duplicate
+sum(duplicated(data_life_course[c("ID_t","start_date", "end_date", "sptype_2")]))
+
+data_life_course <- data_life_course[!duplicated(
+  data_life_course[c("ID_t","start_date", "end_date", "sptype_2")], 
+  fromLast = TRUE), ]
+
+
+sum(duplicated(data_life_course[c("ID_t","start_date", "end_date", "sptype_2")]))
+
+
 
 #+++++++++++++++++++#
 #### Final Steps ####
 #+++++++++++++++++++#
+
+# remove grouping
+data_life_course <- data_life_course %>% ungroup()
 
 # check for missing values
 colSums(is.na(data_life_course))
