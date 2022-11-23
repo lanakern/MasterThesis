@@ -16,9 +16,21 @@
 # same value ranges. If less than three or more than eight variables are 
 # used for aggregation, this step is skipped even when cr_alpha = "yes". 
 # https://bjoernwalther.com/cronbachs-alpha-in-r-berechnen/
-# - method: "pca" vs. "mean" vs. "sum"
+# - method: "pca" vs. "mean" vs. "sum" vs "binary"
 #++++
 # OUTPUT: data frame with aggregated variables; single variables are dropped.
+
+
+
+## LOAD PACKAGES ##
+#+++++++++++++++++#
+
+library(stringr)
+library(dplyr)
+
+
+## WRITE FUNCTION ##
+#++++++++++++++++++#
 
 func_aggregate_vars <- function(data, varsel_prefix, cr_alpha, method) {
   
@@ -51,11 +63,20 @@ func_aggregate_vars <- function(data, varsel_prefix, cr_alpha, method) {
   }
   
   # create new name for variable
-  library(stringr)
-  new_column_name <- varsel_prefix %>% str_remove("\\.\\*") %>% str_replace("__", "_")
+    ## if we have pattern ".*"
+  if (str_detect(varsel_prefix, "\\.\\*")) {
+    new_column_name <- varsel_prefix %>% str_remove("\\.\\*") %>% str_replace("__", "_")
+  } else if (str_detect(varsel_prefix, "_\\[\\^")) {
+    new_column_name <- str_split(varsel_prefix, "_\\[", simplify = TRUE)[,1]
+  } else {
+    new_column_name <- varsel_prefix
+  }
+  
   
   # create variables to drop
   if (str_detect(varsel_prefix, "\\.\\*")) {
+    column_names_drop <- varsel_prefix
+  } else if (str_detect(varsel_prefix, "_\\[\\^")) {
     column_names_drop <- varsel_prefix
   } else {
     column_names_drop <- paste0(varsel_prefix, "_.*$")
@@ -79,6 +100,20 @@ func_aggregate_vars <- function(data, varsel_prefix, cr_alpha, method) {
   } else if (method == "pca") {
     # DO THIS
     data_final <- data
+  } else if (method == "binary") {
+    data_final <- data %>%
+      mutate(
+        {{new_column_name}} := case_when(
+          # if one variable has a 1, full binary variable also has a 1
+          rowSums(select(data, all_of(vars_keep)), na.rm = TRUE) > 0 ~ 1,
+          # if row sum is 0 AND not all values are NA, then binary takes on 0
+          rowSums(select(data, all_of(vars_keep)), na.rm = TRUE) == 0 &
+            rowSums(is.na(select(data, all_of(vars_keep)))) != length(vars_keep) ~ 0,
+          # in all other cases binary is NA
+          TRUE ~ as.double(NA)
+        )
+      ) %>%
+      select(-matches(column_names_drop))
   }
 
   # return data
