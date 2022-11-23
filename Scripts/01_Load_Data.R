@@ -158,7 +158,7 @@ vars_label_cati <- data_target_cati %>%
             t31300e, t31300f, t31300g, t31300h, t31300i, t31300j, t31300k,
             t31300l, t31300m, t31300n, t31300o, t66406a, t66407a, t66408a,
             t66406b, t66407b, t66408b, t66406c, t66407c, t66408c, t66406d,
-            t66408d, t66407d, t66405a, t66405b, t66405c, t66405d, tg2411b,
+            t66408d, t66407d, t66405a, t66405b, t66405c, t66405d, tg2411a, tg2411b,
             tg2411c, tg2411d, tg2411e, tg2411f, tg2411g, tg2411h, tg2411i,
             t514008, t514001, t514002, t514003, t514004, t514005, t514009,
             t66201a, t66201b, t66201c, t66201d, t66208a, t66208b, t66208c,
@@ -166,7 +166,9 @@ vars_label_cati <- data_target_cati %>%
             t516105, t516300, t34010f, t515052, t515053, t515054, t515051,
             t724403, t70000y, t70000m, t741001, t510010, t731301_g3, t731351_g3,
             t531260, t531261, tg09002, t525015, t521050, t521051, t521052,
-            t520002, t520003, t34001h, t34001j, t34009j, t34009h)
+            t520002, t520003, t34001h, t34001j, t34009j, t34009h,
+            t525008_v1, t525008, t34009i, t34009k
+            )
          ) %>% colnames()
 for (var_sel in vars_label_cati) {
   data_target_cati[, var_sel] <- 
@@ -492,7 +494,11 @@ vars_label_cawi <- data_target_cawi %>%
             t527017, t527019, t527021, t527022, t527028, t527029, t527032, t527034,
             t30300b, tg52010, tg52011, tg52012, tg52013, tg52014, t261501,
             t261503, t66007a_g1, t66010a_g1, t241011, t241013, t241014, t241015,
-            t241016, t241021)
+            t241016, t241021, t242110, t242111, t242112, t242113, t242114, t242115,
+            t242116, t242117, t242118, t242119, t261840, t261841, t261842, t261843,
+            t261844, t261845, t261846, t261847, t261848, t261849, t261850, t261851,
+            t261852, t261853
+  )
   ) %>%
   colnames()
 for (var_sel in vars_label_cawi) {
@@ -566,15 +572,16 @@ data_target_cawi <- data_target_cawi %>%
     # educ_uni_type_current = tg51003, # too many missing values
     educ_uni_master_current = tg51002, 
     # current activity
-    current_emp = tg51101_v1, 
-    current_volontariat = tg51102_v1, 
-    current_ref = tg51115_v1, 
-    current_pracyear = tg51118_v1, 
-    current_intern = tg51103_v1, 
-    current_voctrain = tg51104_v1, 
-    current_study_academy = tg51105, 
-    current_study_college = tg51106, 
-    current_study_coopuni = tg51107, 
+    current_emp = tg51101_v1,
+    current_volontariat = tg51102_v1,
+    current_ref = tg51115_v1,
+    current_pracyear = tg51118_v1,
+    current_intern = tg51103_v1,
+    current_voctrain = tg51104_v1,
+    current_study = tg51001,
+    current_study_academy = tg51105,
+    current_study_college = tg51106,
+    current_study_coopuni = tg51107,
     # parental cultural preferences
     parents_number_books = t34005b, 
     parents_classical_literature = t34006k, 
@@ -1262,7 +1269,8 @@ data_competencies <- data_competencies %>%
 source("Functions/func_replace_missings.R")
 
 # create vector with missing values
-vec_missings_char <- c("not reached", "implausible value", "refused", "don’t know", "don.+t_know",
+vec_missings_char <- c("not reached", "implausible value", "refused", "don't know", 
+                       "don.+t_know",
                        "various", "missing by design", "unspecific missing",
                        "survey aborted", "question erroneously not asked",
                        "does not apply", "filtered", "system", 
