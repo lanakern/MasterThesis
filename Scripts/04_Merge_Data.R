@@ -881,7 +881,7 @@ data_check_emp <- data_check_emp %>%
 
 # select only variables needed for analysis
 data_check_emp <- data_check_emp %>%
-  select(ID_t, interview_date_cati, starts_with("emp"), spell_length_current_Emp)
+  select(ID_t, interview_date_cati, starts_with("emp"), spell_length_current_Emp) 
 
 # add prefix for emp_ variables
 data_check_emp <- cbind(
@@ -897,6 +897,9 @@ data_merge_2 <- left_join(
   data_merge_1, data_check_emp, by = c("ID_t", "interview_date_cati")
 )
 
+# drop the employment variables not needed anymore
+data_merge_2 <- data_merge_2 %>%
+  select(-starts_with("emp"))
 
 # number of respondents, rows and columns
 print(paste("Number of respondents after outcome and treatment preparation:", 
