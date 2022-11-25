@@ -498,9 +498,9 @@ vars_label_cawi <- data_target_cawi %>%
             t242116, t242117, t242118, t242119, t261840, t261841, t261842, t261843,
             t261844, t261845, t261846, t261847, t261848, t261849, t261850, t261851,
             t261852, t261853
-  )
-  ) %>%
+  )) %>%
   colnames()
+
 for (var_sel in vars_label_cawi) {
   data_target_cawi[, var_sel] <- 
     set.label(data_target_cawi, var_sel, lang = "en")
@@ -1270,7 +1270,7 @@ source("Functions/func_replace_missings.R")
 
 # create vector with missing values
 vec_missings_char <- c("not reached", "implausible value", "refused", "don't know", 
-                       "don.+t_know",
+                       "don.+t_know", "Question not asked", 
                        "various", "missing by design", "unspecific missing",
                        "survey aborted", "question erroneously not asked",
                        "does not apply", "filtered", "system", 
@@ -1325,3 +1325,4 @@ saveRDS(data_sibling, "Data/Prep_1/prep_1_sibling.rds")
 saveRDS(data_partner, "Data/Prep_1/prep_1_partner.rds")
 saveRDS(data_child, "Data/Prep_1/prep_1_child.rds")
 saveRDS(data_competencies, "Data/Prep_1/prep_1_competencies.rds")
+
