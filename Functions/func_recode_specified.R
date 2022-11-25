@@ -12,17 +12,26 @@ func_recode_specified <- function(data) {
     select_if(~ any(. == "specified")) %>%
     colnames()
   
-  # replace: specified = 1, not specified = 0
-  data <- data %>% 
-    mutate_at(
-      all_of(vars_recode), 
-      list(
-        ~recode(., `specified` = 1, `not specified` = 0, 
-                .default = NaN) # NA does not work
-           ) 
-    ) %>%
-    # replace NaN with NA
-    mutate_all(~ifelse(is.nan(.), NA, .))
+  # for some data sets no variable includes specified. In this case, skip
+  # operation
+  if (rlang::is_empty(vars_recode)) {
+    data <- data
+  # otherwise make replacement for those variables
+  } else {
+    # replace: specified = 1, not specified = 0
+    data <- data %>% 
+      mutate_at(
+        all_of(vars_recode), 
+        list(
+          ~recode(., `specified` = 1, `not specified` = 0, 
+                  .default = NaN) # NA does not work
+        ) 
+      ) %>%
+      # replace NaN with NA
+      mutate_at(all_of(vars_recode), list(~ifelse(is.nan(.), NA, .)))
+  }
+
   
+  # return data 
   return(data)
 }
