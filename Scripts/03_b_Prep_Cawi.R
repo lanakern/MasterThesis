@@ -14,6 +14,7 @@
 #++++
 # 2.) Preparation of Outcome and Treatment: Outcome and treatment are taken
 # at the interview at the end of the treatment period. 
+# Missing values of treatment variable can also be upward replaced.
 #++++
 # 3.) Preparation of Control variables: Control variables are taken from
 # the beginning of the treatment period. 
@@ -34,6 +35,9 @@ library(dplyr)  # to manipulate data
 
 if (!require("tidyr")) install.packages("tidyr")
 library(tidyr)  # to manipulate data
+
+# selection on treatment replacement
+treatment_repl <- "downup" # with any other selection, only downward replacement is made
 
 
 
@@ -69,13 +73,6 @@ data_cawi <- inner_join(
 id <- unique(data_cawi$ID_t)
 id_num <- length(unique(data_cawi$ID_t))
 
-# keep only CAWI waves
-# unique(data_cawi$wave)
-# data_cawi <- data_cawi %>%
-#   filter(grepl("CAWI", wave)) %>%
-#   mutate(wave = as.character(wave))
-unique(data_cawi$wave)
-
 # respondents, rows, and columns
 print(paste("Number of respondents:", length(unique(data_cawi$ID_t))))
 print(paste("Number of rows:", nrow(data_cawi)))
@@ -97,27 +94,22 @@ data_treatment <- data_cawi %>%
          sport_uni, sport_uni_freq, grade_current) %>%
   subset(!is.na(treatment_ends))
 
-# CURRENTLY AT BEGINNING
-# # because there are many missing values, replace values downward, i.e.,
-# # I assume that if individual reported doing sports in CAWI wave 1 and has
-# # a missing value in CAWI wave 2, he or she still participates in sports.
-# sapply(data_treatment, function(y) sum(length(which(is.na(y)))))
-# data_treatment <- data_treatment %>%
-#   group_by(ID_t) %>%
-#   fill(c(sport_uni, sport_uni_freq, grade_current), .direction = "down") %>%
-#   ungroup()
 
 # factor variables as character
 data_treatment <- data_treatment %>% mutate_if(is.factor, as.character)
 
 
-# because there are so many missing values in treatment, information is
-# also copied upwards
-colSums(is.na(data_treatment))
-data_treatment <- data_treatment %>%
-  group_by(ID_t) %>%
-  fill(c(sport_uni, sport_uni_freq), .direction = "downup") %>% ungroup()
-colSums(is.na(data_treatment)) # DID NOT HELP
+# treatment replacement based on selection
+if (treatment_repl == "downup") {
+  # because there are so many missing values in treatment, information is
+  # also copied upwards
+  data_treatment <- data_treatment %>%
+    group_by(ID_t) %>%
+    fill(c(sport_uni, sport_uni_freq), .direction = "downup") %>% ungroup()
+  # otherwise only downward which is done above
+} else {
+  data_treatment <- data_treatment
+}
 
 
 # count number of individuals for who no treatment and/or outcome info is available
@@ -145,34 +137,15 @@ saveRDS(data_treatment, "Data/Prep_3/prep_3_outcome_treatment_cawi.rds")
 
 
 
-#++++++++++++++++++++++++++++++++++++++#
-#### Time-variant Control Variables ####
-#++++++++++++++++++++++++++++++++++++++#
+#+++++++++++++++++++++++++#
+#### Control Variables ####
+#+++++++++++++++++++++++++#
 
 # keep only variables which are used for start of treatment period
 # drop outcome and treatment
 data_controls_cawi <- data_cawi %>%
   select(-c(sport_uni, sport_uni_freq, grade_current)) %>%
   subset(!is.na(treatment_starts)) 
-
-
-# CURRENTLY AT BEGINNING
-# # fill missings
-# data_controls_cawi <- data_controls_cawi %>%
-#   group_by(ID_t) %>%
-#   fill(names(data_controls_cawi), .direction = "down")
-
-
-# CURRENTLY IN COHORT PROFILE (MAY BE CHANGED LATER DUE TO MISSINGS)
-# # if two interviews were conducted before the end of the treatment period
-# # keep the information from the second interview as this is more up-to-date
-# data_controls_cawi <- data_controls_cawi %>%
-#   group_by(ID_t, treatment_starts) %>% 
-#   filter(row_number() == n())
-# 
-# # drop rows with treatment_starts NA
-# data_controls_cawi <- data_controls_cawi %>%
-#   filter(!is.na(treatment_starts))
 
 # convert all factor variables as characters
 data_controls_cawi <- data_controls_cawi %>%
