@@ -245,8 +245,8 @@ data_target_cati <- data_target_cati %>%
     educ_uni_degree_aspire = t31040a, 
     educ_uni_degree_achieve = t31140a, 
     educ_uni_degree_teaching = tg24201_g1, 
-    educ_uni_loc_eastwest = tg15207_g1R, 
-    educ_uni_loc_state = tg15207_g2R, 
+    #educ_uni_loc_eastwest = tg15207_g1R, 
+    #educ_uni_loc_state = tg15207_g2R, 
     educ_profession_aspired = t31060b_g9, 
     educ_profession_expected = t31160c_g9, 
     # source of finance and financial situation
@@ -494,8 +494,12 @@ vars_label_cawi <- data_target_cawi %>%
             t527017, t527019, t527021, t527022, t527028, t527029, t527032, t527034,
             t30300b, tg52010, tg52011, tg52012, tg52013, tg52014, t261501,
             t261503, t66007a_g1, t66010a_g1, t241011, t241013, t241014, t241015,
-            t241016, t241021, t242110, t242111, t242112, t242113, t242114, t242115,
-            t242116, t242117, t242118, t242119, t261840, t261841, t261842, t261843,
+            t241016, t241021, t242100, t242101, t242102, t242103, t242104,
+            t242105, t242106, t242108, t242109, t261800, t261801, t261802,
+            t261803, t261804, t261805, t261806, t261807, t261808, t261809,
+            t261810, t261811, t261812, t261813,
+            t242110, t242111, t242112, t242113, t242114, t242115,
+            t242116, t242118, t242119, t261840, t261841, t261842, t261843,
             t261844, t261845, t261846, t261847, t261848, t261849, t261850, t261851,
             t261852, t261853
   )) %>%
@@ -653,7 +657,7 @@ data_target_cawi <- data_target_cawi %>%
     uni_best_student_2 = tg52043, 
     uni_learn_group_partic = t261500, 
     uni_learn_group_num = t261501, 
-    uni_lern_group_freq = t261502, 
+    uni_learn_group_freq = t261502, 
     uni_learn_group_helpful = t264503, 
     uni_learn_group_students_num = t261503, 
     uni_study_talent = t66007a_g1, 
@@ -1291,19 +1295,40 @@ remove(dfs_list, dfs_list_adj)
 
 
 
-#### Recode "(not) specified" variables ####
-#+++++++++++++++++++++++++++++++++++++++++#
+#### Recode Variables ####
+#++++++++++++++++++++++++#
 
-# load function
+
+# recode all character variables as factor
+func_recode_character <- function(data) {
+  data <- data %>%
+    mutate_if(is.factor, as.character)
+  return(data)
+}
+dfs_list <- Filter(function(x) is(x, "data.frame"), mget(ls())) # put all data frames in a list
+dfs_list_adj_charac <- lapply(dfs_list, func_recode_character) # apply function to all data frames in list
+list2env(dfs_list_adj_charac, envir = .GlobalEnv) # create data frame from list
+
+
+# recode (not) specified variables
+  ## load function
 source("Functions/func_recode_specified.R")
-
-# apply function to all loaded data frames in the environment
+  ## apply function to all loaded data frames in the environment
 dfs_list <- Filter(function(x) is(x, "data.frame"), mget(ls()))
-dfs_list_adj <- lapply(dfs_list, func_recode_specified)
-list2env(dfs_list_adj, envir = .GlobalEnv)
-remove(dfs_list, dfs_list_adj)
+dfs_list_adj_spec <- lapply(dfs_list, func_recode_specified)
+list2env(dfs_list_adj_spec, envir = .GlobalEnv)
 
 
+# recode yes-no-variables
+  ## load function
+source("Functions/func_recode_yesno.R")
+  ## apply function to all loaded data frames in the environment
+dfs_list <- Filter(function(x) is(x, "data.frame"), mget(ls()))
+dfs_list_adj_yesno <- lapply(dfs_list, func_recode_yesno)
+list2env(dfs_list_adj_yesno, envir = .GlobalEnv)
+
+# remove lists with data frames
+remove(dfs_list, dfs_list_adj_charac, dfs_list_adj_spec, dfs_list_adj_yesno)
 
 
 #### Save all data frames ####
