@@ -121,6 +121,43 @@ data_outcome_cawi <- data_outcome_cawi %>%
 # grade. This treatment and outcome information is merged to the CAWI data set
 # using the interview dates.
 
+# count missing values in treatment variables
+  ## overall ##
+  ## CAWI
+sum(is.na(data_outcome_cawi$sport_uni)) # 5,559
+sum(is.na(data_outcome_cawi$sport_uni_freq)) # 24,545
+  ## CATI
+sum(is.na(data_outcome_cati$sport_leisure_freq)) # 16,701
+  ## number of individuals ##
+  ## CAWI
+data_outcome_cawi %>% 
+  # TRUE for individuals who have in sport_uni or sport_uni_freq only
+  # missing values
+  group_by(ID_t) %>% 
+  summarise(all_na_binary = all(is.na(sport_uni)), 
+            all_na_freq = all(is.na(sport_uni_freq))
+            ) %>% 
+  # sum up individuals who only have missing values
+  mutate(
+    num_id_all_na_binary = sum(all_na_binary), 
+    num_id_all_na_freq = sum(all_na_freq)
+  ) %>%
+  # keep only this information
+  select(num_id_all_na_binary, num_id_all_na_freq) %>%
+  distinct()
+  ## CATI
+data_outcome_cati %>% 
+  # TRUE for individuals who have in sport_uni or sport_uni_freq only
+  # missing values
+  group_by(ID_t) %>% 
+  summarise(all_na_freq = all(is.na(sport_leisure_freq))) %>% 
+  # sum up individuals who only have missing values
+  mutate(
+    num_id_all_na_freq = sum(all_na_freq)
+  ) %>%
+  # keep only this information
+  pull(num_id_all_na_freq) %>% unique()
+
 # good test example
 # test_cati <- data_outcome_cati %>% subset(ID_t == 7001969) 
 # test_cawi <- data_outcome_cawi %>% subset(ID_t == 7001969) 
@@ -168,22 +205,23 @@ if (treatment_cati == "period") {
 unique(data_outcome_cawi_cati$sport_uni_freq)
 unique(data_outcome_cawi_cati$sport_leisure_freq)
 
-# recode: in original data set the order is reversed so it does not make
-# sense to unlabel them
+# recode: in original data set the order is reversed AND the meaning of the
+# labels is not identical. Thus, it does not make sense to unlabel them
 ## 0 = never 
 ## 1 = once a month or less frequently
 ## 2 = several times a month or once a week
 ## 3 = at least once per week
 ## 4 = (almost) daily
+table(data_outcome_cawi_cati$sport_uni, useNA = "always")
 table(data_outcome_cawi_cati$sport_uni_freq, useNA = "always")
 table(data_outcome_cawi_cati$sport_leisure_freq, useNA = "always")
 
 data_outcome_cawi_cati <- data_outcome_cawi_cati %>%
   mutate(
     sport_uni_freq = recode(
-      sport_uni_freq, 
+      sport_uni_freq,
       "less frequently" = 1, "once a month" = 1, "several times a month" = 2,
-      "several times a week" = 2, "once a week" = 3, "daily" = 4
+      "once a week" = 2, "several times a week" = 3, "daily" = 4
       ),
     sport_leisure_freq = recode(
       sport_leisure_freq, 
@@ -201,18 +239,17 @@ table(data_outcome_cawi_cati$sport_uni, useNA = "always")
 table(data_outcome_cawi_cati$sport_uni_freq, useNA = "always")
 table(data_outcome_cawi_cati$sport_leisure_freq, useNA = "always")
 
-# if info for both is given, higher value is taken
-# leisure sport DOES NOT explicitly exclude university sport
+# generate one treatment frequency variable (for both university and leisure sport)
 data_outcome_cawi_cati <- data_outcome_cawi_cati %>%
   mutate(
-    # uni sport is base (hence last value in ifelse construction)
-    # if uni sport is missing use info on leisure sport
-    treatment_sport_freq = ifelse(
-      is.na(sport_uni_freq), sport_leisure_freq,
-      # always use highest frequency value: if value on leisure sport is higher use this value
-      ifelse(sport_leisure_freq > sport_uni_freq & !is.na(sport_leisure_freq), sport_leisure_freq, 
-             # otherwise use always uni sport value
-             sport_uni_freq))
+    treatment_sport_freq = case_when(
+      # if uni sport is missing use info on leisure sport
+      is.na(sport_uni_freq) ~ sport_leisure_freq,
+      # if leisure sport frequency is higher, however, use info on leisure sport
+      sport_leisure_freq > sport_uni_freq & !is.na(sport_leisure_freq) & !is.na(sport_uni_freq) ~ sport_leisure_freq,
+      # in all other cases use uni sport
+      TRUE ~ sport_uni_freq
+    )
   )
 
 table(data_outcome_cawi_cati$treatment_sport_freq, useNA = "always")
@@ -348,24 +385,24 @@ data_outcome_cawi_cati %>% subset(ID_t == 7002166) %>%
 # better outcome is "grade_current" because it determines the grade for the
 # academic achievements so far
 # however, if it is missing, the final grade is used (does not happen often)
-summary(data_outcome_cawi_cati$grade_current)
+summary(data_outcome_cawi_cati$grade_current) # 3,661 NAs
 
 data_outcome_cawi_cati <- data_outcome_cawi_cati %>%
   mutate(outcome_grade = ifelse(is.na(grade_current), grade_final, grade_current))
 
-summary(data_outcome_cawi_cati$outcome_grade)
+summary(data_outcome_cawi_cati$outcome_grade) # 3654 NAs
 
 
 # plausible values: every value above 5.0 is implausible
 # hence those are set NA; missing values are downward replaced; remaining
 # missing values are deleted
-length(unique(data_outcome_cawi_cati$ID_t)) # 12010
-data_outcome_cawi_cati <- data_outcome_cawi_cati %>%
-  mutate(outcome_grade = replace(outcome_grade, outcome_grade > 5, NA)) %>%
-  fill(outcome_grade, .direction = "down") %>%
-  filter(outcome_grade <= 5)
-summary(data_outcome_cawi_cati$outcome_grade)
-length(unique(data_outcome_cawi_cati$ID_t)) # 10684
+# length(unique(data_outcome_cawi_cati$ID_t)) # 12010
+# data_outcome_cawi_cati <- data_outcome_cawi_cati %>%
+#   mutate(outcome_grade = replace(outcome_grade, outcome_grade > 5, NA)) %>%
+#   fill(outcome_grade, .direction = "down") %>%
+#   filter(outcome_grade <= 5)
+# summary(data_outcome_cawi_cati$outcome_grade)
+# length(unique(data_outcome_cawi_cati$ID_t)) # 10684
 
 
 # interview date of outcome
@@ -384,40 +421,46 @@ data_outcome_cawi_cati <- data_outcome_cawi_cati %>%
   )
 
 # check missings
-sum(is.na(data_outcome_cawi_cati$grade_current))
-sum(is.na(data_outcome_cawi_cati$grade_final))
 sum(is.na(data_outcome_cawi_cati$outcome_grade)) # 0
 sum(is.na(data_outcome_cawi_cati$interview_date_outcome)) # 0 -> must coincide with outcome_grade
 
 # number of respondents
-length(unique(data_outcome_cawi_cati$ID_t)) # 10684 
+# length(unique(data_outcome_cawi_cati$ID_t)) # 12,010 (unchanged)
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 
 
-## COUNT NUMBER RESPONDENTS ##
+## GENERATE ONE INTERVIEW DATE END VARIABLE
 
-# Binary treatment indicator 
-## sport participation, non-participation and NA overall
-data_outcome_cawi_cati %>%
-  ungroup() %>% group_by(treatment_sport) %>%
-  summarize(Count = n())
-## sport participation, non-participation and NA per treatment period
-data_outcome_cawi_cati %>%
-  ungroup() %>% group_by(treatment_ends, treatment_sport) %>%
-  summarize(Count = n())
+# this variable includes the date where the treatment period ends, that is
+# the last interview in the respective treatment period.
+# always highest date is taken from interview_date_outcome and interview_date_treatment
+
+# # For example, treatment may be taken from CATI but outcome from CAWI
+# sum(data_outcome_cawi_cati$interview_date_outcome != data_outcome_cawi_cati$interview_date_treatment, na.rm = TRUE)
+# data_outcome_cawi_cati %>% subset(ID_t == 7002011) %>% 
+#   select(ID_t, starts_with("sport"), starts_with("treatment"), starts_with("grade"), 
+#          starts_with("outcome"), interview_date_outcome, interview_date_treatment)
+# # Or grade is taken from CATI and sport from CAWI
+# data_outcome_cawi_cati %>% subset(ID_t == 7006217) %>%
+#   select(ID_t, starts_with("sport"), starts_with("treatment"), starts_with("grade"), starts_with("outcome"),
+#          interview_date_outcome, interview_date_treatment)
 
 
-# Frequency
-data_outcome_cawi_cati %>%
-  ungroup() %>% group_by(treatment_sport_freq) %>%
-  summarize(Count = n())  
+data_outcome_cawi_cati <- data_outcome_cawi_cati %>%
+  mutate(
+    interview_date_end = case_when(
+      interview_date_outcome > interview_date_treatment ~ interview_date_outcome,
+      is.na(interview_date_outcome) ~ as.Date(NA), is.na(interview_date_treatment) ~ as.Date(NA), 
+      TRUE ~ interview_date_treatment
+    )
+  )
 
-data_outcome_cawi_cati %>%
-  ungroup() %>% group_by(treatment_ends, treatment_sport_freq) %>%
-  summarize(Count = n())
+sum(is.na(data_outcome_cawi_cati$interview_date_treatment))
+sum(is.na(data_outcome_cawi_cati$interview_date_outcome))
+sum(is.na(data_outcome_cawi_cati$interview_date_end))
 
 
 ## DROP VARIABLES NOT NEEDED ANYMORE
@@ -429,12 +472,12 @@ data_outcome_cawi_cati <- data_outcome_cawi_cati %>%
 
 
 ## Number of rows and respondents
+num_id_cati_cawi_out_treat <- length(unique(data_outcome_cawi_cati$ID_t)) # 12010
+
 print(paste("Number of respondents after outcome and treatment preparation:", 
-            length(unique(data_outcome_cawi_cati$ID_t))))
+            num_id_cati_cawi_out_treat))
 print(paste("Number of rows:", nrow(data_outcome_cawi_cati)))
 print(paste("Number of rows:", ncol(data_outcome_cawi_cati)))
-
-num_id_cati_cawi_out_treat <- length(unique(data_outcome_cawi_cati$ID_t))
 
 
 
@@ -444,16 +487,19 @@ num_id_cati_cawi_out_treat <- length(unique(data_outcome_cawi_cati$ID_t))
 #### Control Variables ####
 #+++++++++++++++++++++++++#
 
-
 # merge control variables
   ## happens over treatment_starts
   ## wave is not necessary anymore
   ## final control variable data set should have one row per treatment period
 data_controls <- inner_join(
-  data_controls_cati %>% select(-c(wave, treatment_ends)), 
+  data_controls_cati %>% select(-c(wave)), 
   data_controls_cawi %>% select(-c(wave)),
   by = c("ID_t", "treatment_starts")
 )
+
+length(unique(data_controls_cati$ID_t)) # 11,726
+length(unique(data_controls_cawi$ID_t)) # 12,010
+length(unique(data_controls$ID_t)) # 11,726
 
 # merge outcome: observations without outcome or controls are useless -> inner join
 # rows from data_controls are left; data_outcome_cawi_cati contains rows with
@@ -463,44 +509,59 @@ data_cati_cawi <- inner_join(
   by = c("ID_t", "treatment_starts" = "treatment_ends")
 )
 
+length(unique(data_cati_cawi$ID_t)) # 11,726
+
 # sort rows and column order
 data_cati_cawi <- data_cati_cawi %>%
   arrange(ID_t, treatment_starts) %>%
   select(ID_t, interview_date_treatment, interview_date_outcome, interview_date_cati, interview_date_cawi, 
          treatment_starts, treatment_ends, everything())
 
-# ensure that interview date of outcome is always after CATI and CAWI interview
-  ## CATI
-sum(data_cati_cawi$interview_date_outcome > data_cati_cawi$interview_date_cati) == nrow(data_cati_cawi)
-id_wrong <- data_cati_cawi[data_cati_cawi$interview_date_outcome <= data_cati_cawi$interview_date_cati, "ID_t"] %>% 
-  pull(ID_t) %>% unique()
-data_cati_cawi %>% subset(ID_t == id_wrong[1])
-  ## there are 8 individuals where this is a problem
-  ## however, this is because I replacd the missing values in the day and month in file 02_b
-  ## thus, I just take those dates and subtract 3 months (= 90 days)
-data_cati_cawi[data_cati_cawi$interview_date_outcome <= 
-                 data_cati_cawi$interview_date_cati, "interview_date_cati"] <-
-  data_cati_cawi[data_cati_cawi$interview_date_outcome <= 
-                   data_cati_cawi$interview_date_cati, "interview_date_cati"] - 90
-  ## check again
-sum(data_cati_cawi$interview_date_outcome > data_cati_cawi$interview_date_cati) == nrow(data_cati_cawi)
-  ## do the same for CAWI: everything is alright
-sum(data_cati_cawi$interview_date_outcome > data_cati_cawi$interview_date_cawi) == nrow(data_cati_cawi)
-  ## do the same for treatment
-  ## CAWI controls are always after
-sum(data_cati_cawi$interview_date_treatment > data_cati_cawi$interview_date_cawi, na.rm = TRUE) == 
-  data_cati_cawi %>% ungroup() %>% select(interview_date_treatment, interview_date_cawi) %>% na.omit() %>% nrow() 
-  ## CATI controls may be at same interview, if treatment is taken from leisure sport
-sum(data_cati_cawi$interview_date_treatment >= data_cati_cawi$interview_date_cati, na.rm = TRUE) == 
-  data_cati_cawi %>% ungroup() %>% select(interview_date_treatment, interview_date_cati) %>% na.omit() %>% nrow() 
+# generate one variable for interview_date_start
+# this variable is the smallest interview date between interview_date_cati and interview_date_cawi
+# typically it is CAWI (see below "never the case")
+sum(is.na(data_cati_cawi$interview_date_cati)) # 0 
+sum(is.na(data_cati_cawi$interview_date_cawi)) # 0
+data_cati_cawi %>% filter(interview_date_cawi > interview_date_cati) %>% nrow() # never the case
+data_cati_cawi <- data_cati_cawi %>%
+  mutate(
+    interview_date_start = case_when(
+      # only if CATI interview comes after CAWI use this as interview_date_start (however, never the case)
+      interview_date_cawi > interview_date_cati ~ interview_date_cati, TRUE ~ interview_date_cawi
+    )
+  )
+  ## check that interview_date_start always equals interview_date_cawi
+sum(data_cati_cawi$interview_date_start == data_cati_cawi$interview_date_cawi) == nrow(data_cati_cawi)
+
+# ensure that interview end date is always after interview start date
+data_cati_cawi %>%
+  ungroup() %>% 
+  filter(!is.na(interview_date_end)) %>%
+  summarise(sum_wrong = sum(interview_date_start >= interview_date_end)) 
 
 # check number of respondents
-num_id_cati_cawi_all <- length(unique(data_cati_cawi$ID_t)) # 10439
-
+  ## is again reduced due to missing observations in CATI
+num_id_cati_cawi_out_treat_contr <- length(unique(data_cati_cawi$ID_t))
 print(paste("Number of respondents after adding control variables from CATI & CAWI:", 
-            length(unique(data_cati_cawi$ID_t))))
+            num_id_cati_cawi_out_treat_contr)) # 11,726
 print(paste("Number of rows:", nrow(data_cati_cawi)))
 print(paste("Number of rows:", ncol(data_cati_cawi)))
+
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+
+#### Sample Selection: Treatment and Outcome ####
+#+++++++++++++++++++++++++++++++++++++++++++++++#
+
+# subset: keep only respondents who do not have any missing in treatment and
+# grade 
+data_cati_cawi <- 
+  data_cati_cawi %>%
+  filter(!is.na(treatment_sport) & !is.na(outcome_grade))
+
+num_id_treatment_outcome_no_na <- length(unique(data_cati_cawi$ID_t)) # 9,069
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -508,21 +569,30 @@ print(paste("Number of rows:", ncol(data_cati_cawi)))
 
 
 #%%%%%%%%%%%%%%%%#
+
 #### EPISODES ####
 #%%%%%%%%%%%%%%%%#
 
 # now the episode data is added to gain knowledge about each respondent's
 # education and employment history. 
 
-# keep only individuals who are also in CAWI and CATI data
+# keep only individuals who are in both data sets: CATI + CAWI and episode date
+id_keep_caticawi_eps <- intersect(unique(data_cati_cawi$ID_t), unique(data_life_course$ID_t))
+  ## subset life course data
+length(unique(data_life_course$ID_t)) # 17,891
 data_life_course <- data_life_course %>%
-  subset(ID_t %in% unique(data_cati_cawi$ID_t))
+  subset(ID_t %in% id_keep_caticawi_eps)
+length(unique(data_life_course$ID_t)) # 9,062
+  ## subset CATI+CAWI data
+length(unique(data_cati_cawi$ID_t)) # 9,069
+data_cati_cawi <- data_cati_cawi %>%
+  subset(ID_t %in% id_keep_caticawi_eps)
+length(unique(data_cati_cawi$ID_t)) # 9,062
 
 # new sample size: there are 7 individuals who are in CATI-CAWI data frame
 # but not in episode data. Those are 7 of the 18 students who state that they 
-# start their study before WT 10/11 
-num_id_cati_cawi_eps <- length(unique(data_life_course$ID_t)) # 10432
-setdiff(unique(data_cati_cawi$ID_t), unique(data_life_course$ID_t)) # dropped individuals
+# start their study before WT 7/11 
+num_id_cati_cawi_eps <- length(id_keep_caticawi_eps) # 9,062
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -535,7 +605,7 @@ setdiff(unique(data_cati_cawi$ID_t), unique(data_life_course$ID_t)) # dropped in
 # so only observations are kept for which the respondent currently studies
 data_uni <- data_life_course %>%
   filter(uni_spell == 1)
-length(unique(data_uni$ID_t)) # all individuals are kept (10432)
+length(unique(data_uni$ID_t)) # all individuals are kept (9,062)
 
   # subset data for faster computation
   ## DELETE LATER ##
@@ -552,24 +622,22 @@ data_cati_cawi %>%
   subset(ID_t %in% c(7001969, 7002033, 7019370, 7017362))
   ## create data frame with ID_t and treatment_starts where interview_date_outcome
   ## and interview_date_treatment is inside the uni spell
+  ## -> identified via interview_date_end
   ## this data set is used to keep only those observations
 data_check_outcome <- 
   sqldf(
     "select d1.ID_t, treatment_starts
     from data_cati_cawi AS d1
     inner join data_uni AS d2 on d1.ID_t = d1.ID_t and 
-    d1.interview_date_outcome between d2.start_date and d2.end_date and
-    d1.interview_date_treatment between d2.start_date and d2.end_date"
+    d1.interview_date_end between d2.start_date and d2.end_date"
   ) %>%
   distinct()
   ## drop rows where outcome interview is not inside uni spell
   ## this is done via an inner join
 data_cati_cawi_eps <- data_cati_cawi %>%
   inner_join(data_check_outcome, by = c("ID_t", "treatment_starts"))
-length(unique(data_cati_cawi_eps$ID_t)) # 9053
-data_cati_cawi_eps %>%
-  select(ID_t, treatment_starts, treatment_ends, starts_with("interview_date")) %>% 
-  subset(ID_t %in% c(7001969, 7002033, 7019370, 7017362))
+length(unique(data_cati_cawi_eps$ID_t)) # 9062
+
 
 # perform the same check of CAWI and CATI interval
 # the interview date for the control variables must be within the uni spell
@@ -591,7 +659,7 @@ for (i in loop_index_end) {
   # subset data 
   data_cati_cawi_sub <- data_cati_cawi %>% 
     subset(ID_t %in% ids_sub[loop_index_start:i]) %>% 
-    select(ID_t, treatment_starts, interview_date_cati, interview_date_cawi)
+    select(ID_t, treatment_starts, interview_date_start)
   
   data_life_course_sub <- data_life_course %>%
     subset(ID_t %in% ids_sub[loop_index_start:i]) %>%
@@ -606,8 +674,7 @@ for (i in loop_index_end) {
       "select d1.ID_t, treatment_starts
     from data_cati_cawi_sub AS d1
     inner join data_life_course_sub AS d2 on d1.ID_t = d1.ID_t and 
-    d1.interview_date_cati between d2.start_date and d2.end_date and
-    d1.interview_date_cawi between d2.start_date and d2.end_date
+    d1.interview_date_start between d2.start_date and d2.end_date
     "
     ) %>%
     distinct()
@@ -617,14 +684,14 @@ for (i in loop_index_end) {
   
 }
 
-length(unique(data_check_controls$ID_t)) # 10439
+length(unique(data_check_controls$ID_t)) # 9062
 
 # keep only respondents with CATI and CAWI survey inside uni spell
 data_cati_cawi_eps <- data_cati_cawi_eps %>%
   inner_join(data_check_controls, by = c("ID_t", "treatment_starts")) 
 
 # check number of respondents
-length(unique(data_cati_cawi_eps$ID_t)) # 9053
+num_id_unispell_outcome <- length(unique(data_cati_cawi_eps$ID_t)) # 9062
   
 
 
@@ -636,19 +703,17 @@ length(unique(data_cati_cawi_eps$ID_t)) # 9053
 # spell length is calculated here, that is for example, the years of schooling,
 # previous years of employment and previous years of study
 
-# first, the date closest to the interview outcome date is identified
-# this date is used to calculate (or rather adjust) the spell length
+# first, the date closest to the interview_end_date is identified
+# this date is used to calculate (or rather adjust) the spell length)
 data_cati_cawi_eps <- 
   data_cati_cawi_eps %>%
-  # create interview date for outcome-treatment: largest of outcome and treatment
-  mutate(interview_date_out_treat_spell = pmax(interview_date_outcome, interview_date_treatment)) %>%
   # identify spell date
   mutate(
     # generate variable with decision which date I use: this is based on the smallest
     # difference between the outcome interview date and the control variable interview date 
     decision = ifelse(
-      as.numeric(difftime(interview_date_out_treat_spell, interview_date_cati)) < 
-        as.numeric(difftime(interview_date_out_treat_spell, interview_date_cawi)), 
+      as.numeric(difftime(interview_date_end, interview_date_cati)) < 
+        as.numeric(difftime(interview_date_end, interview_date_cawi)), 
       "CATI", "CAWI"
       ),
     # generate date variable which includes the date which is used to adjust the spell length
@@ -660,14 +725,15 @@ data_cati_cawi_eps <-
 # life course data is duplicated for each treatment period
 # thus, number of rows for each respondent is nrow(data_life_course)*num_treatment_periods
 data_cati_cawi_eps %>%
-  select(ID_t, treatment_starts, interview_date_spell, interview_date_out_treat_spell, interview_date_cati, interview_date_cawi)
+  select(ID_t, treatment_starts, interview_date_spell, interview_date_end, 
+         interview_date_cati, interview_date_cawi)
 
 data_cati_cawi_eps_all <- left_join(data_cati_cawi_eps, data_life_course, by = "ID_t")
 
 data_cati_cawi_eps_all %>%
   subset(ID_t == 7017362) %>%
   select(ID_t, treatment_starts, sptype_2, start_date, end_date, 
-         interview_date_spell, interview_date_out_treat_spell, interview_date_cati, 
+         interview_date_spell, interview_date_end, interview_date_cati, 
          interview_date_cawi) %>%
   head(20)
 
@@ -688,7 +754,7 @@ data_cati_cawi_eps_all <- data_cati_cawi_eps_all %>%
 data_cati_cawi_eps_all %>%
   subset(ID_t == 7017362) %>%
   select(ID_t, treatment_starts, sptype_2, start_date, end_date, end_date_adj, 
-         interview_date_spell, interview_date_out_treat_spell, interview_date_cati, 
+         interview_date_spell, interview_date_end, interview_date_cati, 
          interview_date_cawi) %>%
   head(20)
 
@@ -705,7 +771,7 @@ data_cati_cawi_eps_all <- data_cati_cawi_eps_all %>%
 data_cati_cawi_eps_all %>%
   subset(ID_t == 7017362) %>%
   select(ID_t, treatment_starts, sptype_2, start_date, end_date, end_date_adj, 
-         interview_date_spell, interview_date_out_treat_spell, interview_date_cati, 
+         interview_date_spell, interview_date_end, interview_date_cati, 
          interview_date_cawi, eps_rel) %>%
   head(20)
 
@@ -724,7 +790,7 @@ data_cati_cawi_eps_all <- data_cati_cawi_eps_all %>%
 data_cati_cawi_eps_all %>%
   subset(ID_t == 7017362) %>%
   select(ID_t, treatment_starts, sptype_2, start_date, end_date, end_date_adj, 
-         interview_date_spell, interview_date_out_treat_spell, interview_date_cati, 
+         interview_date_spell, interview_date_end, interview_date_cati, 
          interview_date_cawi, eps_rel, spell_length_years) %>%
   head(20)
 
@@ -740,7 +806,7 @@ data_cati_cawi_eps_all <- data_cati_cawi_eps_all %>%
 data_cati_cawi_eps_all %>%
   subset(ID_t == 7017362) %>%
   select(ID_t, treatment_starts, sptype_2, start_date, end_date, end_date_adj, 
-         interview_date_spell, interview_date_out_treat_spell, interview_date_cati, 
+         interview_date_spell, interview_date_end, interview_date_cati, 
          interview_date_cawi, eps_rel, spell_length_years, spell_length_cum_years) %>%
   head(20)
 
@@ -761,7 +827,7 @@ data_cati_cawi_eps_all <-
 data_cati_cawi_eps_all %>%
   subset(ID_t == 7017362) %>%
   select(ID_t, treatment_starts, start_date, end_date, end_date_adj, 
-         interview_date_spell, interview_date_out_treat_spell, interview_date_cati, 
+         interview_date_spell, interview_date_end, interview_date_cati, 
          interview_date_cawi, eps_rel, starts_with("spell_length_cum_")) %>%
   head(20)
 
@@ -772,7 +838,10 @@ data_cati_cawi_eps_all %>%
 #   mutate(across(starts_with("spell_"),  ~replace_na(., 0)))
 
 # keep only uni spells
-data_cati_cawi_eps_all <- data_cati_cawi_eps_all %>% filter(uni_spell == 1 & eps_rel == 1)
+length(unique(data_cati_cawi_eps_all$ID_t))
+data_cati_cawi_eps_all_2 <- data_cati_cawi_eps_all %>% filter(uni_spell == 1 & eps_rel == 1)
+length(unique(data_cati_cawi_eps_all_2$ID_t)) # 9062 (7 respondents are dropped)
+setdiff(unique(data_cati_cawi_eps_all$ID_t), unique(data_cati_cawi_eps_all_2$ID_t))
 
 # there may be duplicates as in this example because during interviews
 # respondent has two uni spells within one treatment period
@@ -809,7 +878,7 @@ data_cati_cawi_eps_all <- data_cati_cawi_eps_all %>%
 check <- data_cati_cawi_eps_all %>% 
   select(
     ID_t, start_date, end_date, end_date_adj, treatment_starts, interview_date_spell, 
-    interview_date_out_treat_spell, starts_with("spell_length_cum_"), 
+    interview_date_end, starts_with("spell_length_cum_"), 
     spell_length_current_Uni, uni_first_eps
     )
 
@@ -825,6 +894,8 @@ data_merge_1 <- data_cati_cawi_eps_all %>%
          everything())
 
 
+length(unique(data_merge_1$ID_t)) # 9062
+
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
@@ -832,56 +903,46 @@ data_merge_1 <- data_cati_cawi_eps_all %>%
 ## CURRENT EMPLOYMENT ##
 #++++++++++++++++++++++#
 
-
 # of interest is if student is working during study
-# create data frame
 # to identify this, I need to come back to the previous data frame
+# I only keep respondents who are previous data frame
+id_keep_emp <- unique(data_merge_1$ID_t)
 data_emp <- data_life_course %>% 
+  subset(ID_t %in% id_keep_emp) %>%
   select(ID_t, sptype_2, start_date, end_date, matches("emp")) %>%
-  filter(sptype_2 == "Emp")
+  filter(sptype_2 == "Emp") 
+
+length(unique(data_emp$ID_t)) # only 8,830 students work during their study
 
 # employment start needs to be smaller than interview date
 # employment ends needs to be larger than the interview date
-# to determine this the CATI interview date is used as this is the interview for
-# control variables which is usually the closest to the outcome+treatnent interview
+# -> Only in this case employment is during university study
 # the created data frame identifies the employment spells during the university study
-test_1 <- data_emp %>% subset(ID_t %in% c(7001969, 7017362, 7019370)) %>% 
-  select(ID_t, sptype_2, start_date, end_date, starts_with("emp")) %>%
-  filter(sptype_2 == "Emp")
-test_2 <- data_cati_cawi %>% 
-  subset(ID_t %in% c(7001969, 7017362, 7019370)) %>% 
-  select(ID_t, interview_date_cati)
-test_3 <- data_life_course %>% 
-  subset(ID_t %in% c(7001969, 7017362, 7019370) & sptype_2 == "Uni") %>% 
-  select(ID_t, start_date, end_date)
-
+data_emp_uni <- data_merge_1 %>% 
+  subset(ID_t %in% id_keep_emp) %>% 
+  select(ID_t, interview_date_spell)
+  
 data_check_emp <-
   sqldf(
-    "SELECT * 
-    FROM test_1 AS e
-    INNER JOIN test_2 AS c ON e.ID_t = c.ID_t AND
-    e.start_date < c.interview_date_cati AND e.end_date > c.interview_date_cati
+    "SELECT c.ID_t, start_date, interview_date_spell, emp_prof_pos, emp_student_job, 
+    emp_student_job_type, emp_student_job_rel, emp_net_income, emp_act_work_hours
+    FROM data_emp AS e
+    INNER JOIN data_emp_uni AS c ON e.ID_t = c.ID_t AND
+    e.start_date < c.interview_date_spell AND e.end_date > c.interview_date_spell
     ")
-# # drop duplicated ID column and duplicates in general
-# data_check_emp <- data_check_emp[!duplicated(as.list(data_check_emp))]
-# data_check_emp <- data_check_emp %>% distinct()
-# # if duplicated interview_date, start_date, and end_date, keep only first
-# data_check_emp <- data_check_emp %>%
-#   distinct(interview_date_cati, start_date, end_date, .keep_all = TRUE)
+length(unique(data_check_emp$ID_t)) # only true for 7,615 students
 
 # drop duplicated ID resulting from join in sqldf
-data_check_emp <- data_check_emp %>%
-  subset(select = which(!duplicated(names(.)))) 
+# data_check_emp <- data_check_emp %>%
+#   subset(select = which(!duplicated(names(.)))) 
 
-# calculate length of current employment at CATI interview
+# calculate length of current employment 
 data_check_emp <- data_check_emp %>%
  mutate(
-    spell_length_current_Emp = as.numeric(difftime(interview_date_cati, start_date, units = "weeks")) / 52.5
-  )
+    spell_length_current_Emp = as.numeric(difftime(interview_date_spell, start_date, units = "weeks")) / 52.5
+  ) %>%
+  select(-start_date)
 
-# select only variables needed for analysis
-data_check_emp <- data_check_emp %>%
-  select(ID_t, interview_date_cati, starts_with("emp"), spell_length_current_Emp) 
 
 # add prefix for emp_ variables
 data_check_emp <- cbind(
@@ -894,20 +955,15 @@ data_check_emp <- cbind(
 
 # add employment to respective treatment period
 data_merge_2 <- left_join(
-  data_merge_1, data_check_emp, by = c("ID_t", "interview_date_cati")
+  data_merge_1, data_check_emp, by = c("ID_t", "interview_date_spell")
 )
 
 # drop the employment variables not needed anymore
 data_merge_2 <- data_merge_2 %>%
   select(-starts_with("emp"))
 
-# number of respondents, rows and columns
-print(paste("Number of respondents after outcome and treatment preparation:", 
-            length(unique(data_merge_2$ID_t))))
-print(paste("Number of rows:", nrow(data_merge_2)))
-print(paste("Number of columns:", ncol(data_merge_2)))
-
-num_id_merge_2 <- length(unique(data_merge_2$ID_t))
+# number of respondents
+# length(unique(data_merge_2$ID_t)) # 9,062
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -928,15 +984,13 @@ data_merge_3 <- left_join(
 col_sibling <- colnames(data_sibling %>% select(-ID_t))
 data_merge_3 <- data_merge_3 %>%
   mutate_at(all_of(col_sibling), ~replace_na(.,0))
-
+  ## check that there are no NAs in sibling variable
+data_merge_3 %>%
+  ungroup() %>% select(all_of(col_sibling)) %>%
+  summarize(sum(is.na(.))) %>% pull()
 
 # number of respondents, rows and columns
-print(paste("Number of respondents after outcome and treatment preparation:", 
-            length(unique(data_merge_3$ID_t))))
-print(paste("Number of rows:", nrow(data_merge_3)))
-print(paste("Number of columns:", ncol(data_merge_3)))
-
-num_id_merge_3 <- length(unique(data_merge_3$ID_t))
+# length(unique(data_merge_3$ID_t)) # 9,062
 
 
 
@@ -960,6 +1014,12 @@ col_child <- data_child %>% select(-c(ID_t, wave, interview_date)) %>% colnames(
 data_merge_4 <- data_merge_4 %>%
   mutate_at(all_of(col_child), ~replace_na(.,0))
 
+# check that there are no NAs in sibling variable
+data_merge_4 %>%
+  ungroup() %>% select(all_of(col_child)) %>%
+  summarize(sum(is.na(.))) %>% pull()
+
+#length(unique(data_merge_4$ID_t)) # 9,062
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -983,22 +1043,36 @@ col_partner <- data_partner %>% select(-c(ID_t, wave, interview_date)) %>% colna
 data_merge_5 <- data_merge_5 %>%
   mutate_at(all_of(col_partner), ~replace_na(.,0))
 
+# check that there are no NAs in sibling variable
+data_merge_5 %>%
+  ungroup() %>% select(all_of(col_partner)) %>%
+  summarize(sum(is.na(.))) %>% pull()
 
+#length(unique(data_merge_5$ID_t)) # 9,062
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 
 #%%%%%%%%%%%%%%%%%%%%#
+
 #### Competencies ####
 #%%%%%%%%%%%%%%%%%%%%#
 
+# number of individuals with no competence measures
+length(setdiff(unique(data_merge_5$ID_t), unique(data_competencies$ID_t)))
+
 # data competencies is merged via the treatment_starts indicator
-# to do so, the duplicates are removed, so that every individual has one
 data_merge_6 <- left_join(data_merge_5, data_competencies, 
                           by = c("ID_t", "treatment_starts"))
+
+# check for missing values in competence measures
+data_merge_6 %>%
+  ungroup() %>% select(all_of(colnames(data_competencies)[-1])) %>%
+  summarize(sum(is.na(.))) %>% pull()
  
 
+#length(unique(data_merge_5$ID_t)) # 9,062
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -1008,10 +1082,38 @@ data_merge_6 <- left_join(data_merge_5, data_competencies,
 #### FINAL STEPS ####
 #%%%%%%%%%%%%%%%%%%%#
 
-# number of respondents, rows and columns
-print(paste("Number of respondents after merge process:", length(unique(data_merge_6$ID_t))))
-print(paste("Number of rows after merge process:", nrow(data_merge_6)))
-print(paste("Number of columns after merge process:", ncol(data_merge_6)))
+# variable indicating treatment period: aggregate treatment_starts and treatment_ends
+data_merge_6 <- data_merge_6 %>%
+  ungroup() %>%
+  mutate(treatment_period = treatment_starts) %>%
+  select(-c(treatment_starts, treatment_ends))
+
+# drop all interview_date variables as they are not needed anymore
+# (except interview_date_start, interview_date_end)
+data_merge_6 <- data_merge_6 %>%
+  select(-c("interview_date_treatment", "interview_date_outcome", "interview_date_cati",
+            "interview_date_cawi", "interview_date"))
+
+
+# show reduction of sample size
+  ## 12,010
+cat(paste("Number of respondents before merge process:", num_id_cati_cawi_out_treat))
+  ## 11,726
+cat(paste("Number of respondents after merging CATI & CAWI (because CATI includes less respondents for control variables:", 
+          num_id_cati_cawi_out_treat_contr))
+  ## 9,225:
+cat(paste("Number of respondents with at least one treatment period with both treatmnet and outcome not missing:",
+          num_id_treatment_outcome_no_na))
+  ## 7 individuals do not have an observation in episode data and CATI+CAWI data
+  ## These 7 individuals state that they started their study before WT 10/11 -> hence, they are not included
+cat(paste("Number of respondents after adding episode date. Sample size is reduced because students who \n state that they started their university study before WT 10/11 are dropped:", 
+          num_id_cati_cawi_eps)) 
+
+
+# number of respondents, rows and columns in final data frame
+cat(paste("Number of respondents after merge process:", length(unique(data_merge_6$ID_t))))
+cat(paste("Number of rows after merge process:", nrow(data_merge_6)))
+cat(paste("Number of columns after merge process:", ncol(data_merge_6)))
 
 
 # save
