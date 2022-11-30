@@ -149,13 +149,13 @@ data_competencies_final <- right_join(
   data_cohort_profile %>% select(ID_t, wave, interview_date, treatment_starts), 
   by = c("ID_t", "wave")
 )
-length(unique(data_competencies_final$ID_t)) # 12,670
+length(unique(data_competencies_final$ID_t)) # 12,010
 
 # keep only individuals who have at least taken part once in the
 # competence measures
-data_competencies_final <- data_competencies_final %>%
-  subset(ID_t %in% unique(data_competencies_long$ID_t))
-length(unique(data_competencies_final$ID_t)) # 10226
+# data_competencies_final <- data_competencies_final %>%
+#   subset(ID_t %in% unique(data_competencies_long$ID_t))
+# length(unique(data_competencies_final$ID_t)) # 10226
 
 # -> 11,810 individuals have taken part at least once in a competence measure
 # survey. 
@@ -170,16 +170,18 @@ length(unique(data_competencies_final$ID_t)) # 10226
 
 # drop individuals with missing values in wave
 # those individuals did not take part in the competence measures
-data_competencies_final <- data_competencies_final %>%
-  filter(!is.na(wave))
-length(unique(data_competencies_final$ID_t))
+# data_competencies_final <- data_competencies_final %>%
+#   filter(!is.na(wave))
+# length(unique(data_competencies_final$ID_t))
 
 # replace missing values downwards
+sum(is.na(data_competencies_final))
 data_competencies_final <- 
   data_competencies_final %>% 
   group_by(ID_t) %>%
   fill(data_competencies_final %>% select(-c(ID_t, wave)) %>% colnames(), 
        .direction = "down")
+sum(is.na(data_competencies_final))
 
 # domain-general competencies can be paper-based, computer-based or online.
 # hence, missing values are replaced across those survey possibilities
@@ -197,7 +199,7 @@ data_competencies_final <- data_competencies_final %>%
 colSums(is.na(data_competencies_final))
 
 
-# handle missing values
+# handle missing values (based on selection)
   ## 1.) Create NA variables
   ## 2.) Insert plausible values
 if (competencies == "NA_dummies") {
@@ -229,11 +231,8 @@ if (competencies == "NA_dummies") {
   data_competencies_final <- data_competencies_final
 }
 
-# Ideas: for missing values in WLE 0 is inserted (average)
-# for missing values in share 0.5
-# for missing values in sum average
-# -> OR: use plausible values
-
+sum(is.na(data_competencies_final))
+length(unique(data_competencies_final$ID_t))
 
 
 #%%%%%%%%%%%%%%%%%%%#
