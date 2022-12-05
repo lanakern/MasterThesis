@@ -25,6 +25,10 @@
 # 5.) Fill missing values downwards for variables for which this makes sense,
 # for example, school degree.
 #++++
+# 6.) Handle duplicates: for duplicated spells, the last reported spell
+# is kept. Moreover, for duplicates in start date, education spells are adjusted
+# accordingly.
+#++++
 # --> Episode data set has more rows than respondents; one row for each episode
 # of each respondent.
 
@@ -174,9 +178,16 @@ data_life_course <- left_join(
 )
 
 
+#### Main Spells ####
+#+++++++++++++++++++#
 
-#### Generate Dates ####
-#++++++++++++++++++++++#
+# keep only main speels
+data_life_course <- data_life_course %>%
+  filter(spms != "Side spell")
+
+
+#### Generate Start and End Date ####
+#+++++++++++++++++++++++++++++++++++#
 
 # Generate start and end date of spells
   # check for missings
@@ -211,6 +222,41 @@ data_life_course %>%
   ## for simplicity those rows are dropped
 data_life_course <- data_life_course %>% filter(!is.na(start_date))
 
+
+#### Adjust start and end date ####
+#+++++++++++++++++++++++++++++++++#
+
+# start and end date is adjusted for school spell: sometimes spells are
+# within spells
+  ## show example
+data_life_course %>%
+  subset(ID_t == 7003000) %>%
+  select(ID_t, start_date, end_date, sptype)
+  ## adjust
+data_life_course <-
+  data_life_course %>%
+  # sort and group data frame 
+  arrange(ID_t, sptype, start_date) %>%
+  group_by(ID_t, sptype) %>% 
+  # generating leading start date to make the comparison
+  mutate(
+    start_date_lead = lead(start_date)
+  ) %>%
+  # adjust end date if leading start date is smaller than current end date
+  mutate(
+    end_date = case_when(
+      start_date_lead < end_date & sptype %in% c("School", "VocTrain", "VocPrep") & 
+        start_date < start_date_lead & !is.na(start_date_lead) ~ start_date_lead, 
+      TRUE ~ end_date
+    )
+  ) %>%
+  # sort again
+  arrange(ID_t, start_date, end_date) %>%
+  select(-start_date_lead)
+
+data_life_course %>%
+  subset(ID_t == 7003000) %>%
+  select(ID_t, start_date, end_date, sptype)
 
 
 #### University spell ####
@@ -401,6 +447,18 @@ data_life_course <- data_life_course[!duplicated(
 sum(duplicated(data_life_course[c("ID_t","start_date", "end_date", "sptype_2")]))
 
 
+# there are spells which have the same start date, but another end date
+# this may be realistic for employment (two jobs at the same time)
+# but unrealistic for education spells (two studies at two different universities
+# is possible but unlikely)
+sum(duplicated(data_life_course[c("ID_t","start_date", "sptype_2")]))
+  ## example
+data_life_course %>% subset(ID_t == 7004431) %>% select(ID_t, start_date, end_date, sptype_2)
+  ## drop duplicates
+data_life_course <- data_life_course[!duplicated(
+  data_life_course[c("ID_t","start_date", "sptype_2")], fromLast = TRUE), ]
+sum(duplicated(data_life_course[c("ID_t","start_date", "sptype_2")]))
+
 
 #+++++++++++++++++++#
 #### Final Steps ####
@@ -420,12 +478,6 @@ print(paste("Number of columns", ncol(data_life_course)))
 
 # save data frame for further preparation in other files
 saveRDS(data_life_course, "Data/Prep_2/prep_2_life_course.rds")
-
-
-
-
-
-
 
 
 
