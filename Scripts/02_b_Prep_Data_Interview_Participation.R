@@ -14,7 +14,8 @@
 # wave is inserted while for missing day and month previous values are used.
 # Then interview date and competence measure test date are generated.
 #++++
-# 2.) Generate indices for treatment period start and end. 
+# 2.) Generate indices for treatment period start and end (depends on user
+# selection on how to do so). 
 #++++
 # 3.) Subset Data Frame
 # - Individuals for which no treatment periods are identified are dropped.
@@ -57,8 +58,13 @@ library(tidyr)  # to work with missing values
 # for German language
 Sys.setlocale("LC_TIME", "German")
 
-
-cohort <- "test"
+# decide on data preparation:
+  ## all control variables are taken before outcome, 
+  ## i.e.: CAWI-controls, CATI-controls-outcome-treatment, CAWI-outcome-treatment
+cohort_prep <- "controls_bef_outcome"
+  ## control variables are taken from same period, 
+  ## i.e.: CATI-controls-outcome-treatment, CAWI-controls-outcome-treatment
+# cohort_prep <- "controls_same_outcome"
 
 
 
@@ -160,7 +166,7 @@ data_cohort_profile <- data_cohort_profile %>%
 #### Generate Indices ####
 #%%%%%%%%%%%%%%%%%%%%%%%%#
 
-if (cohort == "test") {
+if (cohort_prep == "controls_bef_outcome") {
   
   # End of treatment period #
   #+++++++++++++++++++++++++#
