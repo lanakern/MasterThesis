@@ -23,7 +23,11 @@
 # 3.) Age
 # Only respondents in the age range 18 to 25 (young adulthood) are kept.
 #++++
-
+# 4.) School
+# -> Drop respondents who report that there highest degree is an intermediate degree (Mittlere Reife)
+# or even no qualification -> For studying high degree is necessary
+# -> Drop respondents with unrealistic short and long school spells
+#++++
 
 #%%%%%%%%%#
 ## SETUP ##
@@ -478,6 +482,51 @@ summary(data_sub_4$age)
 id_num_age <- length(unique(data_sub_4$ID_t)) # 7,466
 
 
+#%%%%%%%%%%%%%%#
+#### SCHOOL ####
+#%%%%%%%%%%%%%%#
+
+data_sub_5 <- data_sub_4
+
+## DEGREE ##
+#++++++++++#
+
+# there are individuals who have as highest degree an intermediat degree (Mittlere Reife)
+# In Germany, one needs a high degree to study. Hence, I drop those individuals
+# even they have a university spell (something is wrong with them; interviewer or
+# respondent made a mistake)
+data_sub_5 <- data_sub_5 %>%
+  filter(!grepl("Mittlere Reife", educ_highest_degree_casmin)) %>%
+  filter(!grepl("no qualification", educ_highest_degree_casmin))
+
+id_num_degree <- length(unique(data_sub_5$ID_t))
+
+
+## SPELL LENGTH ##
+#++++++++++++++++#
+
+# check spell length
+summary(data_sub_5$spell_length_cum_School)
+summary(data_sub_5$spell_length_cum_Uni)
+summary(data_sub_5$spell_length_cum_Emp)
+summary(data_sub_5$spell_length_cum_Internship)
+summary(data_sub_5$spell_length_cum_Military)
+summary(data_sub_5$spell_length_cum_VocTrain)
+summary(data_sub_5$spell_length_cum_VocPrep)
+
+# drop observations with unrealistic spell length
+data_sub_5 <- data_sub_5 %>%
+  filter(spell_length_cum_School >= 10 & spell_length_cum_School <= 16)
+
+data_sub_5 <- data_sub_5 %>%
+  filter(spell_length_cum_Emp <= 15) # because earliest start date for work is 12 (25-12 = 13 ~ 15)
+
+# summary(data_merge_1$spell_length_cum_School)
+# summary(data_merge_1$spell_length_cum_Uni)
+# summary(data_merge_1$spell_length_current_Uni)
+
+id_num_spell <- length(unique(data_sub_5$ID_t)) # 7,466
+
 #%%%%%%%%%%%%%%%%%%%#
 #### FINAL STEPS ####
 #%%%%%%%%%%%%%%%%%%%#
@@ -523,11 +572,20 @@ print(paste("Number of respondents:", id_num_extra))
 print("DROP RESPONDENTS NOT BEING IN THE DATE RANGE OF YOUNG ADULTS (18-25):")
 print(paste("Number of respondents:", id_num_age))
 
+# step 4: drop observations with unrealistic spell lengths
+print("DROP RESPONDENTS WITH NO HIGHER DEGREE:")
+print(paste("Number of respondents:", id_num_degree))
+
+# step 5: drop observations with unrealistic spell lengths
+print("DROP RESPONDENTS WITH UNREALISTIC SPELL LENGTHS:")
+print(paste("Number of respondents:", id_num_spell))
+
+
 # number of respondents, number of rows, and number of columns after sample selection
 print("AFTER SAMPLE SELECTION:")
-print(paste("Number of respondents:", length(unique(data_sub_4$ID_t))))
-print(paste("Number of rows:", nrow(data_sub_4)))
-print(paste("Number of columns:", ncol(data_sub_4)))
+print(paste("Number of respondents:", length(unique(data_sub_5$ID_t))))
+print(paste("Number of rows:", nrow(data_sub_5)))
+print(paste("Number of columns:", ncol(data_sub_5)))
 
 
 
@@ -541,6 +599,7 @@ if (sport_freq == "yes") {
 if (extra_freq == "yes") {
   suffix_save <- c(suffix_save, "_extrafreq")
 }
+
 if (all(c(1, 2, 3) %in% extra_incl)) {
   suffix_save <- suffix_save
 } else {
@@ -550,5 +609,5 @@ if (all(c(1, 2, 3) %in% extra_incl)) {
 suffix_save_final <- paste0("Data/prep_5_sample_selection", suffix_save, ".rds")
 
 # save data frame
-saveRDS(data_sub_4, suffix_save_final)
+saveRDS(data_sub_5, suffix_save_final)
 
