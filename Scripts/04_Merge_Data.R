@@ -861,9 +861,10 @@ data_cati_cawi_eps_all <- data_cati_cawi_eps_all %>%
 # note: the cumulated variable is the cumulated sum of previous study time (
 # including the current one
 data_cati_cawi_eps_all <- data_cati_cawi_eps_all %>%
-  mutate(spell_length_current_Uni = as.numeric(difftime(
-    interview_date_spell, start_date, units = "weeks")) / 52.5
-  )
+  mutate(spell_length_current_Uni = case_when(
+    uni_spell == 1 & eps_rel == 1 ~ as.numeric(difftime(interview_date_spell, start_date, units = "weeks")) / 52.5,
+    TRUE ~ as.double(NA)
+  ))
   ## from this variable one can infer if it is the first study period or not
   ## this is if the cumulated sum equals the current time
   ## create dummy for this
@@ -882,6 +883,7 @@ check <- data_cati_cawi_eps_all %>%
     spell_length_current_Uni, uni_first_eps
     )
 
+
 # drop variables which are not of interest anymore
 # order data frame
 data_merge_1 <- data_cati_cawi_eps_all %>%
@@ -893,6 +895,25 @@ data_merge_1 <- data_cati_cawi_eps_all %>%
          starts_with("spell_"), starts_with("educ_"),
          everything())
 
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+## MISSING VALUES ##
+#++++++++++++++++++#
+
+# replace missing values in School with 12 years
+sum(is.na(data_merge_1$spell_length_cum_School))
+data_merge_1 <- data_merge_1 %>% replace_na(list(spell_length_cum_School = 12))
+  
+# drop observations with missing values in length of uni episode
+sum(is.na(data_merge_1$spell_length_cum_Uni))
+data_merge_1 <- data_merge_1 %>% filter(!is.na(spell_length_cum_Uni))
+
+# for all other, insert 0 because spell does not exist
+data_merge_1 %>% ungroup() %>% select(starts_with("spell_length")) %>% summarize(summary(.))
+data_merge_1 <- data_merge_1 %>%
+  mutate(across(starts_with("spell_length"), ~ replace_na(., 0)))
+sum(is.na(data_merge_1 %>% ungroup() %>% select(starts_with("spell_length"))))
 
 length(unique(data_merge_1$ID_t)) # 9062
 
@@ -961,6 +982,7 @@ data_merge_2 <- left_join(
 # drop the employment variables not needed anymore
 data_merge_2 <- data_merge_2 %>%
   select(-starts_with("emp"))
+
 
 # number of respondents
 # length(unique(data_merge_2$ID_t)) # 9,062
@@ -1092,7 +1114,7 @@ data_merge_6 <- data_merge_6 %>%
 # (except interview_date_start, interview_date_end)
 data_merge_6 <- data_merge_6 %>%
   select(-c("interview_date_treatment", "interview_date_outcome", "interview_date_cati",
-            "interview_date_cawi", "interview_date"))
+            "interview_date_cawi", "interview_date", "sport_uni_orig"))
 
 
 # show reduction of sample size
