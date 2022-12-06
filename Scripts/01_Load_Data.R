@@ -81,7 +81,6 @@ for (var_sel in vars_label_bio) {
 }
 
 
-
 #### CohortProfile ####
 #+++++++++++++++++++++#
 
@@ -147,6 +146,40 @@ data_target_cati <- read.dta13("Data/Raw/SC5_pTargetCATI_D_16-0-0.dta",
                                convert.factors = FALSE)
 
 
+# save labels for use in file 06 (re-label aggregated variables)
+## vector with raw variable names
+cati_label_col_name_raw <- 
+  c("t67809a", "t67810a",
+    "t66003a", "tg15001", "t31300a",
+    "t66406a", "tg2411a", "t514001",
+    "t66201a", "t66208a", "t515052", "tg08003"
+    )
+## vector with new variable names
+cati_label_col_name_new <- 
+  c("personality_assertiveness", "personality_conflicts", 
+    "personality_selfesteem", "parents_opinion_degree", "opinion_educ",
+    "motivation_degree", "satisfaction_study", "satisfaction_life",
+    "interest_math", "interest_german", "risk", "uni_offers_helpful")
+## generate empty list (where results will be stored)
+list_cati_labels <- list()
+## iterate over variable names
+for (i in 1:length(cati_label_col_name_raw)) {
+  
+  # extract raw and new variable name 
+  cati_label_sel_raw <- cati_label_col_name_raw[i]
+  cati_label_sel_new <- cati_label_col_name_new[i]
+  
+  # find label name
+  cati_label_name <- unname(get.label.name(data_target_cati, cati_label_sel_raw))
+  
+  # replace "de" by "en" to get English labels
+  cati_label_name <- str_replace(cati_label_name, "de", "en")
+  
+  # extract labels and store them in the list
+  cati_label_value <- get.label(data_target_cati, cati_label_name)
+  list_cati_labels[[cati_label_sel_new]] <- cati_label_value
+}
+
 # add value labels
   ## define variables which should be labelled; some such as ID_t and numeric
   ## variables (especially those which are aggregated later) are dropped. 
@@ -167,7 +200,8 @@ vars_label_cati <- data_target_cati %>%
             t724403, t70000y, t70000m, t741001, t510010, t731301_g3, t731351_g3,
             t531260, t531261, tg09002, t525015, t521050, t521051, t521052,
             t520002, t520003, t34001h, t34001j, t34009j, t34009h,
-            t525008_v1, t525008, t34009i, t34009k
+            t525008_v1, t525008, t34009i, t34009k,
+            tg08003, tg08006, tg08009, tg08012, tg08015
             )
          ) %>% colnames()
 for (var_sel in vars_label_cati) {
@@ -197,16 +231,16 @@ data_target_cati <- data_target_cati %>%
     personality_imaginative = t66800j,
     personality_sensitive = t66800k,
     personality_patience = t515100,
-    personality_assertiveness_1 = t67809a, 
-    personality_assertiveness_2 = t67809b,
-    personality_assertiveness_3 = t67809e, 
-    personality_assertiveness_4 = t67809f, 
-    personality_assertiveness_5 = t67809h, 
-    personality_conflicts_1 = t67810a, 
-    personality_conflicts_2 = t67810b, 
-    personality_conflicts_3 = t67810d, 
-    personality_conflicts_4 = t67810e, 
-    personality_conflicts_5 = t67810h, 
+    personality_assertiveness_1_CATI = t67809a, 
+    personality_assertiveness_2_CATI = t67809b,
+    personality_assertiveness_3_CATI = t67809e, 
+    personality_assertiveness_4_CATI = t67809f, 
+    personality_assertiveness_5_CATI = t67809h, 
+    personality_conflicts_1_CATI = t67810a, 
+    personality_conflicts_2_CATI = t67810b, 
+    personality_conflicts_3_CATI = t67810d, 
+    personality_conflicts_4_CATI = t67810e, 
+    personality_conflicts_5_CATI = t67810h, 
     personality_selfesteem_1 = t66003a, 
     personality_selfesteem_2 = t66003b, 
     personality_selfesteem_3 = t66003c, 
@@ -276,12 +310,12 @@ data_target_cati <- data_target_cati %>%
     satisfaction_study_9 = tg2411i, 
     satisfaction_study_10 = t514008,
     # satisfaction with life (will probably be aggregated in one variable later)
-    satisfaction_life_1 = t514001, 
-    satisfaction_life_2 = t514002,
-    satisfaction_life_3 = t514003,
-    satisfaction_life_4 = t514004,
-    satisfaction_life_5 = t514005,
-    satisfaction_life_6 = t514009,
+    satisfaction_life_1_CATI = t514001, 
+    satisfaction_life_2_CATI = t514002,
+    satisfaction_life_3_CATI = t514003,
+    satisfaction_life_4_CATI = t514004,
+    satisfaction_life_5_CATI = t514005,
+    satisfaction_life_6_CATI = t514009,
     # variables measuring the health status of a student
     health_disability = t524200, 
     health_disability_degree = t524205, 
@@ -392,7 +426,7 @@ data_target_cati <- data_target_cati %>%
     interest_politics_general = t516105,
     interest_politics_vote = t516300, 
     interest_politics_discussion = t34010f, 
-    # university specific questions
+    # university specific questions 
     uni_offers_people = tg08001,
     uni_offers_people_partic = tg08002, 
     uni_offers_people_helpful = tg08003, 
@@ -461,8 +495,6 @@ data_target_cati <- data_target_cati %>%
 
 
 
-
-
 #### pTargetCAWI ####
 #++++++++++++++++++#
 
@@ -473,6 +505,41 @@ data_target_cati <- data_target_cati %>%
 # load data 
 data_target_cawi <- read.dta13("Data/Raw/SC5_pTargetCAWI_D_16-0-0.dta",
                                convert.factors = FALSE)
+
+# save labels for use in file 06 (re-label aggregated variables)
+  ## vector with raw variable names
+cawi_label_col_name_raw <- 
+  c("t67001a", "t67000a", "t320410", 
+    "t242011", "t242020", "tg52042", "tg54112",
+    "tg54211", "tg53221", "tg53231", "t291541", 
+    "t66007a", "t66010d", "tg53111", "t527003",
+    "tg52044", "tg53212", "t320106")
+  ## vector with new variable names
+cawi_label_col_name_new <- 
+  c("personality_goal_pers", "personality_goal_flex", "parents_importance_success",
+    "uni_counsel_quality", "uni_quality", "uni_best_student", "uni_fear",
+    "uni_anxiety", "uni_termination", "uni_commitment", "uni_prep",
+    "academic", "helpless", "social_integr", "stress", 
+    "uni_achievement_comp", "uni_perf_satisfied", "friends_opinion_degree")
+  ## generate empty list (where results will be stored)
+list_cawi_labels <- list()
+  ## iterate over variable names
+for (i in 1:length(cawi_label_col_name_raw)) {
+  
+  # extract raw and new variable name 
+  cawi_label_sel_raw <- cawi_label_col_name_raw[i]
+  cawi_label_sel_new <- cawi_label_col_name_new[i]
+  
+  # find label name
+  cawi_label_name <- unname(get.label.name(data_target_cawi, cawi_label_sel_raw))
+  
+  # replace "de" by "en" to get English labels
+  cawi_label_name <- str_replace(cawi_label_name, "de", "en")
+  
+  # extract labels and store them in the list
+  cawi_label_value <- get.label(data_target_cawi, cawi_label_name)
+  list_cawi_labels[[cawi_label_sel_new]] <- cawi_label_value
+}
 
 # add factor labels
 vars_label_cawi <- data_target_cawi %>%
@@ -501,8 +568,11 @@ vars_label_cawi <- data_target_cawi %>%
             t242110, t242111, t242112, t242113, t242114, t242115,
             t242116, t242118, t242119, t261840, t261841, t261842, t261843,
             t261844, t261845, t261846, t261847, t261848, t261849, t261850, t261851,
-            t261852, t261853
-  )) %>%
+            t261852, t261853, t67809a, t67809b, t67809e, t67809f, t67809h, 
+            t67810a, t67810b, t67810d, t67810e, t67810h,
+            t514001, t514002, t514003, t514004, t514005, t514009,
+            tg52044, tg52041, tg53213, tg53212
+            )) %>%
   colnames()
 
 for (var_sel in vars_label_cawi) {
@@ -648,12 +718,12 @@ data_target_cawi <- data_target_cawi %>%
     uni_fees = t531007, 
     # study-related questions
     uni_courses_num = tg52030,
-    uni_achievement_comp = tg52044, 
+    uni_achievement_comp_1 = tg52044, 
+    uni_achievement_comp_2 = tg52041, 
     uni_achievement_expect = tg53211, 
-    uni_sucessfull_comp = tg52041, 
-    uni_perf_fullfilled = tg53212, 
+    uni_perf_satisfied_1 = tg53212, 
+    uni_perf_satisfied_2 = tg53213, 
     uni_best_student_1 = tg52042, 
-    uni_perf_satisfied = tg53213, 
     uni_best_student_2 = tg52043, 
     uni_learn_group_partic = t261500, 
     uni_learn_group_num = t261501, 
@@ -730,7 +800,7 @@ data_target_cawi <- data_target_cawi %>%
     living_roommate = t289902, 
     living_partner = t289903,
     living_rent = t30300b,
-    # personality: goals
+    # personality
     personality_goal_pers_1 = t67001a, 
     personality_goal_pers_2 = t67001b, 
     personality_goal_pers_3 = t67001c, 
@@ -741,6 +811,16 @@ data_target_cawi <- data_target_cawi %>%
     personality_goal_flex_3 = t67000c, 
     personality_goal_flex_4 = t67000d, 
     personality_goal_flex_5 = t67000e,
+    personality_assertiveness_1_CAWI = t67809a, 
+    personality_assertiveness_2_CAWI = t67809b,
+    personality_assertiveness_3_CAWI = t67809e, 
+    personality_assertiveness_4_CAWI = t67809f, 
+    personality_assertiveness_5_CAWI = t67809h, 
+    personality_conflicts_1_CAWI = t67810a, 
+    personality_conflicts_2_CAWI = t67810b, 
+    personality_conflicts_3_CAWI = t67810d, 
+    personality_conflicts_4_CAWI = t67810e, 
+    personality_conflicts_5_CAWI = t67810h, 
     # chronic stress (will probably be aggregated in one variable later)
     stress_1 = t527003, 
     stress_2 = t527004, 
@@ -764,7 +844,14 @@ data_target_cawi <- data_target_cawi %>%
     drugs_other = t525408, 
     drugs_never = t525410,
     drugs_motive_relax = t525421, 
-    drugs_motive_perf = t525422
+    drugs_motive_perf = t525422,
+    # satisfaction with life (will probably be aggregated in one variable later)
+    satisfaction_life_1_CAWI = t514001, 
+    satisfaction_life_2_CAWI = t514002,
+    satisfaction_life_3_CAWI = t514003,
+    satisfaction_life_4_CAWI = t514004,
+    satisfaction_life_5_CAWI = t514005,
+    satisfaction_life_6_CAWI = t514009
   )
 
 
@@ -1351,3 +1438,6 @@ saveRDS(data_partner, "Data/Prep_1/prep_1_partner.rds")
 saveRDS(data_child, "Data/Prep_1/prep_1_child.rds")
 saveRDS(data_competencies, "Data/Prep_1/prep_1_competencies.rds")
 
+
+saveRDS(list_cawi_labels, "Data/Prep_1/prep_1_target_cawi_list.rds")
+saveRDS(list_cati_labels, "Data/Prep_1/prep_1_target_cati_list.rds")
