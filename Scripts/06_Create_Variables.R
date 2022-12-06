@@ -20,6 +20,9 @@ library(tidyr)  # for replace_na() function
 if (!require("fastDummies")) install.packages("fastDummies")
 library(fastDummies)  # to generate dummy variables
 
+if (!require("readstata13")) install.packages("readstata13")
+library(readstata13)  # to re-label aggregated variables
+
 # load data
 data <- readRDS("Data/prep_5_sample_selection.rds")
 
@@ -29,9 +32,9 @@ na_replace <- "constant" # "mice", "forest"
 
 
 
-#%%%%%%%%%%%%%%%%%%%%%%%%#
-#### Create Variables ####
-#%%%%%%%%%%%%%%%%%%%%%%%%#
+#%%%%%%%%%%%%%%%%%%%%%%%%#%%%%%%
+#### Generate new Variables ####
+#%%%%%%%%%%%%%%%%%%%%%%%%#%%%%%%
 
 
 ## YEARS OF EDUCATION ##
@@ -68,7 +71,7 @@ sum(is.na(data$BMI)) # number of NA in generated variable
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-#### Outcome and Treatment variables ####
+#### Outcome and Treatment Variables ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 ## GENERATE LAGS ##
@@ -109,9 +112,43 @@ sd(data$outcome_grade_stand) # standard deviation of 1
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-#### Aggregate variables ####
+#### Aggregate Variables ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
+
+## VARIABLES IN CATI & CAWI ##
+#++++++++++++++++++++++++++++#
+
+# mean is taken across CATI and CAWI (below they are aggregated again. Hence, no rounding here)
+  ## ungroup()
+data <- data %>% ungroup()
+  ## define variables which are in CATI and CAWI
+vars_both <- c("personality_assertiveness", "personality_conflicts", "satisfaction_life")
+  ## perform operation:
+for (vars_both_sel in vars_both) {
+  
+  ## identify all variables starting with string
+  vars_both_sel_all <- data %>%
+    select(starts_with(vars_both_sel)) %>% colnames() %>% 
+    str_remove_all("_CATI") %>% str_remove_all("_CAWI") %>% unique()
+  
+  ## for all of those take the mean
+  for (vars_both_sel_all_rep  in vars_both_sel_all) {
+    data <- data %>%
+      mutate(
+        !!vars_both_sel_all_rep := rowMeans(
+          select(data, !!!rlang::syms(paste0(vars_both_sel_all_rep, "_CAWI")), !!!rlang::syms(paste0(vars_both_sel_all_rep, "_CATI"))),
+          na.rm = TRUE)
+      )
+  }
+  
+  ## delete all variables ending with CATI and CAWI
+  data <- data %>% select(-matches(paste0(vars_both_sel, ".*[_CAWI|_CATI]$")))
+  
+}
+
+
+  
 
 ## REVERSE SCORE ##
 #+++++++++++++++++#
@@ -144,6 +181,11 @@ data %>% select(uni_termination_4, stress_3, satisfaction_study_2)
 data <- func_reverse_score(data, df_reverse_vars)
 data %>% select(uni_termination_4, stress_3, satisfaction_study_2)
 
+# recode manually (because number of categories do not match)
+data <- data %>%
+  mutate(uni_achievement_comp_2 = recode(
+         uni_achievement_comp_2, "1" = "5", "2" = "4", "3" = "2", "4" = "1")
+)
 
 
 ## AGGREGATE VARIABLES ##
@@ -158,11 +200,12 @@ vars_aggregated_mean <- c(
   "uni_counsel_.*_quality", "uni_quality", "uni_best_student", "uni_fear",
   "uni_anxiety", "uni_termination", "uni_commitment", "uni_prep",
   "academic", "helpless", "social_integr", "stress", 
+  "uni_achievement_comp", "uni_perf_satisfied", 
   ## CATI
   "personality_assertiveness", "personality_conflicts", 
   "personality_selfesteem", "parents_opinion_degree", "opinion_educ",
   "motivation_degree", "satisfaction_study", "satisfaction_life",
-  "interest_math", "interest_german", "risk", #"uni_offers_.*_helpful",
+  "interest_math", "interest_german", "risk", "uni_offers_.*_helpful",
   ## CATI & CAWI
   "friends_opinion_degree"
 )
@@ -194,6 +237,7 @@ for (vars_aggr in vars_aggregated_mean) {
   data <- data %>% mutate(across(starts_with(vars_aggr), as.numeric))
   # then apply aggregation
   data <- func_aggregate_vars(data, vars_aggr, "no", "mean")
+  
 }
   ## sum
 for (vars_aggr in vars_aggregated_sum) {
@@ -215,6 +259,19 @@ data %>% select(ID_t, matches("uni_counsel_offer"))
 data %>% select(ID_t, starts_with("risk"))
 data %>% select(ID_t, starts_with("drugs"))
 
+
+
+## UNI OFFERS ##
+#++++++++++++++#
+
+# aggregated here because not possible to match
+vars_offer <- c("uni_offers_people", "uni_offers_orga", "uni_offers_central_facilities",
+                "uni_offers_course", "uni_offers_skills", "uni_offers_no")
+data <- 
+  data %>% 
+  ungroup() %>%
+  mutate(uni_offers = round(rowSums(select(data, all_of(vars_offer)), na.rm = TRUE))) %>%
+  select(-all_of(vars_offer))
 
 
 ## POLITICS ##
@@ -693,6 +750,46 @@ data <- data %>%
 
 
 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### Re-label Variables ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+table(data$personality_goal_pers)
+table(data$academic)
+table(data$risk)
+table(data$uni_offers_helpful)
+
+# load lists with labels
+list_cawi_labels <- readRDS("Data/Prep_1/prep_1_target_cawi_list.rds")
+list_cati_labels <- readRDS("Data/Prep_1/prep_1_target_cati_list.rds")
+list_labels <- append(list_cawi_labels, list_cati_labels)
+
+for (i in 1:length(list_labels)) {
+  
+  # extract column name
+  col_name_cawi_sel <- names(list_labels)[i]
+  
+  # extract values according to column name
+  label_cawi_sel <- list_labels[[col_name_cawi_sel]]
+  
+  # swap names and values
+  label_cawi_sel <- setNames(names(label_cawi_sel), label_cawi_sel)
+  
+  # label variable
+  data <- data %>%
+    mutate(
+      {{col_name_cawi_sel}} := recode(!!!rlang::syms(col_name_cawi_sel), !!!label_cawi_sel)
+    )
+}
+
+
+table(data$personality_goal_pers)
+table(data$academic)
+table(data$risk)
+table(data$uni_offers_helpful)
+
+
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%#
 #### Rename Categories ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -869,7 +966,6 @@ data <- data %>%
   
   
   
-  
 #%%%%%%%%%%%%%%%%%%%%%%#
 #### Drop Variables ####
 #%%%%%%%%%%%%%%%%%%%%%%#
@@ -878,8 +974,8 @@ data <- data %>%
 data_sub_1 <- data
 
 
-#### Drop Variables with too many Missing Values ####
-#+++++++++++++++++++++++++++++++++++++++++++++++++++#
+## Drop Variables with too many Missing Values ##
+#+++++++++++++++++++++++++++++++++++++++++++++++#
 
 # variables with too many missing values are dropped
 # that is variables with more than 40% of missing values
@@ -906,8 +1002,8 @@ data_sub_1 <- data_sub_1 %>%
   select(-all_of(col_names_na_drop))
 
 
-#### Drop variables not needed anymore ####
-#+++++++++++++++++++++++++++++++++++++++++#
+## Drop variables not needed anymore ##
+#+++++++++++++++++++++++++++++++++++++#
 
 # there are some variables which are just not useful anymore
 vars_drop <- c(
@@ -920,14 +1016,14 @@ data_sub_1 <- data_sub_1 %>%
   select(-all_of(vars_drop))
 
 
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-#### NA Dummies and Missing Value Replacement ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### Handling Missing Values ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 
-#++++++++++++++++++#
-#### NA DUMMIES ####
-#++++++++++++++++++#
+#++++++++++++++#
+## NA DUMMIES ##
+#++++++++++++++#
 
 data_sub_2 <- data_sub_1
 
@@ -962,9 +1058,9 @@ for (col_sel in colnames_any_missing) {
 
 
 
-#+++++++++++++++++++#
-#### REPLACEMENT ####
-#+++++++++++++++++++#
+#+++++++++++++++#
+## REPLACEMENT ##
+#+++++++++++++++#
 
 data_sub_3 <- data_sub_2
 
@@ -1081,13 +1177,9 @@ sum(is.na(data_sub_3))
 
 
 
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-#### Create Variables: Dummy and Category ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-
-
-## Dummy Variables ##
-#+++++++++++++++++++#
+#%%%%%%%%%%%%%%%%%%%%%%%#
+#### Dummy Variables ####
+#%%%%%%%%%%%%%%%%%%%%%%%#
 
 data_sub_4 <- data_sub_3
 
@@ -1103,22 +1195,23 @@ data_sub_4 <- dummy_cols(
 
 
 
-## Categories ##
-#++++++++++++++#
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### Numeric in Categorical Variables ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 ## AGE ##
 
 # create age categories
-summary(data$age)
-data <- data %>%
+summary(data_sub_4$age)
+data_sub_4 <- data_sub_4 %>%
   mutate(
     age_18_21 = case_when(age >= 18 & age <= 21 ~ 1, TRUE ~ 0),
     age_22_23 = case_when(age > 21 & age <= 23 ~ 1, TRUE ~ 0),
     age_24_25 = case_when(age > 23 ~ 1, TRUE ~ 0)
   )
-table(data$age_18_21, useNA = "always")
-table(data$age_22_23, useNA = "always")
-table(data$age_24_25, useNA = "always")
+table(data_sub_4$age_18_21, useNA = "always")
+table(data_sub_4$age_22_23, useNA = "always")
+table(data_sub_4$age_24_25, useNA = "always")
 
 
 ## BMI ##
@@ -1129,14 +1222,14 @@ table(data$age_24_25, useNA = "always")
 # underweight: BMI < 18.5
 # overweight: 25-30
 # obesity: > 30
-summary(data$BMI)
-data <- data %>%
+summary(data_sub_4$BMI)
+data_sub_4 <- data_sub_4 %>%
   mutate(
     BMI_normal = case_when(BMI >= 18.5 & BMI <= 25 ~ 1, TRUE ~ 0),
     BMI_over = case_when(BMI > 25 ~ 1, TRUE ~ 0)
   )
-table(data$BMI_normal, useNA = "always")
-table(data$BMI_over, useNA = "always")
+table(data_sub_4$BMI_normal, useNA = "always")
+table(data_sub_4$BMI_over, useNA = "always")
 
 
 
@@ -1144,6 +1237,18 @@ table(data$BMI_over, useNA = "always")
 #### Final Steps ####
 #%%%%%%%%%%%%%%%%%%%#
 
+# check for missing values
+sum(is.na(data_sub_4))
+
+# check for duplicates
+sum(duplicated(data_sub_4))
+  ## remove duplicates
+data_sub_4 <- data_sub_4 %>% distinct()
+
+# number of respondents, rows, and columns
+print(paste("Number of respondents:", length(unique(data_sub_4$ID_t))))
+print(paste("Number of rows", nrow(data_sub_4)))
+print(paste("Number of columns", ncol(data_sub_4)))
 
 # save data frame
-saveRDS(data, "Data/prep_6_variables.rds")
+saveRDS(data_sub_4, "Data/prep_6_variables.rds")
