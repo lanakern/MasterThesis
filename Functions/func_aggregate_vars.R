@@ -115,6 +115,9 @@ func_aggregate_vars <- function(data, varsel_prefix, cr_alpha, method) {
       ) %>%
       select(-matches(column_names_drop))
   }
+  
+  # replace all NaN with NA
+  data_final <- data_final %>% mutate_at(all_of(new_column_name), list(~ifelse(is.nan(.), NA, .)))
 
   # return data
   return(data_final)
