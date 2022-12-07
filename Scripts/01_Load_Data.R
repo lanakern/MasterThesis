@@ -57,6 +57,8 @@ library(lubridate)  # to create a date variable
 if (!require("naniar")) install.packages("naniar")
 library(naniar)  # to work with missing values
 
+if (!require("stringr")) install.packages("stringr")
+library(stringr)  # to work with strings
 
 
 #%%%%%%%%%%%%%#
@@ -200,8 +202,7 @@ vars_label_cati <- data_target_cati %>%
             t724403, t70000y, t70000m, t741001, t510010, t731301_g3, t731351_g3,
             t531260, t531261, tg09002, t525015, t521050, t521051, t521052,
             t520002, t520003, t34001h, t34001j, t34009j, t34009h,
-            t525008_v1, t525008, t34009i, t34009k,
-            tg08003, tg08006, tg08009, tg08012, tg08015
+            t525008_v1, t525008, tg08003, tg08006, tg08009, tg08012, tg08015
             )
          ) %>% colnames()
 for (var_sel in vars_label_cati) {
