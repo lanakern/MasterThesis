@@ -239,6 +239,14 @@ length(unique(data_competencies_final$ID_t))
 #### Final Steps ####
 #%%%%%%%%%%%%%%%%%%%#
 
+# add prefix to column names (easier to find variables later)
+col_names_prefix <- colnames(data_competencies_final)[
+  !colnames(data_competencies_final) %in% c("ID_t", "wave", "interview_date", "treatment_starts")
+  ]
+data_competencies_final <-
+  data_competencies_final %>%
+  rename_with(~ paste0("comp_", .), .cols = all_of(col_names_prefix))
+
 # keep only unique values across treatment periods
 sum(duplicated(data_competencies_final[, c("ID_t", "treatment_starts")]))
 
