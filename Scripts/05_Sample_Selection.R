@@ -28,6 +28,11 @@
 # or even no qualification -> For studying high degree is necessary
 # -> Drop respondents with unrealistic short and long school spells
 #++++
+# 5.) Length treatment period
+# -> Drop observations with treatment periods above two years. In this case, the
+# distance between control variables and outcome/treatment are too long.
+#++++
+
 
 #%%%%%%%%%#
 ## SETUP ##
@@ -527,6 +532,33 @@ data_sub_5 <- data_sub_5 %>%
 
 id_num_spell <- length(unique(data_sub_5$ID_t)) # 7,466
 
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### LENGTH TREATMENT PERIOD ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+data_sub_6 <- data_sub_5
+
+
+# calculate length of treatment period in years
+data_sub_6 <- data_sub_6 %>%
+  mutate(
+    treatment_period_length = abs(as.numeric(
+      (interview_date_start - interview_date_end) / 365
+      ))
+  )
+
+summary(data_sub_6$treatment_period_length)
+
+# I only keep observations with a treatment period of maximum 2 years
+# otherwise control variables are two old
+data_sub_6 <- data_sub_6 %>% filter(treatment_period_length <= 2)
+  
+
+id_num_length <- length(unique(data_sub_6$ID_t)) 
+
+
 #%%%%%%%%%%%%%%%%%%%#
 #### FINAL STEPS ####
 #%%%%%%%%%%%%%%%%%%%#
@@ -580,12 +612,15 @@ print(paste("Number of respondents:", id_num_degree))
 print("DROP RESPONDENTS WITH UNREALISTIC SPELL LENGTHS:")
 print(paste("Number of respondents:", id_num_spell))
 
+# step 6: drop observations with treatment periods above 2 years
+print("DROP RESPONDENTS WITH TREATMENT PERIODS ABOVE 2 YEARS:")
+print(paste("Number of respondents:", id_num_length))
 
 # number of respondents, number of rows, and number of columns after sample selection
 print("AFTER SAMPLE SELECTION:")
-print(paste("Number of respondents:", length(unique(data_sub_5$ID_t))))
-print(paste("Number of rows:", nrow(data_sub_5)))
-print(paste("Number of columns:", ncol(data_sub_5)))
+print(paste("Number of respondents:", length(unique(data_sub_6$ID_t))))
+print(paste("Number of rows:", nrow(data_sub_6)))
+print(paste("Number of columns:", ncol(data_sub_6)))
 
 
 
@@ -609,5 +644,5 @@ if (all(c(1, 2, 3) %in% extra_incl)) {
 suffix_save_final <- paste0("Data/prep_5_sample_selection", suffix_save, ".rds")
 
 # save data frame
-saveRDS(data_sub_5, suffix_save_final)
+saveRDS(data_sub_6, suffix_save_final)
 
