@@ -106,7 +106,7 @@ for (wave_sel in c("w1", "w5", "w12")) {
   data_competencies_sub_wave <- 
     data_competencies %>%
       # keep only individuals who participated in competence measures in wave 1
-      filter((!!sym(paste0("wave_", wave_sel))) == "yes") %>%
+      filter((!!sym(paste0("wave_", wave_sel))) == 1) %>%
       # keep only wave 1 variables
       select(ID_t, ends_with(wave_sel)) %>%
       # omit individuals with at least one missing value
