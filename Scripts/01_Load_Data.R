@@ -5,18 +5,22 @@
 #++++
 # by Lana Kern
 #++++
-# In this file, all data files are loaded which are needed for the
-# upcoming analysis. Moreover, minor adjustments such as renaming variables,
-# replacing missing values, recoding "(not) specified" variables etc., are made.
+# In this file, all data files which are needed for the upcoming analysis
+# are loaded and prepared. For example, minor adjustments such as renaming variables,
+# replacing missing values and recoding variable values are made.
 #++++
+# 1.) LOAD DATA FILES: All data sets are loaded, labelled variables are
+# re-named and only relevant variables are kept.
 # The data sets used in the upcoming analysis are:
 # - Biography (SC5_Biography_D_16-0-0.dta)
 # - Cohort Profile (SC5_CohortProfile_D_16-0-0.dta)
 # - CATI (SC5_pTargetCATI_D_16-0-0.dta)
 # - CAWI (SC5_pTargetCAWI_D_16-0-0.dta)
 # - School: Includes the schooling history of each respondent (SC5_spSchool_D_16-0-0.dta)
-# - Education: Highest degree (CASMIN & ISCED) is taken (SC5_Education_D_16-0-0.dta)
-# - Vocational Training (higher education) (SC5_spVocTrain_D_16-0-0.dta)
+# - Education: Information on highest degree (CASMIN & ISCED) (SC5_Education_D_16-0-0.dta)
+# - Vocational Preparation: if someone takes part in vocational preparation (SC5_spVocPrep_D_16-0-0.dta)
+# - Vocational Training: higher education information (including university study) (SC5_spVocTrain_D_16-0-0.dta)
+# - Vocational Training Breaks (SC5_spVocBreaks_D_16-0-0.dta)
 # - Internship (SC5_spInternship_D_16-0-0.dta)
 # - Military (SC5_spMilitary_D_16-0-0.dta)
 # - Gap (SC5_spGap_D_16-0-0.dta)
@@ -26,8 +30,17 @@
 # - Child (SC5_spChild_D_16-0-0.dta)
 # - Competencies (SC5_xTargetCompetencies_D_16-0-0.dta)
 #++++
-# -> ATTENTION: THIS FILE RUNS AROUND 2 HOURS!
-# -> This is because of the variable values labeling procedure!
+# 2.) RECODE MISSING VALUES: All missing values are correctly identified as
+# such. For instance, NEPS missing values like -99 and "missing by design" are
+# converted to R NA.
+#++++
+# 3.) RECODE VARIABLES: 
+# - All factor variables are converted as character
+# - Recode variables: (non-)specified and yes-no variables to numeric
+#++++
+# -> ATTENTION: THIS FILE RUNS FOR AROUND 2 HOURS due to the value labelling procedure!
+# -> The result of this file is a prepared data file for each original data file
+# which is used in further data preparation steps in the next scripts.
 
 
 #%%%%%%%%%#
@@ -39,9 +52,6 @@
 rm(list = ls())
 
 # install packages if needed, load packages
-# if (!require("haven")) install.packages("haven")
-# library(haven)  # to import stata (.dta) file into R
-
 if (!require("readstata13")) install.packages("readstata13")
 library(readstata13)  # to import stata (.dta) file into R (see data manual why this function is used)
 
@@ -61,9 +71,10 @@ if (!require("stringr")) install.packages("stringr")
 library(stringr)  # to work with strings
 
 
-#%%%%%%%%%%%%%#
-## LOAD DATA ##
-#%%%%%%%%%%%%%#
+
+#%%%%%%%%%%%%%%%%%%%#
+## LOAD DATA FILES ##
+#%%%%%%%%%%%%%%%%%%%#
 
 
 #### Biography ####
@@ -81,6 +92,11 @@ for (var_sel in vars_label_bio) {
   data_bio[, var_sel] <- 
     set.label(data_bio, var_sel, lang = "en")
 }
+
+# number of respondents, rows and columns
+length(unique(data_bio$ID_t)) # 17, 909 respondents
+nrow(data_bio) # 231,136
+ncol(data_bio) # 10
 
 
 #### CohortProfile ####
@@ -134,14 +150,19 @@ data_cohort_profile <- data_cohort_profile %>%
          first_participation)
 
 
+# number of respondents, rows and columns
+length(unique(data_cohort_profile$ID_t)) # 17,909
+nrow(data_cohort_profile) # 157,107
+ncol(data_cohort_profile) # 13
+
   
 #### pTargetCATI ####
 #++++++++++++++++++#
 
-# -> less lines than in CohortProfile because there are only lines for persons
-# who responded
-# includes big five personality traits, frequency of sport in leisure time 
-# (NO university sports)
+# -> less rows than in CohortProfile because there are only rows for students
+# who responded in each survey
+# -> includes big five personality traits, frequency of sport in leisure time 
+# (NO university sports), etc. 
 
 # load data 
 data_target_cati <- read.dta13("Data/Raw/SC5_pTargetCATI_D_16-0-0.dta",
@@ -149,22 +170,22 @@ data_target_cati <- read.dta13("Data/Raw/SC5_pTargetCATI_D_16-0-0.dta",
 
 
 # save labels for use in file 06 (re-label aggregated variables)
-## vector with raw variable names
+  ## vector with raw variable names
 cati_label_col_name_raw <- 
   c("t67809a", "t67810a",
     "t66003a", "tg15001", "t31300a",
     "t66406a", "tg2411a", "t514001",
     "t66201a", "t66208a", "t515052", "tg08003"
     )
-## vector with new variable names
+  ## vector with new variable names
 cati_label_col_name_new <- 
   c("personality_assertiveness", "personality_conflicts", 
     "personality_selfesteem", "parents_opinion_degree", "opinion_educ",
     "motivation_degree", "satisfaction_study", "satisfaction_life",
     "interest_math", "interest_german", "risk", "uni_offers_helpful")
-## generate empty list (where results will be stored)
+  ## generate empty list (where results will be stored)
 list_cati_labels <- list()
-## iterate over variable names
+  ## iterate over variable names
 for (i in 1:length(cati_label_col_name_raw)) {
   
   # extract raw and new variable name 
@@ -182,7 +203,7 @@ for (i in 1:length(cati_label_col_name_raw)) {
   list_cati_labels[[cati_label_sel_new]] <- cati_label_value
 }
 
-# add value labels
+# add value labels to variables
   ## define variables which should be labelled; some such as ID_t and numeric
   ## variables (especially those which are aggregated later) are dropped. 
 vars_label_cati <- data_target_cati %>%
@@ -205,9 +226,30 @@ vars_label_cati <- data_target_cati %>%
             t525008_v1, t525008, tg08003, tg08006, tg08009, tg08012, tg08015
             )
          ) %>% colnames()
-for (var_sel in vars_label_cati) {
-  data_target_cati[, var_sel] <- 
-    set.label(data_target_cati, var_sel, lang = "en")
+  ## iterate over labels to label
+for (vars_label_cati_sel in vars_label_cati) {
+  
+  # find label name
+  cati_label_name <- unname(get.label.name(data_target_cati, vars_label_cati_sel))
+  
+  if (any(cati_label_name != "", !is.null(cati_label_name))) {
+    # replace "de" by "en" to get English labels
+    cati_label_name <- str_replace(cati_label_name, "de", "en")
+    
+    # extract labels and store them in the list
+    cati_label_value <- get.label(data_target_cati, cati_label_name)
+    
+    # swap names and values for replacement in recode
+    cati_label_value <- setNames(names(cati_label_value), cati_label_value)
+    
+    # perform replacement
+    data_target_cati <- data_target_cati %>%
+      mutate({{vars_label_cati_sel}} := recode(
+        !!!rlang::syms(vars_label_cati_sel), !!!cati_label_value, 
+        .default = as.character(!!!rlang::syms(vars_label_cati_sel))
+        ))
+  }
+  
 }
 
 
@@ -258,14 +300,8 @@ data_target_cati <- data_target_cati %>%
     gender = t700001,
     birth_country = t405010_g2,
     birth_ger_eastwest = t700101_g1, 
-    #birth_state = t700101_g2R, 
-    #birth_ger_region = t700101_g3R, 
-    #birth_ger_district = t700101_g4R,
     birth_nationality_ger = t406060, 
-    #nationality_other = t406100_g2,
     degree_uentrance_ger = tf11105, 
-    #mother_tongue_first = t414000_g1R, 
-    #mother_tongue_second = t414002_g1R, 
     bilingual = t414050,
     current_residence_country = t751004_g2, 
     current_residence_eastwest = t751001_g1, 
@@ -280,8 +316,6 @@ data_target_cati <- data_target_cati %>%
     educ_uni_degree_aspire = t31040a, 
     educ_uni_degree_achieve = t31140a, 
     educ_uni_degree_teaching = tg24201_g1, 
-    #educ_uni_loc_eastwest = tg15207_g1R, 
-    #educ_uni_loc_state = tg15207_g2R, 
     educ_profession_aspired = t31060b_g9, 
     educ_profession_expected = t31160c_g9, 
     # source of finance and financial situation
@@ -494,14 +528,20 @@ data_target_cati <- data_target_cati %>%
   select(-(matches("^t[0-9].*"))) %>%
   select(-c(ID_i))
 
+# number of rows, columns and respondents
+length(unique(data_target_cati$ID_t)) # 17909
+nrow(data_target_cati) # 101038
+ncol(data_target_cati) # 1050
+
 
 
 #### pTargetCAWI ####
-#++++++++++++++++++#
+#+++++++++++++++++++#
 
-# -> less lines than in CohortProfile because there are only lines for persons
-# who responded
-# includes big five personality traits, sport frequency (independent of university sports)
+# -> less rows than in CohortProfile because there are only rows for persons
+# who responded in each survey
+# -> includes university sport indicator and its frequency; current average grade
+# extracurricular activities etc. 
 
 # load data 
 data_target_cawi <- read.dta13("Data/Raw/SC5_pTargetCAWI_D_16-0-0.dta",
@@ -575,10 +615,30 @@ vars_label_cawi <- data_target_cawi %>%
             tg52044, tg52041, tg53213, tg53212
             )) %>%
   colnames()
-
-for (var_sel in vars_label_cawi) {
-  data_target_cawi[, var_sel] <- 
-    set.label(data_target_cawi, var_sel, lang = "en")
+  ## iterate over labels to label variables
+for (vars_label_cawi_sel in vars_label_cawi) {
+  
+  # find label name
+  cawi_label_name <- unname(get.label.name(data_target_cawi, vars_label_cawi_sel))
+  
+  if (any(cawi_label_name != "", !is.null(cawi_label_name))) {
+    # replace "de" by "en" to get English labels
+    cawi_label_name <- str_replace(cawi_label_name, "de", "en")
+    
+    # extract labels and store them in the list
+    cawi_label_value <- get.label(data_target_cawi, cawi_label_name)
+    
+    # swap names and values for replacement in recode
+    cawi_label_value <- setNames(names(cawi_label_value), cawi_label_value)
+    
+    # perform replacement
+    data_target_cawi <- data_target_cawi %>%
+      mutate({{vars_label_cawi_sel}} := recode(
+        !!!rlang::syms(vars_label_cawi_sel), !!!cawi_label_value, 
+        .default = as.character(!!!rlang::syms(vars_label_cawi_sel))
+      ))
+  }
+  
 }
 
 
@@ -856,12 +916,18 @@ data_target_cawi <- data_target_cawi %>%
   )
 
 
+# drop variables not needed
 data_target_cawi <- data_target_cawi %>%
   select(-c(starts_with("tg"), starts_with("ts"), starts_with("tf"), 
             starts_with("th"), starts_with("tx"), starts_with("Version"))) %>%
   select(-(matches("^t[0-9].*"))) %>%
   select(-c(ID_i))
 
+
+# number of respondents, rows, and columns
+length(unique(data_target_cawi$ID_t)) # 15,239
+nrow(data_target_cawi) # 54,465
+ncol(data_target_cawi) # 244
 
 
 #### School ####
@@ -889,14 +955,10 @@ data_school <- data_school %>%
 # rename variables
 data_school <- data_school %>%
   rename(
-    # educ_school_start_m = ts1111m, # start and end date variables are taken from biography
-    # educ_school_start_y = ts1111y, 
-    # educ_school_end_m = ts1112m, 
-    # educ_school_end_y = ts1112y, 
     educ_school_type = ts11205, 
     educ_school_country = ts1120s_g2, 
     educ_school_quali_eastwest = tg2232b_g1, 
-    educ_school_quali_state = tg2232b_g2R, 
+    #educ_school_quali_state = tg2232b_g2R, # only missing values
     educ_school_quali = ts11209, 
     educ_school_grade_final = ts11218, 
     educ_school_grade_math = t724712, 
@@ -909,12 +971,18 @@ data_school <- data_school %>%
   select(ID_t, splink, wave, starts_with("educ_"))
 
 
+# number of respondents, rows, and columns
+length(unique(data_school$ID_t)) # 17,909
+nrow(data_school) # 47,050
+ncol(data_school) # 10
+
 
 #### Education ####
 #+++++++++++++++++#
 
 # -> "information on transitions in respondents’ educational careers"
-# splink: link for spell merging
+# -> only info one highest degree is used. For example, I calculate
+# years of education on my own.
 
 # load data
 data_education <- read.dta13("Data/Raw/SC5_Education_D_16-0-0.dta",
@@ -928,43 +996,51 @@ for (var_sel in vars_label_educ) {
 }
 
 
-
-# check for duplicates
-anyDuplicated(data_education[,c("ID_t","splink")])
-
 # rename variables
 data_education <- data_education %>%
-  rename(#interview_month = datem,
-         #interview_year = datey,
-         educ_highest_degree_casmin = tx28101,
-         educ_highest_degree_isced = tx28103, 
-         #educ_years = tx28102,
-         information_source = tx28100
+  rename(educ_highest_degree_casmin = tx28101,
+         educ_highest_degree_isced = tx28103
   )
 
 # only keep variables needed
 data_education <- data_education %>%
   select(ID_t, splink, educ_highest_degree_casmin, educ_highest_degree_isced)
 
+# remove duplicates
+sum(duplicated(data_education))
+data_education <- data_education %>% distinct()
+
+# number of respondents, rows, and columns
+length(unique(data_education$ID_t)) # 17,912
+nrow(data_education) # 56,625
+ncol(data_education) # 4
 
 
 #### Vocational Preparation ####
 #++++++++++++++++++++++++++++++#
 
-# # SO FAR NOT USED
-# 
-# # -> comprises episodes of vocational preparation after general education, including
-# # pre‐training course and  basic vocational training years
-# data_voc_prep <- read.dta13("Data/Raw/SC5_spVocPrep_D_16-0-0.dta",
-#                             convert.factors = FALSE)
-# 
-# 
-# # add value labels for variables needed
-# vars_label_voctrain <- colnames(data_voc_prep)[-1] # drop ID_t
-# for (var_sel in vars_label_voctrain) {
-#   data_voc_prep[, var_sel] <- 
-#     set.label(data_voc_prep, var_sel, lang = "en")
-# }
+# -> comprises episodes of vocational preparation after general education, including
+# pre‐training course and  basic vocational training years
+data_voc_prep <- read.dta13("Data/Raw/SC5_spVocPrep_D_16-0-0.dta",
+                            convert.factors = FALSE)
+
+# keep only harmonized subspells
+# keep only observations for finished vocational preparation
+# and create a dummy indicating that individual took part in vocational
+# preparation
+data_voc_prep <- data_voc_prep %>%
+  subset(subspell == 0) %>%
+  filter(ts13201 == 2) %>%
+  mutate(educ_voc_prep = 1)
+
+# keep only variables of interest
+data_voc_prep <- data_voc_prep %>%
+  select(ID_t, splink, educ_voc_prep)
+
+# number of respondents, rows, and columns
+length(unique(data_voc_prep$ID_t)) # 370
+nrow(data_voc_prep) # 391
+ncol(data_voc_prep) # 3
 
 
 #### Vocational Training ####
@@ -973,10 +1049,11 @@ data_education <- data_education %>%
 # -> covers all further trainings, vocational and/or academic, that a respondent ever
 # attended, for instance tertiary education at universities, doctoral studies
 # subject and degree changes over the course of studies, change of higher education institution
-# -> INCLUDES START OF STUDY
+# -> INCLUDES START OF STUDY (but is also taken from biography)
 
 # load data
 data_voc_train <- read.dta13("Data/Raw/SC5_spVocTrain_D_16-0-0.dta", convert.factors = FALSE)
+
 
 # add value labels for variables needed
 vars_label_voctrain <- 
@@ -986,7 +1063,6 @@ for (var_sel in vars_label_voctrain) {
     set.label(data_voc_train, var_sel, lang = "en")
 }
 
-
 # only keep full or harmonized episodes
 data_voc_train <- data_voc_train %>%
   subset(subspell == 0)
@@ -994,18 +1070,12 @@ data_voc_train <- data_voc_train %>%
 # rename variables
 data_voc_train <- data_voc_train %>%
   rename(
-    # educ_uni_start_m = ts1511m, # taken from biography
-    # educ_uni_start_y = ts1511y, 
-    # educ_uni_end_m = ts1512m, 
-    # educ_uni_end_y = ts1512y, 
     educ_uni_entrance_quali_access = tg24150_g2, 
     educ_uni_first_eps = h_aktstu, 
     educ_uni_type_inst = tg01003_ha, 
     educ_uni_quali = ts15221_g1, 
     educ_uni_degree_1 = tg24170_g2, 
     educ_uni_degree_2 = tg24170_g5
-    # educ_uni_degree_blk = tg24169_g9R, 
-    # educ_uni_voctrain_type = ts15201 # unispells are identified differently
   )
 
 
@@ -1013,6 +1083,11 @@ data_voc_train <- data_voc_train %>%
 data_voc_train <- data_voc_train %>%
   select(ID_t, splink, starts_with("educ_"))
 
+
+# number of respondents, rows, and columns
+length(unique(data_voc_train$ID_t)) # 17,909
+nrow(data_voc_train) # 43,055
+ncol(data_voc_train) # 8
 
 
 #### Vocational Training Breaks ####
@@ -1045,6 +1120,11 @@ data_voc_break <- data_voc_break %>%
   distinct(ID_t, splink, .keep_all = TRUE)
 
 
+# number of respondents, rows, and columns
+length(unique(data_voc_break$ID_t)) # 1,648
+nrow(data_voc_break) # 1,781
+ncol(data_voc_break) # 5
+
 
 #### Internship ####
 #++++++++++++++++++#
@@ -1074,9 +1154,16 @@ data_internship <- data_internship %>%
   )
 
 # keep only variables of interest
+# and create dummy for internsip
 data_internship <- data_internship %>%
-  select(ID_t, splink, intern_type, intern_study_rel)
+  select(ID_t, splink, intern_type, intern_study_rel) %>%
+  mutate(intern = 1)
 
+
+# number of respondents, rows, and columns
+length(unique(data_internship$ID_t)) # 13,142
+nrow(data_internship) # 33,578
+ncol(data_internship) # 5
 
 
 #### Military ####
@@ -1097,26 +1184,10 @@ data_military <- data_military %>%
   mutate(military = 1) %>%
   select(ID_t, splink, military)
 
-
-
-#### Break ####
-#+++++++++++++#
-
-
-# # SO FAR NOT USED
-# 
-# 
-# # -> covers all breaks of further trainings, vocational and/or academic, that a respondent ever attended
-# data_break <- read.dta13("Data/Raw/SC5_spVocBreaks_D_16-0-0.dta",
-#                          convert.factors = FALSE)
-# 
-# # add value labels for variables needed
-# vars_label_voctrain <- colnames(data_break)[-1] # drop ID_t
-# for (var_sel in vars_label_voctrain) {
-#   data_break[, var_sel] <- 
-#     set.label(data_break, var_sel, lang = "en")
-# }
-
+# number of respondents, rows, and columns
+length(unique(data_military$ID_t)) # 4,562
+nrow(data_military) # 4,863
+ncol(data_military) # 3
 
 
 #### Gap ####
@@ -1125,18 +1196,28 @@ data_military <- data_military %>%
 # -> gaps in individual life courses
 
 # load data
-# rename variables
-# keep only variables of interest
 data_gap <- 
   read.dta13("Data/Raw/SC5_spGap_D_16-0-0.dta", convert.factors = FALSE) 
 
 # add value labels for variables needed
 data_gap[, "ts29101"] <- set.label(data_gap, "ts29101", lang = "en")
 
+# only keep full or harmonized episodes
 data_gap <- data_gap %>%
-  rename(gap_type = ts29101) %>%
-  select(ID_t, splink, gap_type)
+  subset(subspell == 0)
 
+# rename variables
+# keep only variables of interest
+# create dummy for gap
+data_gap <- data_gap %>%
+  rename(gap_type = ts29101) %>% 
+  select(ID_t, splink, gap_type) %>%
+  mutate(gap = 1)
+
+# number of respondents, rows, and columns
+length(unique(data_gap$ID_t)) # 9,821
+nrow(data_gap) # 14,858
+ncol(data_gap) # 4
 
 
 
@@ -1158,6 +1239,9 @@ for (var_sel in vars_label_emp) {
     set.label(data_emp, var_sel, lang = "en")
 }
 
+# keep only harmonized subspells
+data_emp <- data_emp %>% subset(subspell == 0)
+
 # rename variables
 data_emp <- data_emp %>%
   rename(
@@ -1175,6 +1259,12 @@ data_emp <- data_emp %>%
   select(ID_t, splink, current_emp_2, emp_prof_pos, emp_student_job, 
          emp_student_job_type, emp_student_job_rel, emp_net_income,
          emp_act_work_hours)
+
+# number of respondents, rows, and columns
+length(unique(data_emp$ID_t)) # 16,180
+nrow(data_emp) # 68,588
+ncol(data_emp) # 9
+
 
 
 #### Sibling ####
@@ -1209,6 +1299,12 @@ data_sibling <- data_sibling %>%
 # keep only variables of interest
 data_sibling <- data_sibling %>% 
   select(ID_t, wave, starts_with("sibling"))
+
+# number of respondents, rows, and columns
+length(unique(data_sibling$ID_t)) # 15,602
+nrow(data_sibling) # 26,932
+ncol(data_sibling) # 8
+
 
 
 #### Partner ####
@@ -1263,6 +1359,11 @@ data_partner <- data_partner %>%
 data_partner <- data_partner %>%
   select(ID_t, wave, starts_with("partner_"))
 
+# number of respondents, rows, and columns
+length(unique(data_partner$ID_t)) # 13,411
+nrow(data_partner) # 21,187
+ncol(data_partner) # 22
+
 
 #### Child ####
 #+++++++++++++#
@@ -1301,6 +1402,12 @@ data_child <- data_child %>%
 data_child <- data_child %>%
   select(ID_t, wave, starts_with("child"))
 
+# number of respondents, rows, and columns
+length(unique(data_child$ID_t)) # 2,575
+nrow(data_child) # 3,903
+ncol(data_child) # 9
+
+
 
 #### Competencies ####
 #++++++++++++++++++++#
@@ -1318,44 +1425,45 @@ for (var_sel in vars_label_comp) {
   data_competencies[, var_sel] <- 
     set.label(data_competencies, var_sel, lang = "en")
 }
-#get.lang(data_competencies, print = T)
-#varlabel(data_competencies, lang = "en")
-#get.label(data_competencies)
 
 # keep only variables of interest and rename them
 data_competencies <- data_competencies %>%
   rename(
-    math_wle_w1 = mas1_sc1, 
-    read_wle_w1 = res1_sc1, 
-    readspeed_sum_w1 = rss1_sc3, 
-    read_assess_share_w1 = mps1re_sc6, 
-    math_assess_share_w1 = mps1ma_sc6, 
-    percspeed_paper_sum_w5 = dgs3_sc5a_pb, 
-    percspeed_comp_sum_w5 = dgs3_sc5a_cb, 
-    percspeed_online_sum_w5 = dgs3_sc5a_wb, 
-    reasoning_paper_sum_w5 = dgs3_sc5b_pb, 
-    reasoning_comp_sum_w5 = dgs3_sc5b_cb, 
-    reasoning_online_sum_w5 = dgs3_sc5b_wb, 
-    ict_wle_w5 = ics3_sc1, 
-    science_wle_w5 = scs3_sc1u, 
-    science_assess_share_w5 = mps3sc_sc6, 
-    ict_assess_share_w5 = mps3ic_sc6, 
-    math_wle_w12 = mas12_sc1,
-    read_wle_w12 = res12_sc1, 
-    english_wle_e12 = efs12_sc1, 
-    math_assess_share_w12 = mps12ma_sc6, 
-    read_assess_share_w12 = mps12re_sc6, 
-    english_assess_share_w12 = mps12ef_sc6
+    comp_math_wle_w1 = mas1_sc1, 
+    comp_read_wle_w1 = res1_sc1, 
+    comp_readspeed_sum_w1 = rss1_sc3, 
+    comp_read_assess_share_w1 = mps1re_sc6, 
+    comp_math_assess_share_w1 = mps1ma_sc6, 
+    comp_percspeed_paper_sum_w5 = dgs3_sc5a_pb, 
+    comp_percspeed_comp_sum_w5 = dgs3_sc5a_cb, 
+    comp_percspeed_online_sum_w5 = dgs3_sc5a_wb, 
+    comp_reasoning_paper_sum_w5 = dgs3_sc5b_pb, 
+    comp_reasoning_comp_sum_w5 = dgs3_sc5b_cb, 
+    comp_reasoning_online_sum_w5 = dgs3_sc5b_wb, 
+    comp_ict_wle_w5 = ics3_sc1, 
+    comp_science_wle_w5 = scs3_sc1u, 
+    comp_science_assess_share_w5 = mps3sc_sc6, 
+    comp_ict_assess_share_w5 = mps3ic_sc6, 
+    comp_math_wle_w12 = mas12_sc1,
+    comp_read_wle_w12 = res12_sc1, 
+    comp_english_wle_e12 = efs12_sc1, 
+    comp_math_assess_share_w12 = mps12ma_sc6, 
+    comp_read_assess_share_w12 = mps12re_sc6, 
+    comp_english_assess_share_w12 = mps12ef_sc6
   ) %>%
-  select(ID_t, starts_with("wave"), starts_with("math"), starts_with("read"),
-         starts_with("reasoning"), starts_with("percspeed"), starts_with("ict"), 
-         starts_with("science"), starts_with("english")) 
+  select(ID_t, starts_with("wave"), starts_with("comp_")) 
+
+
+# number of respondents, rows, and columns
+length(unique(data_competencies$ID_t)) # 11,810
+nrow(data_competencies) # 11,810
+ncol(data_competencies) # 25
 
 
 
-  
-#### Recode missing values ####
-#+++++++++++++++++++++++++++++#
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### RECODE MISSING VALUES ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 # load generated function
 source("Functions/func_replace_missings.R")
@@ -1381,10 +1489,24 @@ list2env(dfs_list_adj, envir = .GlobalEnv)
   ## remove lists as they are not needed anymore
 remove(dfs_list, dfs_list_adj)
 
+# check for missing values
+func_num_missing <- function(data) {
+  return(sum(is.na(data)))
+}
+dfs_list <- Filter(function(x) is(x, "data.frame"), mget(ls()))
+lapply(dfs_list, func_num_missing)
+
+# check for duplicates
+func_num_dups <- function(data) {
+  return(sum(duplicated(data)))
+}
+dfs_list <- Filter(function(x) is(x, "data.frame"), mget(ls()))
+lapply(dfs_list, func_num_dups)
 
 
-#### Recode Variables ####
-#++++++++++++++++++++++++#
+#%%%%%%%%%%%%%%%%%%%%%%%%#
+#### RECODE VARIABLES ####
+#%%%%%%%%%%%%%%%%%%%%%%%%#
 
 
 # recode all character variables as factor
@@ -1419,15 +1541,18 @@ list2env(dfs_list_adj_yesno, envir = .GlobalEnv)
 remove(dfs_list, dfs_list_adj_charac, dfs_list_adj_spec, dfs_list_adj_yesno)
 
 
-#### Save all data frames ####
-#+++++++++++++++++++++++++++++#
+#%%%%%%%%%%%%#
+#### SAVE ####
+#%%%%%%%%%%%%#
 
+# data frames
 saveRDS(data_bio, "Data/Prep_1/prep_1_biography.rds")
 saveRDS(data_cohort_profile, "Data/Prep_1/prep_1_cohort_profile.rds")
 saveRDS(data_target_cati, "Data/Prep_1/prep_1_target_cati.rds")
 saveRDS(data_target_cawi, "Data/Prep_1/prep_1_target_cawi.rds")
 saveRDS(data_school, "Data/Prep_1/prep_1_school.rds")
 saveRDS(data_education, "Data/Prep_1/prep_1_educ.rds")
+saveRDS(data_voc_prep, "Data/Prep_1/prep_1_vocprep.rds")
 saveRDS(data_voc_train, "Data/Prep_1/prep_1_voctrain.rds")
 saveRDS(data_voc_break, "Data/Prep_1/prep_1_vocbreak.rds")
 saveRDS(data_gap, "Data/Prep_1/prep_1_gap.rds")
@@ -1439,6 +1564,6 @@ saveRDS(data_partner, "Data/Prep_1/prep_1_partner.rds")
 saveRDS(data_child, "Data/Prep_1/prep_1_child.rds")
 saveRDS(data_competencies, "Data/Prep_1/prep_1_competencies.rds")
 
-
+# label lists
 saveRDS(list_cawi_labels, "Data/Prep_1/prep_1_target_cawi_list.rds")
 saveRDS(list_cati_labels, "Data/Prep_1/prep_1_target_cati_list.rds")

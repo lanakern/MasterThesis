@@ -2,8 +2,19 @@
 #### FUNCTION: RECODE (NOT) SPECIFIED VALUES ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-# generate function
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
+
+# by Lana Kern
+
+# This file includes a function to recode specified and not specified variables
+# to specified = 1 and not specified = 0.
+# This function is applied to all individual data sets in file 01.
+
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
+
+# Generate function
   ## input is data frame
+  ## output is data frame with proper replacements
 
 func_recode_specified <- function(data) {
   
@@ -23,8 +34,7 @@ func_recode_specified <- function(data) {
       mutate_at(
         all_of(vars_recode), 
         list(
-          ~recode(., `specified` = 1, `not specified` = 0, 
-                  .default = NaN) # NA does not work
+          ~recode(., `specified` = 1, `not specified` = 0, .default = NaN) # NA does not work
         ) 
       ) %>%
       # replace NaN with NA
