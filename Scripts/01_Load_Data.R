@@ -1117,7 +1117,8 @@ data_voc_break <- data_voc_break %>%
     educ_uni_break_deregist_nform = tg2419c
   ) %>%
   select(ID_t, splink, starts_with("educ_uni")) %>%
-  distinct(ID_t, splink, .keep_all = TRUE)
+  distinct(ID_t, splink, .keep_all = TRUE) %>%
+  mutate(educ_uni_break = 1) # indicator for making a break in general
 
 
 # number of respondents, rows, and columns
@@ -1233,7 +1234,7 @@ data_emp <- read.dta13("Data/Raw/SC5_spEmp_D_16-0-0.dta", convert.factors = FALS
 
 
 # add value labels for variables needed
-vars_label_emp <- c("ts23901_v1", "ts23203", "ts23256", "tg2608b", "ts23257")
+vars_label_emp <- c("ts23203", "ts23256", "tg2608b", "ts23257")
 for (var_sel in vars_label_emp) {
   data_emp[, var_sel] <- 
     set.label(data_emp, var_sel, lang = "en")
@@ -1245,7 +1246,6 @@ data_emp <- data_emp %>% subset(subspell == 0)
 # rename variables
 data_emp <- data_emp %>%
   rename(
-    current_emp_2 = ts23901_v1, 
     emp_prof_pos = ts23203, 
     emp_student_job = ts23256, 
     emp_student_job_type = tg2608b, 
@@ -1256,9 +1256,8 @@ data_emp <- data_emp %>%
 
 # keep only variables of interest
 data_emp <- data_emp %>%
-  select(ID_t, splink, current_emp_2, emp_prof_pos, emp_student_job, 
-         emp_student_job_type, emp_student_job_rel, emp_net_income,
-         emp_act_work_hours)
+  select(ID_t, splink, starts_with("emp_")) %>%
+  mutate(emp = 1)
 
 # number of respondents, rows, and columns
 length(unique(data_emp$ID_t)) # 16,180
