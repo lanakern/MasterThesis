@@ -62,6 +62,9 @@ library(lubridate)  # to transform time data and work with dates
 if (!require("tidyr")) install.packages("tidyr")
 library(tidyr)  # to work with missing values
 
+if (!require("xlsx")) install.packages("xlsx")
+library(xlsx)  # for saving and loading excel
+
 
 # set language for dates and times to German, since the NEPS month names
 # are written in German; otherwise date/time functions are not working
@@ -719,6 +722,22 @@ print(paste("Number of columns", ncol(data_life_course)))
 
 # save data frame for further preparation in other files
 saveRDS(data_life_course, "Data/Prep_2/prep_2_life_course.rds")
+
+# save excel
+df_excel_save <- data.frame(
+  "data_prep_step" = "episode",
+  "data_prep_choice_cohort" = NA, 
+  "num_id" = length(unique(data_life_course$ID_t)), 
+  "num_rows" = nrow(data_life_course),
+  "num_cols" = ncol(data_life_course),
+  "time_stamp" = Sys.time()
+)
+df_excel_save_hist <- read.xlsx("Data/SAMPLE_REDUCTION_STEPS.xlsx", sheetName = "Sheet1")
+df_excel_save <- rbind(df_excel_save_hist, df_excel_save)
+
+write.xlsx(df_excel_save, "Data/SAMPLE_REDUCTION_STEPS.xlsx", sheetName = "Sheet1",
+           row.names = FALSE, append = FALSE, showNA = FALSE)
+
 
 
 
