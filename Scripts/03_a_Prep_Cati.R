@@ -5,27 +5,23 @@
 #++++
 # by Lana Kern
 #++++
-# 1.) Missing values in cati data are replaced downwards
+# 1.) Load data and join with cohort profile
+# -> CATI data set is loaded
+# -> Cohort Profile data set is loaded based on selection 
+# -> CATI and Cohort Profile are merged so that only respondents who are in 
+# both data sets are kept.
+# -> Missing values are replaced downwards
 #++++
-# 2.) CATI and Cohort Profile are merged via an inner join to add the interview date
-# and keep only waves which are used for the treatment periods. Doing so,
-# only respondents who are in both CATI and CohortProfile are kept.
+# 2.) Final CATI data set is created which includes control variables and
+# treatment information.
+# -> Missing values in treatment variable are also upward replaced (if selected by user)
 #++++
-# 2.) Preparation of Outcome and Treatment: Information about grade and sport
-# is kept from every CATI interview which is used to create treatment
-# periods. This is done because later treatment and outcome information from CATI
-# is merged to CAWI based on the closest time difference (minimum difference in days
-# between CATI and CAWI interviews). 
-# Leisure sport can either be downward or downward & upward replaced (based on selection)
-#++++
-# 3.) Preparation of Control variables: Control variables are taken from
-# the beginning of the treatment period. 
-#++++
-# --> Resulting data frame is panel data frame
+# --> Resulting data frame is panel data frame.
 
 
+#%%%%%%%%%%%%%#
 #### Setup ####
-#+++++++++++++#
+#%%%%%%%%%%%%%#
 
 # clear workspace
 rm(list = ls())
@@ -40,6 +36,9 @@ library(tidyr)  # to fill missing values
 if (!require("lubridate")) install.packages("lubridate")
 library(lubridate) # to work with dates
 
+if (!require("xlsx")) install.packages("xlsx")
+library(xlsx) # for saving as xlsx
+
 # set language for dates and times to German, since the NEPS month names
 # are written in German; otherwise date/time functions are not working
 # for German language
@@ -48,18 +47,42 @@ Sys.setlocale("LC_TIME", "German")
 # treatment replacement
 treatment_repl <- "downup" # with any other selection, only downward replacement is made
 
+# selection on cohort prepration
+cohort_prep <- "controls_bef_outcome" 
+#cohort_prep <- "controls_same_outcome"
 
-#+++++++++++++++++#
-#### Load Data ####
-#+++++++++++++++++#
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### Load Data & Join with Cohort Profile ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 # load data
 data_target_cati <- readRDS("Data/Prep_1/prep_1_target_cati.rds")
-data_cohort_profile <- readRDS("Data/Prep_2/prep_2_cohort_profile.rds")
+## cohort profile depends on data preparation
+if (cohort_prep == "controls_same_outcome") {
+  data_cohort_profile <- readRDS("Data/Prep_2/prep_2_cohort_profile.rds")
+} else if (cohort_prep == "controls_bef_outcome") {
+  data_cohort_profile <- readRDS("Data/Prep_2/prep_2_cohort_profile_robustcheck.rds")
+} else {
+  stop("specify which cohort data preparation should be used")
+}
 
 # number of respondents
 length(unique(data_target_cati$ID_t)) # 17,909 respondents
-length(unique(data_cohort_profile$ID_t)) # 12,670 respondents
+length(unique(data_cohort_profile$ID_t)) 
+
+# check if number of respondents are the same in both data sets
+id_cati <- unique(data_target_cati$ID_t)
+id_cohort <- unique(data_cohort_profile$ID_t)
+setdiff(id_cohort, id_cati) # should be "integer(0)"
+sum(id_cohort %in% id_cati) == length(id_cohort) # should be TRUE
+
+
+# CAWI: keep only respondents who are also in data cohort
+data_target_cati <- data_target_cati %>% filter(ID_t %in% id_cohort)
+id_num_cati_adj_1 <- length(unique(data_target_cati$ID_t))
+
 
 # handle many missing values in CATI: unless a new value has been reported,
 # value is copied downwards, i.e., to later waves. 
@@ -69,117 +92,113 @@ data_target_cati <- data_target_cati %>%
   fill(names(data_target_cati), .direction = "down")
 
 # merge cati data to cohort date -> only respondents which are 
-# also in cohort data are kept. Moreover, only information for waves used
-# are kept -> inner_join
+# also in cohort data are kept (also ensured above)
 data_cati <- inner_join(
-  data_target_cati, 
-  # drop treatment_ends from cohort profile because it will be NA for
-  # any observation as treatment period only ends in CAWI wave
-  data_cohort_profile %>% select(-treatment_ends), 
+  data_target_cati, data_cohort_profile %>% select(-c(starts_with("competence"))),
   by = c("ID_t", "wave")
 ) 
 
 
 # extract number of respondents
-id <- unique(data_cati$ID_t)
-id_num <- length(unique(data_cati$ID_t))
+  ## some respondents are dropped who have valid survey participation in cohort
+  ## profile but no data in CATI
+id_cati_adj_2 <- unique(data_cati$ID_t)
+id_num_cati_adj_2 <- length(unique(data_cati$ID_t))
 
-# SAMPLE REDUCTION
-  ## there are 154 respondents who are in data_cohort_profile but not
-  ## in CATI 
-length(setdiff(unique(data_cohort_profile$ID_t), unique(data_cati$ID_t)))
+setdiff(id_cohort, id_cati_adj_2)
+id_drop_num <- length(setdiff(id_cohort, id_cati_adj_2))
+  ## examples
+data_cohort_profile %>% select(ID_t, wave, starts_with("treatment")) %>% subset(ID_t == 7011450)
+data_target_cati %>% select(ID_t, wave, starts_with("treatment")) %>% subset(ID_t == 7011450)
+
+data_cohort_profile %>% select(ID_t, wave, starts_with("treatment")) %>% subset(ID_t == 7016646)
+data_target_cati %>% select(ID_t, wave, starts_with("treatment")) %>% subset(ID_t == 7016646)
 
 
-print("After Merge:")
-print(paste("Number of respondents:", length(unique(data_cati$ID_t))))
+
+#%%%%%%%%%%%%%%%%%%%%%%%%#
+#### Data Preparation ####
+#%%%%%%%%%%%%%%%%%%%%%%%%#
+
+# same for both cohort profile data because from CATI interview always 
+# control variables and treatment information is taken.
+
+# depending on selection you may replace missing values in the treatment
+# variable also upwards
+if (treatment_repl == "downup") {
+  # because there are so many missing values in treatment, information is
+  # also copied upwards
+  data_cati <- data_cati %>%
+    group_by(ID_t) %>%
+    fill(sport_leisure_freq, .direction = "downup") %>% ungroup()
+  # otherwise only downward which is done above
+} else {
+  data_cati <- data_cati
+}
+
+# generate treatment_period variable and rename interview_date
+  ## this differs (only for "controls_same_outcome" this is interview start)
+if (cohort_prep == "controls_same_outcome") {
+  data_cati <- data_cati %>% rename(treatment_period = treatment_starts, 
+                                    interview_date_start = interview_date)
+  
+  # order columns
+  data_cati <- data_cati %>% 
+    select(-c(treatment_ends, starts_with("wave"))) %>%
+    select(ID_t, treatment_period, interview_date_start, 
+           starts_with("sport_"), grade_final, everything())
+  
+} else if (cohort_prep == "controls_bef_outcome") {
+  data_cati <- data_cati %>% rename(treatment_period = treatment_starts)
+  
+  # order columns
+  data_cati <- data_cati %>% 
+    select(-c(treatment_ends, starts_with("wave"))) %>%
+    select(ID_t, treatment_period, interview_date, 
+           starts_with("sport_"), grade_final, everything())
+} 
+
+
+
+
+
+#%%%%%%%%%%%%%%%%%%%#
+#### Final Steps ####
+#%%%%%%%%%%%%%%%%%%%#
+
+# check for duplicates
+sum(duplicated(data_cati))
+
+# check for missing values
+colSums(is.na(data_cati))
+
+# number of rows, columns and respondents
+print(paste("Number of respondents before data preparation:", length(id_cati)))
+print(paste("Number of respondents after merge with cohort profile:", id_num_cati_adj_2))
 print(paste("Number of rows:", nrow(data_cati)))
 print(paste("Number of columns:", ncol(data_cati)))
 
-
-
-#++++++++++++++++++++++++++++++#
-#### Treatment and Outcome #####
-#++++++++++++++++++++++++++++++#
-
-# treatment and outcome from CATI is kept for every wave
-# later it is merged to CAWI treatment and outcome based on the CATI
-# interview closest to the CAWI interview. 
-
-
-# select outcome and treatment variables
-data_cati_treatment <- data_cati %>%
-  ungroup() %>%
-  select(ID_t, wave, interview_date, treatment_starts, grade_final, sport_leisure_freq)
-
-# factor variables as character
-data_cati_treatment <- data_cati_treatment %>% mutate_if(is.factor, as.character)
-
-# treatment replacement based on selection
-if (treatment_repl == "downup") {
-  # because there are so many missing values, sport information is also copied
-  # upwards
-  colSums(is.na(data_cati_treatment))
-  data_cati_treatment <- data_cati_treatment %>%
-    group_by(ID_t) %>%
-    fill(sport_leisure_freq, .direction = "downup") %>% ungroup()
-  # otherwise only down replacement (which is already down above)
+# save
+if (cohort_prep == "controls_same_outcome") {
+  data_cohort_profile_save <- "Data/Prep_3/prep_3_cati.rds"
 } else {
-  data_cati_treatment <- data_cati_treatment 
+  data_cohort_profile_save <- "Data/Prep_3/prep_3_cati_robustcheck.rds"
 }
 
+saveRDS(data_cati, data_cohort_profile_save)
 
-# count number of individuals for who no treatment and/or outcome info is available
-data_cati_treatment %>%
-  group_by(ID_t) %>%
-  summarize(
-    count_na_sport_freq = all(is.na(sport_leisure_freq)),
-    count_na_grade = all(is.na(grade_final))
-  ) %>%
-  summarize(
-    num_indiv_na_sport_freq = sum(count_na_sport_freq),
-    num_indiv_na_grade = sum(count_na_grade)
-  )
-
-
-# final steps
-print("Treatment and Outcome Data Set")
-print(paste("Number of respondents:", length(unique(data_cati_treatment$ID_t))))
-print(paste("Number of rows:", nrow(data_cati_treatment)))
-print(paste("Number of columns:", ncol(data_cati_treatment)))
-
-saveRDS(data_cati_treatment, "Data/Prep_3/prep_3_outcome_treatment_cati.rds")
-
-
-
-
-#+++++++++++++++++++++++++#
-#### Control Variables ####
-#+++++++++++++++++++++++++#
-
-
-# time-variant and time-invariant control variables are in one data set
-data_controls_cati <- data_cati %>%
-  # select all control variables
-  select(-c(grade_final, sport_leisure_freq)) %>% 
-  # keep only variables which are used for start of treatment period
-  subset(!is.na(treatment_starts)) 
-
-# convert all factor variables as characters
-data_controls_cati <- data_controls_cati %>%
-  mutate_if(is.factor, as.character) 
-
-# number of missing values in each column
-colSums(is.na(data_controls_cati))
-
-# final: number of respondents, rows. and columns
-print("Control Variable Data Set")
-print(paste("Number of respondents:", length(unique(data_controls_cati$ID_t))))
-print(paste("Number of rows:", nrow(data_controls_cati)))
-print(paste("Number of columns:", ncol(data_controls_cati)))
-
-saveRDS(data_controls_cati, "Data/Prep_3/prep_3_controls_cati.rds")
-
-
-
+# save number of rows, columns, and respondents in excel file
+df_excel_save <- data.frame(
+  "data_prep_step" = "cati",
+  "data_prep_choice_cohort" = cohort_prep,
+  "data_prep_treatment_repl" = treatment_repl, 
+  "num_id" = length(unique(data_cati$ID_t)), 
+  "num_rows" = nrow(data_cati),
+  "num_cols" = ncol(data_cati),
+  "time_stamp" = Sys.time()
+)
+## load function
+source("Functions/func_save_sample_reduction.R")
+func_save_sample_reduction(df_excel_save)
 
 
