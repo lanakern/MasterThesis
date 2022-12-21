@@ -48,8 +48,8 @@ library(xlsx)  # to load and write excel files
 treatment_repl <- "downup" # with any other selection, only downward replacement is made
 
 # selection on cohort prepration
-#cohort_prep <- "controls_bef_outcome" 
-cohort_prep <- "controls_same_outcome"
+cohort_prep <- "controls_bef_outcome" 
+#cohort_prep <- "controls_same_outcome"
 
 
 
