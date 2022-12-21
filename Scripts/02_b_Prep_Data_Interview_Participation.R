@@ -81,10 +81,10 @@ Sys.setlocale("LC_TIME", "German")
 # decide on data preparation:
   ## all control variables are taken before outcome, 
   ## i.e.: CAWI-controls, CATI-controls-outcome-treatment, CAWI-outcome-treatment
-cohort_prep <- "controls_bef_outcome"
+#cohort_prep <- "controls_bef_outcome"
   ## control variables are taken from same period, 
   ## i.e.: CATI-controls-outcome-treatment, CAWI-controls-outcome-treatment
-#cohort_prep <- "controls_same_outcome" 
+cohort_prep <- "controls_same_outcome" 
 
 
 
@@ -521,40 +521,6 @@ if (cohort_prep == "controls_bef_outcome") {
   data_cohort_profile_prep_1 <- data_cohort_profile_prep_1 %>%
     mutate(treatment_ends = case_when(end_NA == TRUE ~ as.double(NA), TRUE ~ treatment_ends)) %>%
     select(-end_NA)
-  
-  # # adjust numbering of treatment_starts and treatment_ends
-  # data_cohort_profile_prep_1 <- 
-  #   # treatment_starts
-  #   rbind(
-  #     data_cohort_profile_prep_1 %>%
-  #       subset(ID_t %in% c(7002171, 7015120, 7003857, 7036384)) %>%
-  #       filter(!is.na(treatment_starts) & grepl("CATI", wave_2)) %>%
-  #       group_by(ID_t, wave_2) %>%
-  #       mutate(treatment_starts = row_number()),
-  #     data_cohort_profile_prep_1 %>%
-  #       subset(ID_t %in% c(7002171, 7015120, 7003857, 7036384)) %>%
-  #       filter(!is.na(treatment_starts) & grepl("CAWI", wave_2)) %>%
-  #       group_by(ID_t, wave_2) %>%
-  #       mutate(treatment_starts = row_number()) 
-  # ) %>%
-  #   arrange(ID_t, wave) %>%
-  #   # treatment_ends
-  #   rbind(
-  #     data_cohort_profile_prep_1 %>%
-  #       subset(ID_t %in% c(7002171, 7015120, 7003857, 7036384)) %>%
-  #       filter(!is.na(treatment_ends)) %>%
-  #       select(ID_t, )
-  #   )
-
-    
-  # data_cohort_profile_prep_1 <- data_cohort_profile_prep_1 %>%
-  #   arrange(ID_t, interview_date) %>%
-  #   group_by(ID_t, wave_2) %>%
-  #   mutate(treatment_starts = ifelse(grepl("CATI", wave_2) & !is.na(treatment_starts), row_number(), NA)) %>%
-  #   ungroup() %>%
-  #   arrange(ID_t, interview_date) %>%
-  #   group_by(ID_t, wave_2) %>%
-  #   mutate(treatment_ends = ifelse(grepl("CAWI", wave_2) & !is.na(treatment_ends), row_number(), NA))
   
   # adjust number of respondents
   num_id_adj_3 <- length(unique(data_cohort_profile_prep_1$ID_t))
