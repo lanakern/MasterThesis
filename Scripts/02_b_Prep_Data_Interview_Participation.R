@@ -81,10 +81,10 @@ Sys.setlocale("LC_TIME", "German")
 # decide on data preparation:
   ## all control variables are taken before outcome, 
   ## i.e.: CAWI-controls, CATI-controls-outcome-treatment, CAWI-outcome-treatment
-#cohort_prep <- "controls_bef_outcome"
+cohort_prep <- "controls_bef_outcome"
   ## control variables are taken from same period, 
   ## i.e.: CATI-controls-outcome-treatment, CAWI-controls-outcome-treatment
-cohort_prep <- "controls_same_outcome"
+#cohort_prep <- "controls_same_outcome" 
 
 
 
@@ -497,20 +497,64 @@ if (cohort_prep == "controls_bef_outcome") {
   
   summary(df_check_length$treatment_length)
   
-  # merge length of treatment period to data frame
-  data_cohort_profile_prep_1 <- data_cohort_profile_prep_1 %>%
-    mutate(treatment_period = case_when(
-      is.na(treatment_starts) ~ treatment_ends, TRUE ~ treatment_starts
-    )) %>% 
-    left_join(
-      df_check_length %>% select(ID_t, treatment_period, treatment_length),
-      by = c("ID_t", "treatment_period")
-    )
-  
-  # subset data frame to only keep observations with treatment period below 2 years
-  data_cohort_profile_prep_1 <- data_cohort_profile_prep_1 %>% 
+  # identify rows to keep and drop
+  df_check_length_keep <- df_check_length %>%
     filter(treatment_length <= 2) %>%
-    select(-c(treatment_period, treatment_length))
+    select(ID_t, treatment_period) %>%
+    mutate(keep_row = TRUE) 
+  
+  df_check_length_drop <- df_check_length %>%
+    filter(treatment_length > 2) %>%
+    select(ID_t, treatment_period) %>%
+    mutate(end_NA = TRUE) 
+  
+  # starts are dropped and ends are set NA
+  data_cohort_profile_prep_1 <- data_cohort_profile_prep_1 %>%
+    left_join(df_check_length_keep, by = c("ID_t", "treatment_starts" = "treatment_period")) %>%
+    left_join(df_check_length_keep, by = c("ID_t", "treatment_ends" = "treatment_period")) %>%
+    left_join(df_check_length_drop, by = c("ID_t", "treatment_ends" = "treatment_period")) %>%
+    mutate(keep_row = ifelse(is.na(keep_row.x), keep_row.y, keep_row.x))
+    ## keep only if keep_row = TRUE
+  data_cohort_profile_prep_1 <- data_cohort_profile_prep_1 %>%
+    filter(keep_row == TRUE) %>% select(-(starts_with("keep_row")))
+    ## set treatment_ends = NA if end_NA = TRUE
+  data_cohort_profile_prep_1 <- data_cohort_profile_prep_1 %>%
+    mutate(treatment_ends = case_when(end_NA == TRUE ~ as.double(NA), TRUE ~ treatment_ends)) %>%
+    select(-end_NA)
+  
+  # # adjust numbering of treatment_starts and treatment_ends
+  # data_cohort_profile_prep_1 <- 
+  #   # treatment_starts
+  #   rbind(
+  #     data_cohort_profile_prep_1 %>%
+  #       subset(ID_t %in% c(7002171, 7015120, 7003857, 7036384)) %>%
+  #       filter(!is.na(treatment_starts) & grepl("CATI", wave_2)) %>%
+  #       group_by(ID_t, wave_2) %>%
+  #       mutate(treatment_starts = row_number()),
+  #     data_cohort_profile_prep_1 %>%
+  #       subset(ID_t %in% c(7002171, 7015120, 7003857, 7036384)) %>%
+  #       filter(!is.na(treatment_starts) & grepl("CAWI", wave_2)) %>%
+  #       group_by(ID_t, wave_2) %>%
+  #       mutate(treatment_starts = row_number()) 
+  # ) %>%
+  #   arrange(ID_t, wave) %>%
+  #   # treatment_ends
+  #   rbind(
+  #     data_cohort_profile_prep_1 %>%
+  #       subset(ID_t %in% c(7002171, 7015120, 7003857, 7036384)) %>%
+  #       filter(!is.na(treatment_ends)) %>%
+  #       select(ID_t, )
+  #   )
+
+    
+  # data_cohort_profile_prep_1 <- data_cohort_profile_prep_1 %>%
+  #   arrange(ID_t, interview_date) %>%
+  #   group_by(ID_t, wave_2) %>%
+  #   mutate(treatment_starts = ifelse(grepl("CATI", wave_2) & !is.na(treatment_starts), row_number(), NA)) %>%
+  #   ungroup() %>%
+  #   arrange(ID_t, interview_date) %>%
+  #   group_by(ID_t, wave_2) %>%
+  #   mutate(treatment_ends = ifelse(grepl("CAWI", wave_2) & !is.na(treatment_ends), row_number(), NA))
   
   # adjust number of respondents
   num_id_adj_3 <- length(unique(data_cohort_profile_prep_1$ID_t))
@@ -585,6 +629,9 @@ max(data_cohort_profile_prep_1$interview_date) # 2018 (IMPORTANT)
 # maximum number of treatment periods
 max(data_cohort_profile_prep_1$treatment_starts, na.rm = T)
 
+# ungroup
+data_cohort_profile_prep_1 <- data_cohort_profile_prep_1 %>% ungroup()
+
 # number of respondents, number of rows and columns
 print(paste("Number of respondents before data preparation:", num_id_start))
 print(paste("Number of respondents after subsetting on episode data:", num_id_adj_1))
@@ -605,6 +652,7 @@ saveRDS(data_cohort_profile_prep_1, data_cohort_profile_save)
 
 
 # save number of rows, columns, and respondents in excel file
+  ## create data frame with information
 df_excel_save <- data.frame(
   "data_prep_step" = "cohort_profile",
   "data_prep_choice_cohort" = cohort_prep,
@@ -613,9 +661,8 @@ df_excel_save <- data.frame(
   "num_cols" = ncol(data_cohort_profile_prep_1),
   "time_stamp" = Sys.time()
 )
-df_excel_save_hist <- read.xlsx("Data/SAMPLE_REDUCTION_STEPS.xlsx", sheetName = "Sheet1")
-df_excel_save <- rbind(df_excel_save_hist, df_excel_save)
-write.xlsx(df_excel_save, "Data/SAMPLE_REDUCTION_STEPS.xlsx", sheetName = "Sheet1",
-           row.names = FALSE, append = FALSE, showNA = FALSE)
-  
+  ## load function
+source("Functions/func_save_sample_reduction.R")
+func_save_sample_reduction(df_excel_save)
 
+  
