@@ -711,6 +711,9 @@ data_life_course <- data_life_course %>%
   select(ID_t, sptype, sptype_2, educ_study, educ_study_num, educ_uni_start, educ_uni_start_WT10,
          start_date, end_date, start_date_orig, end_date_orig, everything())
 
+# ungroup
+data_life_course <- data_life_course %>% ungroup()
+
 # number of respondents, rows, and columns in each data preparation step
 print(paste("Number of respondents before data preparation:", id_num))
 print(paste("Number of respondents after dropping those without valid study episode:", id_num_adj_1))
@@ -732,11 +735,9 @@ df_excel_save <- data.frame(
   "num_cols" = ncol(data_life_course),
   "time_stamp" = Sys.time()
 )
-df_excel_save_hist <- read.xlsx("Data/SAMPLE_REDUCTION_STEPS.xlsx", sheetName = "Sheet1")
-df_excel_save <- rbind(df_excel_save_hist, df_excel_save)
-
-write.xlsx(df_excel_save, "Data/SAMPLE_REDUCTION_STEPS.xlsx", sheetName = "Sheet1",
-           row.names = FALSE, append = FALSE, showNA = FALSE)
+## load function
+source("Functions/func_save_sample_reduction.R")
+func_save_sample_reduction(df_excel_save)
 
 
 
