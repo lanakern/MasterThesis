@@ -6,25 +6,30 @@
 #++++
 # by Lana Kern
 #++++
-# 1.) Missing values in cawi data are replaced downwards
+# 1.) Load data and join with cohort profile
+# -> CAWI data set is loaded
+# -> Cohort Profile data set is loaded based on selection 
+# -> CAWI and Cohort Profile are merged so that only respondents who are in 
+# both data sets are kept.
+# -> Missing values are replaced downwards
 #++++
-# 2.) CAWI and Cohort Profile are merged via an inner join to add the interview date
-# and keep only waves which are used for the treatment periods. Doing so,
-# only respondents who are in both CAWI and CohortProfile are kept.
-#++++
-# 2.) Preparation of Outcome and Treatment: Outcome and treatment are taken
-# at the interview at the end of the treatment period. 
-# Missing values of treatment variable can also be upward replaced.
-#++++
-# 3.) Preparation of Control variables: Control variables are taken from
-# the beginning of the treatment period. 
+# 2.) Data Preparation (also depends on selected cohort profile step)
+# -> In both types, missing values for treatment variable are also replaced
+# upwards, if user selects this option.
+# -> "controls_same_outcome": only treatment_starts variable is dropped as it
+# is always NA because treatment period starts with CATI and ends with CAWI
+# -> "controls_bef_outcome": treatment-outcome and control variables are
+# prepared separately as they are measured in different survey. Then, they
+# are merged via the treatment period indicator.
 #++++
 # --> Resulting data frame is panel data frame
 
 
 
+#%%%%%%%%%%%%%#
 #### Setup ####
-#+++++++++++++#
+#%%%%%%%%%%%%%#
+
 
 # clear workspace
 rm(list = ls())
@@ -36,22 +41,51 @@ library(dplyr)  # to manipulate data
 if (!require("tidyr")) install.packages("tidyr")
 library(tidyr)  # to manipulate data
 
+if (!require("xlsx")) install.packages("xlsx")
+library(xlsx)  # to load and write excel files
+
 # selection on treatment replacement
 treatment_repl <- "downup" # with any other selection, only downward replacement is made
 
+# selection on cohort prepration
+#cohort_prep <- "controls_bef_outcome" 
+cohort_prep <- "controls_same_outcome"
 
 
-#+++++++++++++++++#
-#### Load Data ####
-#+++++++++++++++++#
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### Load Data & Join with Cohort Profile ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
 
 # load data
 data_target_cawi <- readRDS("Data/Prep_1/prep_1_target_cawi.rds")
-data_cohort_profile <- readRDS("Data/Prep_2/prep_2_cohort_profile.rds")
+  ## cohort profile depends on data preparation
+if (cohort_prep == "controls_same_outcome") {
+  data_cohort_profile <- readRDS("Data/Prep_2/prep_2_cohort_profile.rds")
+} else if (cohort_prep == "controls_bef_outcome") {
+  data_cohort_profile <- readRDS("Data/Prep_2/prep_2_cohort_profile_robustcheck.rds")
+} else {
+  stop("specify which cohort data preparation should be used")
+}
+
 
 # number of respondents
-length(unique(data_target_cawi$ID_t)) # 15,239 respondents
-length(unique(data_cohort_profile$ID_t)) # 12,670 respondents
+id_num_cawi <- length(unique(data_target_cawi$ID_t)) # 15,239 respondents
+id_num_cohort <- length(unique(data_cohort_profile$ID_t)) 
+
+
+# check if number of respondents are the same in both data sets
+id_cawi <- unique(data_target_cawi$ID_t)
+id_cohort <- unique(data_cohort_profile$ID_t)
+setdiff(id_cohort, id_cawi) # should be "integer(0)"
+sum(id_cohort %in% id_cawi) == length(id_cohort) # should be TRUE
+
+
+# CAWI: keep only respondents who are also in data cohort
+data_target_cawi <- data_target_cawi %>% filter(ID_t %in% id_cohort)
+id_num_cawi_adj_1 <- length(unique(data_target_cawi$ID_t))
+
 
 # fill missing values of CAWI: down here because cohort profile does not
 # contain all waves anymore
@@ -61,105 +95,186 @@ data_target_cawi <- data_target_cawi %>%
   fill(names(data_target_cawi), .direction = "down")
 
 # merge cohort data to cawi data via inner_join:
-# only keep respondents who are in both data sets
+# only keep respondents who are in both data sets (also done above)
 data_cawi <- inner_join(
   data_target_cawi, 
   data_cohort_profile %>% 
     select(-c(starts_with("competence"))), 
   by = c("ID_t", "wave")
 )
+  ## examples
+data_target_cawi %>% subset(ID_t == 7003857) %>% select(ID_t, wave)
+data_cohort_profile %>% subset(ID_t == 7003857) %>% select(ID_t, wave, treatment_starts, treatment_ends)
+data_cawi %>% subset(ID_t == 7003857) %>% select(ID_t, wave)
+
+data_target_cawi %>% subset(ID_t == 7036384) %>% select(ID_t, wave)
+data_cohort_profile %>% subset(ID_t == 7036384) %>% select(ID_t, wave)
+data_cawi %>% subset(ID_t == 7036384) %>% select(ID_t, wave)
+
 
 # extract number of respondents
 id <- unique(data_cawi$ID_t)
 id_num <- length(unique(data_cawi$ID_t))
 
-# respondents, rows, and columns
-print(paste("Number of respondents:", length(unique(data_cawi$ID_t))))
-print(paste("Number of rows:", nrow(data_cawi)))
-print(paste("Number of columns:", ncol(data_cawi)))
+
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
+
+# Further data preparation depends on the selection of cohort profile preparation
 
 
-
-#++++++++++++++++++++++++++++++#
-#### Outcomes and Treatment ####
-#++++++++++++++++++++++++++++++#
-
-# here the outcome variable (current average grade) and treatment variable
-# (participation in university sports and their frequency) are extracted
-
-# select variables of interest
-# keep only variables which are used for ending of treatment period
-data_treatment <- data_cawi %>%
-  select(ID_t, wave, interview_date, treatment_ends,
-         sport_uni, sport_uni_freq, grade_current) %>%
-  subset(!is.na(treatment_ends))
-
-
-# factor variables as character
-data_treatment <- data_treatment %>% mutate_if(is.factor, as.character)
-
-
-# treatment replacement based on selection
-if (treatment_repl == "downup") {
-  # because there are so many missing values in treatment, information is
-  # also copied upwards
-  data_treatment <- data_treatment %>%
-    group_by(ID_t) %>%
-    fill(c(sport_uni, sport_uni_freq), .direction = "downup") %>% ungroup()
-  # otherwise only downward which is done above
+if (cohort_prep == "controls_same_outcome") {
+  
+  #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+  #### Preparation 1; Outcome at same time than Controls ####
+  #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+  
+  # drop unnecessary columns and order
+    ## treatment_starts is missing for all rows because treatment always starts
+    ## with CATI interview (hence variable not necessary)
+  data_cawi <- data_cawi %>% select(-treatment_starts) %>%
+    select(ID_t, wave, wave_2, interview_date, treatment_ends, everything())
+  
+  # depending on selection you may replace missing values in the treatment
+  # variable also upwards
+  if (treatment_repl == "downup") {
+    # because there are so many missing values in treatment, information is
+    # also copied upwards
+    data_cawi %>% select(ID_t, wave, starts_with("sport"))
+    
+    data_cawi <- data_cawi %>%
+      group_by(ID_t) %>%
+      fill(c(sport_uni, sport_uni_freq), .direction = "downup") %>% ungroup()
+    
+    
+    data_cawi %>% select(ID_t, wave, starts_with("sport"))
+    # otherwise only downward which is done above
+  } else {
+    data_cawi <- data_cawi
+  }
+  
+  # generate treatment_period variable
+  data_cawi <- data_cawi %>% rename(treatment_period = treatment_ends, 
+                                    interview_date_end = interview_date)
+  
+  
+  # order columns
+  data_cawi <- data_cawi %>% 
+    select(ID_t, treatment_period, interview_date_end, 
+           starts_with("sport_"), grade_current, everything())
+  
+  
+} else if (cohort_prep == "controls_bef_outcome") {
+  
+  #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+  #### Preparation 2; Outcome after Controls ####
+  #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+  
+  # because control variables are taken from an earlier interview than the
+  # outcome and treatment variable, they need to be prepared separately
+  
+  ## Outcome and Treatment ##
+  
+  # select treatment and outcome variables
+  data_treatment_outcome <- data_cawi %>%
+    select(ID_t, interview_date, treatment_ends,
+           sport_uni, sport_uni_freq, grade_current) %>%
+    subset(!is.na(treatment_ends)) %>% 
+    rename(treatment_period = treatment_ends, interview_date_end = interview_date)
+  
+  # treatment replacement based on selection
+  if (treatment_repl == "downup") {
+    # because there are so many missing values in treatment, information is
+    # also copied upwards
+    data_treatment_outcome <- data_treatment_outcome %>%
+      group_by(ID_t) %>%
+      fill(c(sport_uni, sport_uni_freq), .direction = "downup") %>% ungroup()
+    # otherwise only downward which is done above
+  } else {
+    data_treatment_outcome <- data_treatment_outcome
+  }
+  
+  length(unique(data_treatment_outcome$ID_t))
+  
+  
+  
+  ## Control Variables ##
+  
+  # keep only variables which are used for start of treatment period
+  # drop outcome and treatment variables
+  data_controls <- data_cawi %>%
+    select(-c(sport_uni, sport_uni_freq, grade_current, treatment_ends, wave)) %>%
+    subset(!is.na(treatment_starts)) %>%
+    rename(treatment_period = treatment_starts, interview_date_start = interview_date)
+  
+  
+  length(unique(data_controls$ID_t))
+  
+  ## Merge ##
+  
+  # treatment-outcome and control variable data frames are merged via treatment_period
+  # data_treatment_outcome has less observations because data_controls contains
+  # treatment starts for which no treatment ends exists
+  data_cawi %>% subset(ID_t == 7036384) %>% select(ID_t, wave, starts_with("treatment"))
+  data_cawi %>% subset(ID_t == 7002171) %>% select(ID_t, wave, starts_with("treatment"))
+  
+  
+  data_cawi <- inner_join(
+    data_treatment_outcome, data_controls, by = c("ID_t", "treatment_period")
+  )
+  
+  # examples
+  data_treatment_outcome %>% subset(ID_t == 7036384) %>% select(ID_t, starts_with("treatment"))
+  data_controls %>% subset(ID_t == 7036384) %>% select(ID_t, starts_with("treatment"))
+  data_cawi %>% subset(ID_t == 7036384) %>% select(ID_t, starts_with("treatment"))
+  
+  data_treatment_outcome %>% subset(ID_t == 7002171) %>% select(ID_t, starts_with("treatment"))
+  data_controls %>% subset(ID_t == 7002171) %>% select(ID_t, starts_with("treatment"))
+  data_cawi %>% subset(ID_t == 7002171) %>% select(ID_t, starts_with("treatment"))
+  
+  
+  # order columns
+  data_cawi <- data_cawi %>% 
+    select(ID_t, treatment_period, interview_date_start, interview_date_end, 
+           starts_with("sport_"), grade_current, everything())
+  
+  length(unique(data_controls$ID_t))
+  
+  
 } else {
-  data_treatment <- data_treatment
+  stop("specify which cohort data preparation should be used")
 }
 
 
-# count number of individuals for who no treatment and/or outcome info is available
-data_treatment %>%
-  group_by(ID_t) %>%
-  summarize(
-    count_na_sport = all(is.na(sport_uni)),
-    count_na_sport_freq = all(is.na(sport_uni_freq)),
-    count_na_grade = all(is.na(grade_current))
-    ) %>%
-  summarize(
-    num_indiv_na_sport = sum(count_na_sport),
-    num_indiv_na_sport_freq = sum(count_na_sport_freq),
-    num_indiv_na_grade = sum(count_na_grade)
-    )
 
+#%%%%%%%%%%%%%%%%%%%#
+#### Final Steps ####
+#%%%%%%%%%%%%%%%%%%%#
 
-# final steps
-print("Treatment and Outcome Data Set")
-print(paste("Number of respondents:", length(unique(data_treatment$ID_t))))
-print(paste("Number of rows:", nrow(data_treatment)))
-print(paste("Number of columns:", ncol(data_treatment)))
+# check for duplicates
+sum(duplicated(data_cawi))
 
-saveRDS(data_treatment, "Data/Prep_3/prep_3_outcome_treatment_cawi.rds")
+# check for missing values
+colSums(is.na(data_cawi))
 
+# save
+if (cohort_prep == "controls_same_outcome") {
+  data_cohort_profile_save <- "Data/Prep_3/prep_3_cawi.rds"
+} else {
+  data_cohort_profile_save <- "Data/Prep_3/prep_3_cawi_robustcheck.rds"
+}
 
+saveRDS(data_cawi, data_cohort_profile_save)
 
-#+++++++++++++++++++++++++#
-#### Control Variables ####
-#+++++++++++++++++++++++++#
-
-# keep only variables which are used for start of treatment period
-# drop outcome and treatment
-data_controls_cawi <- data_cawi %>%
-  select(-c(sport_uni, sport_uni_freq, grade_current)) %>%
-  subset(!is.na(treatment_starts)) 
-
-# convert all factor variables as characters
-data_controls_cawi <- data_controls_cawi %>%
-  mutate_if(is.factor, as.character) 
-
-
-# number of missing values in each column
-colSums(is.na(data_controls_cawi))
-
-# final: number of respondents, rows. and columns
-print("Control Variable Data Set")
-print(paste("Number of respondents:", length(unique(data_controls_cawi$ID_t))))
-print(paste("Number of rows:", nrow(data_controls_cawi)))
-print(paste("Number of columns:", ncol(data_controls_cawi)))
-
-saveRDS(data_controls_cawi, "Data/Prep_3/prep_3_controls_cawi.rds")
-
+# save number of rows, columns, and respondents in excel file
+df_excel_save <- data.frame(
+  "data_prep_step" = "cawi",
+  "data_prep_choice_cohort" = cohort_prep,
+  "data_prep_treatment_repl" = treatment_repl, 
+  "num_id" = length(unique(data_cawi$ID_t)), 
+  "num_rows" = nrow(data_cawi),
+  "num_cols" = ncol(data_cawi),
+  "time_stamp" = Sys.time()
+)
+  ## load function
+source("Functions/func_save_sample_reduction.R")
+func_save_sample_reduction(df_excel_save)
