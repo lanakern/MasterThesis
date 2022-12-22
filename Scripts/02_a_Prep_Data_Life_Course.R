@@ -620,7 +620,6 @@ table(data_life_course$gap_type, useNA = "always")
 data_life_course <- data_life_course %>% select(-starts_with("gap"))
 
 
-
 ## Downward replacement ##
 #++++++++++++++++++++++++#
 
@@ -689,8 +688,11 @@ sum(duplicated(data_life_course[c("ID_t","start_date", "sptype_2")]))
 #### Final Steps ####
 #%%%%%%%%%%%%%%%%%%%#
 
-# remove grouping
-data_life_course <- data_life_course %>% ungroup()
+# drop episodes I am not interested in: gap, Unemp, Data edition gap, ParLeave
+unique(data_life_course$sptype)
+data_life_course <- data_life_course %>% 
+  filter(!sptype %in% c("Gap", "Unemp", "ParLeave", "Data edition gap"))
+unique(data_life_course$sptype)
 
 # check for missing values (replaced later)
   ## compare now and before
