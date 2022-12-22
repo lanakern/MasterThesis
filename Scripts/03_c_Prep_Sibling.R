@@ -11,12 +11,14 @@
 # 2.) Create sibling variables: number of siblings, number of older siblings, 
 # indicator for having a twin
 #++++
-# 3.) Identify two oldest or closest siblings -> Create variables for school degree etc.
+# 3.) Identify two oldest or closest siblings for non missing values 
+# -> Create variables for school degree etc. for them
 #++++
 # 4.) Create NA dummies which equal 1 if respondent did not give an answer and 
-# 0 otherwise; NA in other dummies are then replace with 0 so that no missing
-# values are left. Also NA dummies are generated if individual does not have
-# a second sibling. 
+# 0 otherwise; NA in other dummies are then replaced with 0 so that no missing
+# values are left. 
+# -> For respondents with only one sibling sibling_2 and their respective NA
+# dummies are set to 0. 
 #++++
 # --> Cross-sectional data set: one row for each respondent
 
@@ -52,44 +54,49 @@ Sys.setlocale("LC_TIME", "German")
 #### Load data ###
 #%%%%%%%%%%%%%%%%#
 
-
+# prepared sibling data from 01_Load_Data
 data_sibling <- readRDS("Data/Prep_1/prep_1_sibling.rds")
+
+# prepared cati data from 01_Load_Data (only needed for birth date)
 data_target_cati <- readRDS("Data/Prep_1/prep_1_target_cati.rds")
 
-length(unique(data_sibling$ID_t)) # 15,602 respondents have at least one sibling
+# number of respondents
+id_sib <- unique(data_sibling$ID_t)
+id_num_sib <- length(id_sib) # 15,602 respondents have at least one sibling
+id_num_sib
 length(unique(data_target_cati$ID_t)) # 17,909 respondents are in CATI data
 
 # ensure that sibling data is only evaluated in wave 1 (-> time-constant)
 unique(data_sibling$wave)
 
+# sibling data contains more rows than respondents; this is because some
+# respondents have more than one sibling
+id_num_sib == nrow(data_sibling)
 
 
-#%%%%%%%%%%%%%%%%%%%%%%%#
-#### Merge with CATI ####
-#%%%%%%%%%%%%%%%%%%%%%%%#
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### Merge with CATI for Birth Date ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 
 # From CATI I need to add the birth date of the respondent 
 # This is necessary to calculate if the sibling is older or younger
 
-# save ID_t in sibling data to check if during data preparation 
-# respondents gets lost
-sibling_unique_id <- unique(data_sibling$ID_t)
-sibling_unique_id_num <- length(sibling_unique_id)
-
-# sibling data contains more rows than respondents; this is because some
-# respondents have more than one sibling
-length(unique(data_sibling$ID_t)) == nrow(data_sibling)
-
-# since sibling data is time-invariant, it is sufficient to also only
-# keep the first wave of the target_cati dataset
-# also keep only relevant variables, that is ID, and birth information
+# extract birth month and year
+# for some respondents there are duplicates. In this case, we keep newest
+# information on birth date
 data_target_cati <- data_target_cati %>%
-  subset(wave == "2010/2011 (CATI+competencies)") %>%
-  select(ID_t, starts_with("birth"))
-  ## check if one rows corresponds to one respondent
-length(unique(data_target_cati$ID_t)) == nrow(data_target_cati)
+  arrange(ID_t, wave) %>%
+  select(ID_t, birth_month, birth_year) %>%
+  group_by(ID_t) %>%
+  # to ensure that missing value is not kept
+  fill(c(birth_month, birth_year), .direction = "downup") %>% ungroup() %>%
+  distinct() %>%
+  filter(duplicated(ID_t) == FALSE)
 
+length(unique(data_target_cati$ID_t)) == nrow(data_target_cati)
+sum(is.na(data_target_cati$birth_month))
+sum(is.na(data_target_cati$birth_year))
 
 # merge siblings and target_cati via ID_t
 # left join to ensure that all rows in data_sibling are kept: the
@@ -112,17 +119,22 @@ length(unique(data_sibling_adj$ID_t)) # 15,602
   ## load function
 source("Functions/func_generate_date.R")
   ## birth date of sibling
+sum(is.na(data_sibling_adj$sibling_birth_m))
+sum(is.na(data_sibling_adj$sibling_birth_y))
 data_sibling_adj_2 <- func_generate_date(
   data = data_sibling_adj,
   month = "sibling_birth_m", year = "sibling_birth_y",
   varname = "sibling_birth_date"
 )
+sum(is.na(data_sibling_adj_2$sibling_birth_y))
   ## birth date of respondent
 data_sibling_adj_2 <- func_generate_date(
   data = data_sibling_adj_2,
   month = "birth_month", year = "birth_year",
   varname = "birth_date"
 )
+
+sum(is.na(data_sibling_adj_2$birth_date)) # no missing values
 
 
 # create indicator for older sibling +
@@ -180,7 +192,7 @@ sum(is.na((data_sibling_adj_2$sibling_twin)))
 
 # Important: Total number of siblings is easy as the number of siblings
 # is directly given. However, to determine the number of older and younger
-# individuals is difficult because sometimes the birth date is not given.
+# siblings is difficult because sometimes the birth date is not given.
 # Since it is likely that individuals model themselves on their older
 # siblings, only the number of older siblings is calculated.
 
@@ -197,9 +209,7 @@ data_sibling_adj_3 <- data_sibling_adj_3 %>%
   mutate(
     sibling_older_total = ifelse(
       is.na(sibling_older), NA,
-      ave(
-        sibling_older, ID_t, FUN = function(x) sum(x, na.rm = TRUE)
-      )
+      ave(sibling_older, ID_t, FUN = function(x) sum(x, na.rm = TRUE))
     )
   )
   ## if respondent has not reported one sibling birth date but all other
@@ -215,14 +225,17 @@ data_sibling_adj_3 <- left_join(
 ) %>%
   mutate(sibling_twin = ifelse(sibling_twin_sum >= 1, 1, sibling_twin_sum)) %>%
   mutate(sibling_twin = ifelse(is.na(sibling_birth_date), NA, sibling_twin)) %>%
-  select(-sibling_twin_sum)
+  select(-sibling_twin_sum) %>% distinct()
   ## same with missings for twin variaböe
-data_sibling_adj_3 <- data_sibling_adj_3 %>% group_by(ID_t) %>% fill(sibling_twin, .direction = "downup")
+data_sibling_adj_3 <- data_sibling_adj_3 %>% 
+  group_by(ID_t) %>% 
+  fill(sibling_twin, .direction = "downup") %>%
+  distinct()
 
 
 sum(is.na(data_sibling_adj_3$sibling_twin))
 summary(data_sibling_adj_3$sibling_twin)
-data_sibling_adj_3 %>% subset(ID_t == 7002020) %>% select(ID_t, wave, sibling_twin, sibling_total)
+data_sibling_adj_3 %>% subset(ID_t == 7002020) %>% select(ID_t, wave, sibling_num, sibling_twin, sibling_older, sibling_total)
  
 
 
@@ -411,11 +424,9 @@ data_sibling_final <- data_sibling_final %>%
   ## -> "General/subject-related university entrance quali\032cation (Abitur(/12th grade EOS)"
   ## -> "Fachhochschulreife/ leaving certificate of a Fachoberschule"
 data_sibling_final <- data_sibling_final %>%
-  mutate(sibling_uni_entrance_quali = recode(
-    sibling_school_degree,
-    "General/subject-related university entrance quali\032cation (Abitur(/12th grade EOS)" = 1,
-    "Fachhochschulreife/ leaving certificate of a Fachoberschule" = 1,
-    .default = 0
+  mutate(sibling_uni_entrance_quali = ifelse(
+    grepl("Fachhochschulreife", sibling_school_degree) | grepl("university", sibling_school_degree), 1, 
+    ifelse(is.na(sibling_school_degree), NA, 0)
   )) #%>%
   #replace_na(list(sibling_uni_entrance_quali = 0))
   ## indicator if the sibling studies in WT 10/11: "Studium", "Promotion"
@@ -425,12 +436,14 @@ data_sibling_final <- data_sibling_final %>%
     "course of study" = 1,
     "doctorate" = 1,
     .default = 0
-  )) #%>%
+  )) %>%
+  # all employe people do not study
+  mutate(sibling_study = ifelse(sibling_employed == 1 & is.na(sibling_study), 0, sibling_study)) #%>%
   #replace_na(list(sibling_study = 0))
   ## spread() data frame
 data_sibling_adj_sub_1 <- data_sibling_final %>%
-  select(ID_t, sibling_num, sibling_uni_entrance_quali, sibling_employed, sibling_study) %>%
-  gather(variable, value, sibling_uni_entrance_quali, sibling_employed, sibling_study) %>%
+  select(ID_t, sibling_num, sibling_uni_entrance_quali, sibling_employed, sibling_study, sibling_birth_date) %>%
+  gather(variable, value, sibling_uni_entrance_quali, sibling_employed, sibling_study, sibling_birth_date) %>%
   unite(temp, sibling_num, variable) %>%
   spread(temp, value) %>%
   rename(
@@ -440,7 +453,11 @@ data_sibling_adj_sub_1 <- data_sibling_final %>%
     sibling_employed_2 = "2_sibling_employed",
     sibling_study_1 = "1_sibling_study",
     sibling_study_2 = "2_sibling_study",
-  )
+    sibling_birth_date_1 = "1_sibling_birth_date",
+    sibling_birth_date_2 = "2_sibling_birth_date"
+  ) %>%
+  mutate(sibling_birth_date_1 = as.Date(sibling_birth_date_1), 
+         sibling_birth_date_2 = as.Date(sibling_birth_date_2))
 
 # add this to other variables
 data_sibling_adj_sub_2 <- data_sibling_final %>%
@@ -461,10 +478,23 @@ data_sibling_final_2 <- left_join(
 
 # check for NAs in sibling variable
 sapply(data_sibling_final_2, function(y) sum(length(which(is.na(y)))))
-table(data_sibling_final_2$sibling_employed_1) # for later check
+table(data_sibling_final_2$sibling_employed_1, useNA = "always") # for later check
 
-# create NA dummys and then set NAs in those variables to zero
+# for all individuals who do not have a second sibling, set the sibling_*_2 variables
+# to 0
+data_sibling_final_2 %>% filter(sibling_total == 1) %>% pull(ID_t) %>% unique() %>% head(1)
+data_sibling_final_2 %>% filter(sibling_total == 2) %>% pull(ID_t) %>% unique() %>% head(1)
+data_sibling_final_2 %>% subset(ID_t == 7001969)
+data_sibling_final_2 %>% subset(ID_t == 7001970)
+data_sibling_final_2 <- data_sibling_final_2 %>%
+  mutate(across(c("sibling_employed_2", "sibling_study_2", "sibling_uni_entrance_quali_2"), 
+                ~ case_when(sibling_total == 1 ~ 0, TRUE ~ .)))
+data_sibling_final_2 %>% subset(ID_t == 7001969)
+data_sibling_final_2 %>% subset(ID_t == 7001970)
+
+# for all other NAs, create NA dummys and then set NAs in those variables to zero
 cols_NA <- names(colSums(is.na(data_sibling_final_2))[colSums(is.na(data_sibling_final_2)) > 0])
+cols_NA <- cols_NA[!str_detect(cols_NA, "birth_date")]
   ## create NA dummies
 for (cols_NA_sel in cols_NA) {
   cols_NA_mut <- paste0(cols_NA_sel, "_NA")
@@ -475,12 +505,8 @@ for (cols_NA_sel in cols_NA) {
     )
 }
 
-# # create NA variable if respondent does not have a second sibling
-# data_sibling_final_2 <- data_sibling_final_2 %>%
-#   mutate(sibling_2 = ifelse(sibling_total == 1, 0, 1))
-
 # check for NAs
-sum(is.na(data_sibling_final_2))
+colSums(is.na(data_sibling_final_2)) # only NAs for birth columns
 
 # check if replacement is correct -> yes
 table(data_sibling_final_2$sibling_employed_1)
@@ -493,13 +519,37 @@ table(data_sibling_final_2$sibling_employed_1_NA)
 #%%%%%%%%%%%%%%%%%%%#
 
 # check if all individuals are kept
-length(unique(data_sibling_final$ID_t)) == sibling_unique_id_num
-setdiff(unique(data_sibling_final$ID_t), sibling_unique_id)
-setdiff(sibling_unique_id, unique(data_sibling_final$ID_t))
+length(unique(data_sibling_final_2$ID_t)) == id_num_sib
+setdiff(unique(data_sibling_final_2$ID_t), id_sib)
+setdiff(id_sib, unique(data_sibling_final_2$ID_t))
+
+# reorder columns
+data_sibling_final_2 <- data_sibling_final_2 %>%
+  select(ID_t, sibling_total, starts_with("sibling_older_total"), starts_with("sibling_twin"),
+         matches("sibling_.*_1"), matches("sibling_.*_2"))
+
+# check respondents
+# df_check_1 <- data_target_cati %>% subset(ID_t %in% c(7001975, 7001971, 7002373, 7002298, 7001994, 7002007))
+# df_check_2 <- data_sibling %>% subset(ID_t %in% c(7001975, 7001971, 7002373, 7002298, 7001994, 7002007))
+# df_check_3 <- data_sibling_final_2 %>% subset(ID_t %in% c(7001975, 7001971, 7002373, 7002298, 7001994, 7002007)) 
+# 
+# df_check_1 %>% subset(ID_t == 7002007)
+# df_check_2 %>% subset(ID_t == 7002007)
+# test <- df_check_3 %>% subset(ID_t == 7002007)
+
+
+# check for duplicates
+sum(duplicated(data_sibling_final_2))
+
+# check for missing values
+colSums(is.na(data_sibling_final_2))
 
 # all columns as integer
 data_sibling_final_2 <- data_sibling_final_2 %>%
   mutate_if(is.numeric, as.integer)
+
+# ungroup
+data_sibling_final_2 <- data_sibling_final_2 %>% ungroup()
 
 # number respondents, rows, and columns
 paste("Number of respondents:", length(unique(data_sibling_final_2$ID_t)))
