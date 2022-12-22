@@ -706,17 +706,6 @@ data_target_cawi <- data_target_cawi %>%
     educ_uni_degree_obtained = tg51005, 
     # educ_uni_type_current = tg51003, # too many missing values
     educ_uni_master_current = tg51002, 
-    # current activity
-    current_emp = tg51101_v1,
-    current_volontariat = tg51102_v1,
-    current_ref = tg51115_v1,
-    current_pracyear = tg51118_v1,
-    current_intern = tg51103_v1,
-    current_voctrain = tg51104_v1,
-    current_study = tg51001,
-    current_study_academy = tg51105,
-    current_study_college = tg51106,
-    current_study_coopuni = tg51107,
     # parental cultural preferences
     parents_number_books = t34005b, 
     parents_classical_literature = t34006k, 
