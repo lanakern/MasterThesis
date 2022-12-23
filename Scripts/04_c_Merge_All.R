@@ -49,8 +49,8 @@ library(xlsx)  # for excel file
 
 # define inputs
   ## selection on cohort preparation
-cohort_prep <- "controls_bef_outcome" 
-#cohort_prep <- "controls_same_outcome"
+#cohort_prep <- "controls_bef_outcome" 
+cohort_prep <- "controls_same_outcome"
   ## treatment replacement
 treatment_repl <- "downup" # (only used for saving)
 
@@ -70,7 +70,12 @@ if (cohort_prep == "controls_same_outcome") {
 data_sibling <- readRDS("Data/Prep_3/prep_3_sibling.rds")
 
 # child data (time-variant)
-data_child <- readRDS("Data/Prep_3/prep_3_child.rds")
+if (cohort_prep == "controls_same_outcome") {
+  data_child <- readRDS("Data/Prep_3/prep_3_child.rds")
+} else if (cohort_prep == "controls_bef_outcome") {
+  data_child <- readRDS("Data/Prep_3/prep_3_child_robustcheck.rds")
+}
+
 
 # partner information (time-variant)
 data_partner <- readRDS("Data/Prep_3/prep_3_partner.rds")
@@ -81,8 +86,8 @@ data_competencies <- readRDS("Data/Prep_3/prep_3_competencies.rds")
 # number of respondents in different data sets
 num_id_cati_cawi_eps <- length(unique(data_cati_cawi_eps$ID_t))
 num_id_sib <- length(unique(data_sibling$ID_t))
-
 num_id_child <- length(unique(data_child$ID_t))
+
 num_id_partner <- length(unique(data_partner$ID_t))
 num_id_comp <- length(unique(data_competencies$ID_t))
 
@@ -213,24 +218,63 @@ data_merge_1 %>% filter(sibling == 0) %>% select(starts_with("sibling")) %>% uni
 #### CHILD ####
 #%%%%%%%%%%%%%#
 
-# information about each respondent's children is appended.
-# this information is only collected in the CATI surveys
-# Hence, as merge variable the CATI interview date is used additional to the ID
-data_merge_4 <- left_join(data_merge_3, data_child %>% select(-wave), 
-                          by = c("ID_t", "interview_date_cati" = "interview_date"))
+# number of respondents with children
+id_child <- unique(data_child$ID_t)
+length(id_child)
 
+# number of respondents with children who have a match in merged data
+if (cohort_prep == "controls_bef_outcome") {
+  id_cati_cawi_eps_child <- 
+    inner_join(data_merge_1, data_child, 
+               by = c("ID_t", "interview_date_CATI" = "interview_date")) %>%
+    pull(ID_t) %>% unique() 
+  num_id_child_adj_1 <- length(id_cati_cawi_eps_child)
+} else if (cohort_prep == "controls_same_outcome") {
+  id_cati_cawi_eps_child <- 
+    inner_join(data_merge_1, data_child, 
+               by = c("ID_t", "interview_date_start" = "interview_date")) %>%
+    pull(ID_t) %>% unique() 
+  num_id_child_adj_1 <- length(id_cati_cawi_eps_child)
+}
+
+
+# show difference
+setdiff(id_child, id_cati_cawi_eps_child)
+
+data_child %>% subset(ID_t == 7019629) %>% 
+  select(ID_t, starts_with("interview_date"))
+
+data_merge_1 %>% subset(ID_t == 7019629) %>% 
+  select(ID_t, starts_with("interview_date"))
+
+# keep only respondents in child who also have obsveration in other data set
+data_child <- data_child %>% subset(ID_t %in% id_cati_cawi_eps_child)
+length(unique(data_child$ID_t))
+
+
+# information about each respondent's children is appended.
+if (cohort_prep == "controls_bef_outcome") {
+  data_merge_2 <- left_join(data_merge_1, data_child, 
+                            by = c("ID_t", "interview_date_CATI" = "interview_date"))
+} else if (cohort_prep == "controls_same_outcome") {
+  data_merge_2 <- left_join(data_merge_1, data_child, 
+                            by = c("ID_t", "interview_date_start" = "interview_date"))
+}
+
+# extract child columns
+col_child <- data_child %>% select(-c(ID_t, interview_date)) %>% colnames()
 
 # for respondents with no children all variables are set to zero
-col_child <- data_child %>% select(-c(ID_t, wave, interview_date)) %>% colnames()
-data_merge_4 <- data_merge_4 %>%
-  mutate_at(all_of(col_child), ~replace_na(.,0))
+data_merge_2 <- data_merge_2 %>%
+  mutate_at(all_of(col_child), ~ replace_na(.,0))
 
-# check that there are no NAs in sibling variable
-data_merge_4 %>%
+# check that there are no NAs in child variable
+data_merge_2 %>%
   ungroup() %>% select(all_of(col_child)) %>%
   summarize(sum(is.na(.))) %>% pull()
 
-#length(unique(data_merge_4$ID_t)) # 9,062
+
+length(unique(data_merge_2$ID_t))
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -285,4 +329,10 @@ data_merge_6 %>%
 #length(unique(data_merge_5$ID_t)) # 9,062
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+
+#%%%%%%%%%%%%%%#
+#### CHECKS ####
+#%%%%%%%%%%%%%%#
+
+# all child, sibling, and partner variables should not have any missing value.
