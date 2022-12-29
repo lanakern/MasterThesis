@@ -6,29 +6,23 @@
 # by Lana Kern
 #++++
 # In this file, the information about current and previous partners of each
-# respondent is prepared. Only respondents who had at least once partner
+# respondent is prepared. Only respondents who had at least one partner
 # in their life are included in this data set.
 #++++
-# 1.) Partner and Cohort Profile data are merged via an inner join; this
-# reduces the sample size from 13,411 respondents to 10,870 respondents.
-# This is because in cohort data are not all respondents anymore (see
-# file 02_b for further details why respondents are dropped)
+# 1.) Partner and Cohort Profile data are merged via an inner join: only 
+# respondents who are in both data sets are kept.
 #++++
 # 2.) Variables are generated. In particular, the start and end date (if
 # it exists), number of previous partners, length of previous and current
 # partnership
 #++++
-# 3.) Detail variables such as education background are only kept for the 
-# current partnership. 
+# 3.) Detailed variables such as education background are only kept for the 
+# current partnership. For individuals with no current partner those are 
+# set to 0. 
 #++++
-# 4.) Handling missing values: If a respondent does not have a current partnership,
-# those variables are set to 0; to re-identify individuals without a current partner
-# a dummy is generated which equals 1 if a respondent does not have a partner
-# at the interview day. For age and education year there are also missing values
-# for the current partnership; those are set to zero and a dummy variable
+# 4.) Handling missing values: All missing values are set to zero and a dummy variable
 # indicating that those were NA is generated. 
 #++++
-# -> note: "current" and "previous" refers to the respective interview date
 # --> FINAL DATA FRAME IS A PANEL DATA SET (one row for each respondent-wave combination).
 
 
@@ -55,7 +49,9 @@ library(tidyr)  # to work with missing values
 # for German language
 Sys.setlocale("LC_TIME", "German")
 
-
+# define inputs: selection on cohort preparation
+#cohort_prep <- "controls_bef_outcome" 
+cohort_prep <- "controls_same_outcome"
 
 
 #%%%%%%%%%%%%%%%%%#
@@ -64,28 +60,42 @@ Sys.setlocale("LC_TIME", "German")
 
 
 # load data
-data_partner <- readRDS("Data/Prep_1/prep_1_partner.rds") 
-data_cohort_profile <- readRDS("Data/Prep_2/prep_2_cohort_profile.rds")
+data_partner_raw <- readRDS("Data/Prep_1/prep_1_partner.rds") 
+
+# cohort data based on selection
+if (cohort_prep == "controls_same_outcome") {
+  data_cohort_profile <- readRDS("Data/Prep_2/prep_2_cohort_profile.rds") %>%
+    filter(wave_2 == "CATI") %>%
+    select(ID_t, wave, interview_date)
+} else if (cohort_prep == "controls_bef_outcome") {
+  data_cohort_profile <- readRDS("Data/Prep_2/prep_2_cohort_profile_robustcheck.rds") %>%
+    filter(wave_2 == "CATI") %>%
+    select(ID_t, wave, interview_date)
+}
+
 
 # extract number of respondents having a partner
-id_num_partner <- length(unique(data_partner$ID_t)) # 13,411
+id_num_partner <- length(unique(data_partner_raw$ID_t)) # 13,411
 
 # number of respondents in cohort profile
-length(unique(data_cohort_profile$ID_t)) # 12,670
+id_num_cohort <- length(unique(data_cohort_profile$ID_t)) 
+
+# keep only respondents who are in both data sets
+id_partner <- unique(data_partner_raw$ID_t)
+id_cohort <- unique(data_cohort_profile$ID_t)
+id_partner_cohort <- intersect(id_partner, id_cohort)
+id_num_partner_adj_1 <- length(id_partner_cohort)
+
+data_partner <- data_partner_raw
+data_partner <- data_partner %>% subset(ID_t %in% id_partner_cohort)
 
 # merge interview date from cohort profile
   ## inner_join to only keep respondents who are also in cohort profile and
   ## only have rows where wave information is in both data frames
-data_partner <- data_partner %>% inner_join(
-  data_cohort_profile %>% select(ID_t, wave, interview_date),
-  by = c("ID_t", "wave")
-)
-
-# adjust number of partners
-id_num_partner_adj <- length(unique(data_partner$ID_t)) # 10,870
-print(paste("After merging partner with cohort profile, the sample size includes",
-            id_num_partner_adj, "respondents, i.e.,", id_num_partner - id_num_partner_adj , 
-            "respondents are dropped"))
+data_partner <- data_partner %>% rename(wave_partner = wave) %>% 
+  inner_join(data_cohort_profile %>% select(ID_t, wave, interview_date),
+             by = c("ID_t"))
+length(unique(data_partner$ID_t))
 
 
 
@@ -95,6 +105,8 @@ print(paste("After merging partner with cohort profile, the sample size includes
 
 
 # start and end date of partnership
+  ## missing values
+colSums(is.na(data_partner %>% select(starts_with("partner_start"), starts_with("partner_end"))))
   ## load function
 source("Functions/func_generate_date.R")
   ## calculate start date
@@ -112,83 +124,113 @@ data_partner <- func_generate_date(
   ## drop other date variables
 data_partner <- data_partner %>%
   select(-starts_with("partner_start"), -starts_with("partner_end"))
+sum(is.na(data_partner$start_date))
+sum(is.na(data_partner$end_date))
 
-
-# number of partners until each interview date
-  ## create indicator for having a partner (always one)
-data_partner$num <- 1
-  ## create cumulated sum of partners
-  ## do this grouped by ID and keep wave
-data_partner_num <- data_partner %>% 
-  arrange(ID_t, wave) %>% 
-  group_by(ID_t) %>% 
-  summarise(wave = wave, partner_num_total = cumsum(num))
-  ## in case of duplicate, keep highest number
-  ## this is for example for the first wave where respondent is asked about partners
-  ## for the first time -> he/she can report multiple partners from the past
-data_partner_num <-  data_partner_num %>% 
-  group_by(ID_t, wave) %>% 
-  slice(which.max(partner_num_total)) # keep row with highest number
-
-data_partner <- left_join(
-  data_partner, data_partner_num,
-  by = c("ID_t", "wave")
-)
-
-
-# calculate length of current and previous partnership
-  ## identify current and finished partnership: finished partnership if
-  ## interview date is larger than end of partnership; current partnership if
-  ## start date of partnership is smaller than interview date
+# correct: end_date is smaller than start_date
+sum(data_partner$end_date < data_partner$start_date, na.rm = TRUE)
+data_partner %>% filter(end_date < start_date)
+  ## set end_date NA
 data_partner <- data_partner %>%
-  mutate(
-    partner_finished = if_else(interview_date > end_date, 1, 0),
-    partner_current = if_else(start_date < interview_date & (interview_date < end_date | is.na(end_date)), 1, 0)
-    )
-  ## total length:
-  ## create new variable determining the end date of partnership: for current this is the interview
-data_partner <- data_partner %>%
-  mutate(
-    end_date_adj = if_else(partner_current == 1, interview_date, end_date)
-  )
-  ## calculate length in months
-data_partner <- data_partner %>%
-  mutate(
-    partner_length = as.numeric(difftime(end_date_adj, start_date, units = c("days"))) / 30
-  )
-  ## there are negative values which result due to  data pre-processing mistakes
-  ## start_date is before end date
+  mutate(end_date = case_when(end_date < start_date ~ as.Date(NA), TRUE ~ end_date))
+
+# after merge I have duplicates because I only merged by the ID
+# hence, I only keep rows with a start_date (of partnership) smaller
+# than interview_date
 data_partner %>% 
-  filter(partner_length < 0) %>% 
-  select(ID_t, wave, interview_date, start_date, end_date, end_date_adj, partner_length, partner_finished, partner_current)
-  ## in this case, dates are switched:
-data_partner <- rbind(
-  data_partner %>% filter(partner_length >= 0 | is.na(partner_length)),
-  data_partner %>%
-    filter(partner_length < 0) %>%
-    mutate(
-      partner_length = as.numeric(difftime(start_date, end_date_adj, units = c("days"))) / 30
-    )
-) %>% arrange(ID_t, wave)
-  ## check if now all values are positive
-summary(data_partner$partner_length)
-  ## length of previous partnerships: cumulative sum of previous length
-data_partner <- left_join(
-  data_partner, 
-  data_partner %>%
-    filter(partner_finished == 1) %>%
-    arrange(ID_t, wave) %>%
-    group_by(ID_t) %>%
-    summarise(wave = wave, partner_length_previous = cumsum(partner_length)),
-  by = c("ID_t", "wave")
-) %>%
-  # replace missings by 0
-  replace_na(list(partner_length_previous = 0))
-  ## length of current partnerships: just calculated length
-data_partner <- data_partner %>% 
-  mutate(partner_length_current = if_else(partner_current == 1, partner_length, 0))
+  select(ID_t, start_date, end_date, interview_date, wave, wave_partner) %>% 
+  arrange(ID_t, interview_date) %>%
+  subset(ID_t == 7001969)
+data_partner <- data_partner %>% filter(start_date <= interview_date)
+id_num_partner_adj_2 <- length(unique(data_partner$ID_t))
 
 
+# create indicator for current partnership
+data_partner %>% 
+  select(ID_t, start_date, end_date, interview_date, wave, wave_partner) %>% 
+  arrange(ID_t, interview_date) %>%
+  subset(ID_t == 7002012) # 7002018
+
+data_partner <- data_partner %>%
+  arrange(ID_t, interview_date) %>%
+  group_by(ID_t, interview_date) %>%
+  mutate(current_date = max(start_date)) %>%
+  mutate(partner_current = ifelse(
+    current_date == start_date & (end_date > interview_date | is.na(end_date)), 1, 0)
+    ) 
+
+# number of partners until each interview date (including current partnership)
+df_partner_num <- data_partner %>% 
+  arrange(ID_t, interview_date) %>% 
+  group_by(ID_t, interview_date) %>% 
+  count() %>% rename(partner_num_total = n)
+  ## join result
+data_partner <- left_join(data_partner, df_partner_num, by = c("ID_t", "interview_date"))
+
+
+# enumerate number of partners
+data_partner <- 
+  data_partner %>% 
+  arrange(ID_t, interview_date, start_date) %>% 
+  group_by(ID_t, interview_date) %>% 
+  mutate(partner_num = row_number())
+
+# calculate length of current and previous partnership (in years)
+  ## to do so, end_date needs to be adjusted: if partner_current = 0 and end_date is missing
+  ## start_date of subsequent partnership is used as end_date
+data_partner <- data_partner %>%
+  arrange(ID_t, interview_date, start_date) %>%
+  mutate(start_date_lead = lead(start_date)) %>%
+  mutate(end_date_adj = case_when(partner_current == 0 & is.na(end_date) ~ start_date_lead, 
+                                  TRUE ~ end_date)) %>%
+  select(-start_date_lead)
+  ## if partner_current = 1 end_date is interview_date (only assumed for the calculation)
+data_partner <- data_partner %>%
+  arrange(ID_t, interview_date, start_date) %>%
+  mutate(end_date_adj = case_when(partner_current == 1 & is.na(end_date) ~ interview_date, 
+                                  TRUE ~ end_date_adj))
+sum(data_partner$end_date_adj < data_partner$start_date, na.rm = TRUE)
+sum(is.na(data_partner$end_date_adj))
+  ## length of current partnership
+data_partner <- data_partner %>%
+  mutate(partner_current_length = case_when(
+    partner_current == 1 ~ as.numeric(difftime(end_date_adj, start_date, units = "weeks")) / 52.5,
+    TRUE ~ as.numeric(NA)
+    ))
+summary(data_partner$partner_current_length) # no negative values
+
+  ## length of previous partnership: 1.) calculate length 2.) cumsum
+data_partner <- data_partner %>%
+  mutate(partner_previous_length = case_when(
+    partner_current == 0 ~ as.numeric(difftime(end_date_adj, start_date, units = "weeks")) / 52.5,
+    TRUE ~ as.numeric(NA)
+  )) %>%
+  group_by(ID_t, interview_date) %>%
+  mutate(partner_previous_length_total = cumsum(replace_na(partner_previous_length, 0))) 
+
+summary(data_partner$partner_previous_length) # no negative values
+
+# ungroup
+data_partner <- data_partner %>% ungroup()
+
+
+# EXAMPLE
+data_partner %>% 
+  select(ID_t, start_date, end_date, interview_date, end_date_adj,  partner_num, partner_num_total, 
+         partner_current, partner_current_length, partner_previous_length, partner_previous_length_total) %>%
+  subset(ID_t %in% c(7002147, 7002012, 7001970)) %>% 
+  arrange(ID_t, interview_date)
+
+
+# checks: 
+  ## no missings in length
+sum(is.na(data_partner %>% filter(partner_current == 1) %>% select(partner_current_length)))
+sum(is.na(data_partner$partner_previous_length_total))
+  ## partner_num equals partner_num_total for partner_current == 1
+check <- data_partner %>% filter(partner_current == 1) %>% mutate(
+  wrong_1 = ifelse(partner_num != partner_num_total, 1, 0)
+) %>% filter(wrong_1 == 1)
+sum(check$partner_num != check$partner_num_total)
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -197,49 +239,110 @@ data_partner <- data_partner %>%
 
 # only keep observations for current partner
 data_partner_current <- data_partner %>%
-  filter(partner_current == 1)
+  filter(partner_current == 1) %>%
+  select(-c(partner_num_total, partner_number, partner_previous_length)) %>%
+  group_by(ID_t, interview_date) %>%
+  filter(partner_num == max(partner_num)) %>%
+  ungroup()
+
+id_num_current_partner <- length(unique(data_partner_current$ID_t))
+
+# check missing values of relevant variables
+colSums(is.na(
+  data_partner_current %>% select(partner_gender, partner_school_degree, partner_uni_degree, 
+                                  partner_uni, partner_emp, partner_birth_year, partner_freq)
+  ))
 
 data_partner_current <- data_partner_current %>%
   mutate(
-    # gender (NA are assumed as male)
+    # gender (NA are assumed as male as there are not a lot)
     partner_male = if_else(!grepl("female", partner_gender), 1, 0),
     # indicator if partner's highest degree is university entrance qualification
     partner_school_degree_highest = if_else(grepl("Abitur|Fachhochschulreife", partner_school_degree), 1, 0),
     # indicator if partner has an university degree
-    partner_uni_degree_highest = if_else(
+    partner_uni_degree = case_when(
       grepl("Diplom|M.A.|Magister|state examination|Bachelor|university|college|higher education institution|doctorate|university of applied sciences", 
-            partner_uni_degree), 1, 0),
+            partner_uni_degree) ~ 1, is.na(partner_uni_degree) ~ as.numeric(NA), TRUE ~ 0),
     # indicator if partner is currently also studying
-    partner_study_current = if_else(!is.na(partner_uni), 1, 0), 
+    partner_study_current = case_when(
+      !is.na(partner_uni) ~ 1, is.na(partner_uni) & !is.na(partner_emp) ~ 0,
+      TRUE ~ as.numeric(NA)), 
     # indicator if partner is employed
-    partner_emp_current = if_else(!is.na(partner_emp), 1, 0), 
+    partner_emp_current = case_when(
+      partner_emp %in% c("part-time employed", "primarily working") ~ 1, 
+      partner_emp == "unemployed" ~ 0, TRUE ~ as.numeric(NA)), 
     # age of partner (can only approximately calculated using year of birth)
     # is missing for partners without birth date
     partner_age = as.numeric(difftime(interview_date, mdy(paste(1, 1, ",", partner_birth_year)), units = "weeks")) / 52.5,
-    # indicator for seeing partner (almost) every day: täglich + fast täglich
-    partner_daily = if_else(grepl("daily", partner_freq), 1, 0),
-    # indicator for seeing partner once a month or less
-    partner_monthly = if_else(partner_freq %in% c("monthly", "less frequently"), 1, 0)
+    # indicator for partner frequency seeing each other
+    partner_freq_daily = if_else(grepl("daily", partner_freq), 1, 0), # seeing partner (almost) every day: daily + almost daily
+    partner_freq_monthly = if_else(partner_freq %in% c("monthly", "less frequently"), 1, 0), # seeing partner once a month or less
+    partner_freq_NA = if_else(is.na(partner_freq), 1, 0), # NA
+    # partner_living_apart
+    partner_living_apart = if_else(partner_living_apart == 1, 1, 0),
+    # partner_living_ger
+    partner_living_ger = case_when(partner_living_ger == "yes, partner was/is living in Germany" ~ 1,
+                                   is.na(partner_living_ger) ~ as.numeric(NA), TRUE ~ 0),
+    # partner_educ_years
+    partner_educ_years_12 = if_else(partner_educ_years %in% c(9:12), 1, 0),
+    partner_educ_years_15 = if_else(partner_educ_years %in% c(13:15), 1, 0),
+    partner_educ_years_18 = if_else(partner_educ_years %in% c(16:18), 1, 0),
+    partner_educ_years_NA = if_else(is.na(partner_educ_years), 1, 0),
+    # partner: migration
+    partner_migration = case_when(
+      partner_birth_country != "in Germany/within the current borders of Germany" | partner_ger == 0 ~ 1,
+      is.na(partner_birth_country) & is.na(partner_ger) ~ as.numeric(NA), TRUE ~ 0
+    )
   )
-length(unique(data_partner_current$ID_t))
 
-# only keep observations for individuals who do not have a current partner
+# keep only variables of interest
+data_partner_current <- data_partner_current %>%
+  select(ID_t, interview_date, partner_current, partner_num, partner_current_length, partner_previous_length_total, 
+         partner_male, partner_age, partner_migration, partner_living_ger, 
+         partner_school_degree_highest, partner_uni_degree, starts_with("partner_educ"), 
+         partner_study_current, partner_emp_current,
+         partner_living_apart, partner_freq_daily, partner_freq_monthly, partner_freq_NA)
+
+
+# NO CURRENT PARTNER #
+#++++++++++++++++++++#
+
+# Add observations for individuals who do not have a current partner
 # but had previous ones
+
+# Subset
 id_no_current <- setdiff(unique(data_partner$ID_t), unique(data_partner_current$ID_t))
-  
+
 data_partner_no_current <- data_partner %>% 
   subset(ID_t %in% id_no_current) %>%
-  select(ID_t, wave, interview_date, partner_num_total, partner_length_previous) %>%
-  # create dummy for not having a partner
-  mutate(partner_current_no = 1)
+  select(ID_t, interview_date, partner_current, partner_num, partner_previous_length_total) %>%
+  distinct()
+
+# In case of duplicates keep observation with higher partner_num
+data_partner_no_current <- data_partner_no_current %>%
+  group_by(ID_t, interview_date) %>%
+  filter(partner_num == max(partner_num)) %>%
+  ungroup()
+
+unique(data_partner_no_current$partner_current)
 
 length(unique(data_partner_no_current$ID_t))
 
+# add missing columns from data_partner_current
+add_cols <- colnames(data_partner_current)[!colnames(data_partner_current) %in% colnames(data_partner_no_current)]
+data_partner_no_current <- 
+  cbind(data_partner_no_current, setNames(lapply(add_cols, function(x) x = 0), add_cols)) %>%
+  # create one dummy for partner
+  mutate(partner = 1) %>% 
+  select(ID_t, interview_date, partner, partner_current, partner_num, 
+         partner_current_length, partner_previous_length_total, 
+         partner_male, partner_age, partner_migration, partner_living_ger, 
+         partner_school_degree_highest, partner_uni_degree, starts_with("partner_educ"), 
+         partner_study_current, partner_emp_current,
+         partner_living_apart, partner_freq_daily, partner_freq_monthly, partner_freq_NA)
 
 # add information together
-data_partner_final <- full_join(
-  data_partner_current, data_partner_no_current
-)
+data_partner_final <- rbind(data_partner_current, data_partner_no_current)
 length(unique(data_partner_final$ID_t))
 
 
@@ -250,90 +353,74 @@ length(unique(data_partner_final$ID_t))
 # number of missing values per column
 colSums(is.na(data_partner_final))
 
-# partner_current_nois 0 if NA, i.e., respondent has a partner
-data_partner_final <- data_partner_final %>%
-  mutate(partner_current_no = replace_na(partner_current_no, 0))
-
-# all current partner variables are 0 if respondent does not have a partner
-var_replace_vector <- 
-  c("partner_length_current", "partner_age", "partner_male", "partner_educ_years",
-    "partner_school_degree_highest", "partner_uni_degree_highest", "partner_study_current",
-    "partner_emp_current", "partner_daily", "partner_monthly")
-
-for (var_replace in var_replace_vector) {
-  data_partner_final <- data_partner_final %>%
-    # only replace missing value with 0 if respondent does not have a 
-    # partner at the interview date
-    mutate(
-      {{var_replace}} := ifelse(
-        partner_current_no == 1, 0, !!! rlang::syms(var_replace)
-        )
-      )
-}
-
-# number of missing values per column
-colSums(is.na(data_partner_final))
-
 # remaining missing values are due to missing responses
 # for those variables NA dummies are generated
 # the NAs in original variable are set to zero
-names(colSums(is.na(data_partner_final))[colSums(is.na(data_partner_final)) != 0])
+colnames_any_missing <- colSums(is.na(data_partner_final))
+colnames_any_missing <- names(colnames_any_missing[colnames_any_missing > 0])
+source("Functions/func_generate_NA_dummies.R")
+for (col_sel in colnames_any_missing) {
+  data_partner_final <- func_generate_NA_dummies(data_partner_final, col_sel)
+}
+data_partner_final <- data_partner_final %>% replace(is.na(.), 0)
 
-data_partner_final <- data_partner_final %>%
-  mutate(
-    partner_age_NA = ifelse(is.na(partner_age), 1, 0),
-    partner_educ_years_NA = ifelse(is.na(partner_educ_years), 1, 0)
-    ) %>%
-  mutate(
-    partner_age = replace_na(partner_age, 0), 
-    partner_educ_years = replace_na(partner_educ_years, 0)
-  ) 
-
+sum(is.na(data_partner_final))
 
 
 #%%%%%%%%%%%%%%%%%%%#
 #### Final Steps ####
 #%%%%%%%%%%%%%%%%%%%#
 
-# keep only variables needed
-data_partner_final <- data_partner_final %>%
-  select(ID_t, wave, interview_date,
-         partner_num_total, starts_with("partner_length_"), partner_age, partner_age_NA, 
-         partner_male, partner_educ_years, partner_educ_years_NA, partner_school_degree_highest,
-         partner_uni_degree_highest, partner_study_current, partner_emp_current,
-         partner_daily, partner_monthly, partner_current_no)
+# ungroup 
+data_partner_final <- data_partner_final %>% ungroup()
+
+# no duplicates
+sum(duplicated(data_partner_final))
+sum(duplicated(data_partner_final %>% select(ID_t, interview_date)))
 
 # now no missing values should be left
 sum(is.na(data_partner_final))
 
 # check
-summary(data_partner_final$partner_num_total)
-summary(data_partner_final$partner_length_previous)
-summary(data_partner_final$partner_length_current)
+summary(data_partner_final$partner_num)
+summary(data_partner_final$partner_previous_length_total)
+summary(data_partner_final$partner_current_length)
 summary(data_partner_final$partner_age)
 summary(data_partner_final$partner_educ_years)
 
 table(data_partner_final$partner_male, useNA = "always")
 table(data_partner_final$partner_school_degree_highest, useNA = "always")
-table(data_partner_final$partner_uni_degree_highest, useNA = "always")
+table(data_partner_final$partner_uni_degree, useNA = "always")
 table(data_partner_final$partner_study_current, useNA = "always")
 table(data_partner_final$partner_emp_current, useNA = "always")
-table(data_partner_final$partner_daily, useNA = "always")
-table(data_partner_final$partner_monthly, useNA = "always")
+table(data_partner_final$partner_freq_daily, useNA = "always")
+table(data_partner_final$partner_freq_monthly, useNA = "always")
 
 
 # number of respondents
-print(paste("The final data frame includes", length(unique(data_partner_final$ID_t)),
-            "respondents."))
-# number of rows and columns
+print(paste("Number of respondents before data preparation:", id_num_partner))
+print(paste("Number of respondents after subsetting on cohort profile:", id_num_partner_adj_1))
+print(paste("Number of respondents after keeping only respondents where partner information matches interview dates:", id_num_partner_adj_2))
+print(paste("The final data frame includes", length(unique(data_partner_final$ID_t)), "respondents."))
 print(paste("Number of rows", nrow(data_partner_final)))
 print(paste("Number of columns", ncol(data_partner_final)))
 
 # save data frame
-length(unique(data_partner_final$ID_t))
-saveRDS(data_partner_final, "Data/Prep_3/prep_3_partner.rds")
+if (cohort_prep == "controls_same_outcome") {
+  data_partner_save <- "Data/Prep_3/prep_3_partner.rds"
+} else if (cohort_prep == "controls_bef_outcome") {
+  data_partner_save <- "Data/Prep_3/prep_3_partner_robustcheck.rds"
+}
 
+saveRDS(data_partner_final, data_partner_save)
 
-
-
+# CHECKS
+# 7001968, 7002012, 7002018, 7001970, 7002521 7005568
+# data_partner %>% subset(ID_t == 7005568) %>% select(ID_t, start_date, end_date, end_date_adj, interview_date, partner_num, partner_current,
+#                                                     partner_gender, partner_uni_degree, partner_school_degree, partner_birth_year)
+# data_partner_final %>% subset(ID_t == 7005568) %>% select(ID_t, interview_date, partner_num, partner_current, partner_current_length,
+#                                                           partner_previous_length_total, partner_male, partner_uni_degree, partner_uni_degree_NA,
+#                                                           partner_school_degree_highest, partner_age, partner_age_NA)
+# data_partner_final %>% filter(partner_age > 70) %>% select(ID_t, interview_date, partner_current, partner_num, partner_age)
+# data_partner %>% subset(ID_t == 7018170) %>% select(ID_t, interview_date, partner_birth_year)
 
