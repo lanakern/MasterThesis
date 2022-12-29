@@ -49,8 +49,8 @@ library(xlsx)  # for excel file
 
 # define inputs
   ## selection on cohort preparation
-#cohort_prep <- "controls_bef_outcome" 
-cohort_prep <- "controls_same_outcome"
+cohort_prep <- "controls_bef_outcome" 
+#cohort_prep <- "controls_same_outcome"
   ## treatment replacement
 treatment_repl <- "downup" # (only used for saving)
 
@@ -78,7 +78,12 @@ if (cohort_prep == "controls_same_outcome") {
 
 
 # partner information (time-variant)
-data_partner <- readRDS("Data/Prep_3/prep_3_partner.rds")
+if (cohort_prep == "controls_same_outcome") {
+  data_partner <- readRDS("Data/Prep_3/prep_3_partner.rds")
+} else if (cohort_prep == "controls_bef_outcome") {
+  data_partner <- readRDS("Data/Prep_3/prep_3_partner_robustcheck.rds")
+}
+
 
 # competencies
 data_competencies <- readRDS("Data/Prep_3/prep_3_competencies.rds")
@@ -278,34 +283,72 @@ length(unique(data_merge_2$ID_t))
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 
 #%%%%%%%%%%%%%%%#
 #### Partner ####
 #%%%%%%%%%%%%%%%#
 
+# number of respondents with children
+id_partner <- unique(data_partner$ID_t)
+length(id_partner)
 
-# information about each respondent's partner history is appended.
-# this information is only collected in the CATI surveys
-# Hence, as merge variable the CATI interview date is used additional to the ID
-data_merge_5 <- left_join(data_merge_4, data_partner %>% select(-wave), 
-                          by = c("ID_t", "interview_date_cati" = "interview_date"))
+# number of respondents with children who have a match in merged data
+if (cohort_prep == "controls_bef_outcome") {
+  id_cati_cawi_eps_child_partner <- 
+    inner_join(data_merge_2, data_partner, 
+               by = c("ID_t", "interview_date_CATI" = "interview_date")) %>%
+    pull(ID_t) %>% unique() 
+  num_id_partner_adj_1 <- length(id_cati_cawi_eps_child_partner)
+} else if (cohort_prep == "controls_same_outcome") {
+  id_cati_cawi_eps_child_partner <- 
+    inner_join(data_merge_2, data_partner, 
+               by = c("ID_t", "interview_date_start" = "interview_date")) %>%
+    pull(ID_t) %>% unique() 
+  num_id_partner_adj_1 <- length(id_cati_cawi_eps_child_partner)
+}
 
+
+# show difference
+setdiff(id_partner, id_cati_cawi_eps_child_partner)
+
+data_partner %>% subset(ID_t == 7002301) %>% 
+  select(ID_t, starts_with("interview_date"))
+
+data_merge_2 %>% subset(ID_t == 7002301) %>% 
+  select(ID_t, starts_with("interview_date"))
+
+# keep only respondents in partner  who also have observation in other data set
+data_partner <- data_partner %>% subset(ID_t %in% id_cati_cawi_eps_child_partner)
+length(unique(data_partner$ID_t))
+
+
+# information about each respondent's relationship is appended.
+if (cohort_prep == "controls_bef_outcome") {
+  data_merge_3 <- left_join(data_merge_2, data_partner, 
+                            by = c("ID_t", "interview_date_CATI" = "interview_date"))
+} else if (cohort_prep == "controls_same_outcome") {
+  data_merge_3 <- left_join(data_merge_2, data_partner, 
+                            by = c("ID_t", "interview_date_start" = "interview_date"))
+}
+
+# extract partner columns
+col_partner <- data_partner %>% select(-c(ID_t, interview_date)) %>% colnames()
 
 # for respondents with no partner all variables are set to zero
-col_partner <- data_partner %>% select(-c(ID_t, wave, interview_date)) %>% colnames()
-data_merge_5 <- data_merge_5 %>%
-  mutate_at(all_of(col_partner), ~replace_na(.,0))
+data_merge_3 <- data_merge_3 %>%
+  mutate_at(all_of(col_partner), ~ replace_na(.,0))
 
-# check that there are no NAs in sibling variable
-data_merge_5 %>%
+# check that there are no NAs in partner variables
+data_merge_3 %>%
   ungroup() %>% select(all_of(col_partner)) %>%
   summarize(sum(is.na(.))) %>% pull()
 
-#length(unique(data_merge_5$ID_t)) # 9,062
 
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+length(unique(data_merge_3$ID_t))
+
+
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 
