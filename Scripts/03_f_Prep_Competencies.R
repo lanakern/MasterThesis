@@ -246,6 +246,10 @@ colSums(is.na(data_competencies_final))
 #### Final Steps ####
 #%%%%%%%%%%%%%%%%%%%#
 
+# keep only wle estimates
+data_competencies_final <- data_competencies_final %>%
+  select(ID_t, interview_date, ends_with("_wle"))
+
 # check for duplicates
 sum(duplicated(data_competencies_final))
 sum(duplicated(data_competencies_final[, c("ID_t", "interview_date")]))
