@@ -7,31 +7,32 @@
 #++++
 # In this file, the information about competence measures is prepared.
 # Competence measure tests are only conducted in wave 1 (2010/2011 (CATI+competencies)), 
-# wave 5 (2013 (CATI+competencies)), and wave 12 (2017 (CATI)).
-# Moreover, not all competence measures are assessed in each wave.
-# In total 11,810 individuals take part in competence measure tests.
+# wave 5 (2013 (CATI+competencies)), and wave 12 (2017 (CATI)). However, I am
+# only interested in wave 1 and wave 5 because for wave 12 only a few treatment
+# periods are left. Moreover, different competence measures are assessed across waves.
 #++++
-# 1.) The competence measure data set is in wide-format, i.e., one row per
+# 1.) Drop respondents:
+# -> Respondents who have missing values in all competence measures of interest
+# (that is wave 1 wand wave 5) are dropped.
+# -> Respondents who are not in cohort profile are dropped.
+#++++
+# 2.) The competence measure data set is in wide-format, i.e., one row per
 # respondent. I restructure the data set in long-format, i.e., one row per
 # respondent + wave. This is necessary for the merge with cohort profile and
 # for the further analysis.
 #++++
-# 2.) Merge with cohort profile. First a right join is conducted, to keep
-# all respondents in cohort profile. This is necessary to downward replace
-# the results of the competence measure tests to further survey in step 3.).
-# Next, only respondents who are in both data sets, cohort profile and
-# competence measures, are kept. This reduces the sample size to 10,226 respondents.
+# 3.) Merge with cohort profile so that only respondents who are in both data
+# sets are kept. However, all waves in cohort profile are kept in order to 
+# downward replace the results of the competence measure tests to further surveys 
+# in step 3.).
 #++++
-# 3.) Handle missing values: 
-# 3.1) Downward replacement of missing values. For example, respondent has info
+# 4.) Handle missing values: 
+# 4.1) Downward replacement of missing values. For example, respondent has info
 # on competence measure mathematics in wave 1. The next competence measure test
 # on mathematics is conducted in wave 12. Hence, from wave 2 to wave 11, the
 # values from wave 1 are used.
-# 3.2) Domain-general competencies are paper-, computer-based or online. Missing
+# 4.2) Domain-general competencies are paper-, computer-based or online. Missing
 # values are replaced across those survey methods.
-# 3.3) Replacement
-# -> "NA_dummies": missing values are replaced and NA dummies are generated
-# -> "plausible": missing values are replaced by plausible values
 #++++
 # --> FINAL DATA FRAME IS A PANEL DATA SET (one row for each respondent-wave combination).
 
@@ -39,7 +40,6 @@
 #%%%%%%%%%#
 ## SETUP ##
 #%%%%%%%%%#
-
 
 # clear workspace
 rm(list = ls())
@@ -62,10 +62,10 @@ library(tidyr)  # for fill() function
 # for German language
 Sys.setlocale("LC_TIME", "German")
 
-# define data preparation type for missing values
-  ## "NA_dummies": for missing values replacements are made and NA dummies are generated
-  ## "plausible": plausible values are inserted for missing values
-competencies <- "NA_dummies" 
+
+# define inputs: selection on cohort preparation
+#cohort_prep <- "controls_bef_outcome" 
+cohort_prep <- "controls_same_outcome"
 
 
 #%%%%%%%%%%%%%%%%%#
@@ -77,10 +77,46 @@ data_competencies <- readRDS("Data/Prep_1/prep_1_competencies.rds")
 num_id_comp <- length(unique(data_competencies$ID_t))
 
 # cohort profile
-data_cohort_profile <- readRDS("Data/Prep_2/prep_2_cohort_profile.rds")
-num_id_prof <- length(unique(data_cohort_profile$ID_t))
+# cohort data based on selection
+if (cohort_prep == "controls_same_outcome") {
+  data_cohort_profile <- readRDS("Data/Prep_2/prep_2_cohort_profile.rds") %>%
+    filter(wave_2 == "CATI") %>%
+    select(ID_t, wave, interview_date)
+} else if (cohort_prep == "controls_bef_outcome") {
+  data_cohort_profile <- readRDS("Data/Prep_2/prep_2_cohort_profile_robustcheck.rds") %>%
+    filter(wave_2 == "CATI") %>%
+    select(ID_t, wave, interview_date)
+}
+
+num_id_cohort <- length(unique(data_cohort_profile$ID_t))
 
 
+
+#%%%%%%%%%%%%%%%%%%%%%%%%#
+#### Drop Respondents ####
+#%%%%%%%%%%%%%%%%%%%%%%%%#
+
+# I am only interested in wave1 and wave5; hence first I drop all wave12 columns
+data_competencies <- data_competencies %>% select(-ends_with("12"))
+
+# Drop respondents who have missing values in all competence measures
+data_competencies$sum_NA <- apply(data_competencies, 1, function(x) sum(is.na(x)))
+num_drop <- data_competencies %>% select(-c(ID_t, starts_with("wave"), "sum_NA")) %>% colnames() %>% length()
+id_drop <- data_competencies %>% filter(sum_NA == num_drop) %>% pull(ID_t) %>% unique()
+num_id_drop <- length(id_drop)
+data_competencies <- data_competencies %>% subset(!ID_t %in% id_drop)
+num_id_comp_adj_1 <- length(unique(data_competencies$ID_t))
+
+# Drop respondents who are not in cohort profile
+id_cohort_comp <- intersect(
+  unique(data_competencies$ID_t), unique(data_cohort_profile$ID_t)
+)
+
+data_competencies <- data_competencies %>% subset(ID_t %in% id_cohort_comp)
+num_id_comp_adj_2 <- length(unique(data_competencies$ID_t))
+
+data_cohort_profile <- data_cohort_profile %>% subset(ID_t %in% id_cohort_comp)
+num_id_cohort_adj_1 <- length(unique(data_cohort_profile$ID_t))
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -89,15 +125,21 @@ num_id_prof <- length(unique(data_cohort_profile$ID_t))
 
 # competence data set is in wide-format; I want to have it in long format
   ## vector containing waves
-wave_comp <- c("2010/2011 (CATI+competencies)", "2013 (CATI+competencies)", "2017 (CATI)")
+  ## 2017 is not used because I do not have a lot of observations for
+  ## individuals studying after 2017
+wave_comp <- c("2010/2011 (CATI+competencies)", "2013 (CATI+competencies)") # , "2017 (CATI)")
   ## iterator to extract respective wave information from wave_comp
 iter_num <- 0
   ## data set for merge (includes only ID and missing wave variable)
-data_competencies_long <- 
-  data_competencies %>% select(ID_t) %>% mutate(wave = NA)
+data_competencies_long <- data.frame(ID_t = unique(data_competencies$ID_t)) 
+data_competencies_long$w1 <- "2010/2011 (CATI+competencies)"
+data_competencies_long$w2 <- "2013 (CATI+competencies)"
+data_competencies_long <- data_competencies_long %>% 
+  pivot_longer(!ID_t, names_to = "drop", values_to = "wave") %>%
+  select(-drop)
 
-# loop over wave 1, wave 5, and wave 12
-for (wave_sel in c("w1", "w5", "w12")) {
+# loop over wave 1, and wave 5
+for (wave_sel in c("w1", "w5")) {
   
   # adjust iterator
   iter_num <- iter_num + 1
@@ -117,23 +159,14 @@ for (wave_sel in c("w1", "w5", "w12")) {
       # drop suffix of variables
       rename_with(~ str_remove(., paste0("_", wave_sel)))
   
-  # define columns for merge
-    ## columns which are in both data sets except wave
-  col_merge <- 
-    intersect(colnames(data_competencies_long), colnames(data_competencies_sub_wave)) 
-  col_merge <- col_merge[col_merge != "wave"]
-  
   # merge
   data_competencies_long <- 
-    full_join(
-      data_competencies_long, data_competencies_sub_wave, by = col_merge
-    ) %>%
-    # wave variables are duplicated -> create one
-    mutate(wave.x = if_else(is.na(wave.x), wave.y, as.character(wave.x))) %>%
-    select(-wave.y) %>%
-    rename(wave = wave.x)
+    left_join(
+      data_competencies_long, data_competencies_sub_wave, by = c("ID_t", "wave")
+    ) 
 }
 
+length(unique(data_competencies_long$ID_t))
 
 
 
@@ -141,26 +174,33 @@ for (wave_sel in c("w1", "w5", "w12")) {
 #### Merge with Cohort Profile ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-# right join: keeps all information in cohort profile
+# left join: keeps all information in cohort profile
 # this ensures that I can downward replace competence measures across waves
-length(unique(data_competencies_long$ID_t)) # 11,810
-data_competencies_final <- right_join(
-  data_competencies_long, 
-  data_cohort_profile %>% select(ID_t, wave, interview_date, treatment_starts), 
-  by = c("ID_t", "wave")
+data_competencies_final <- left_join(
+  data_cohort_profile, data_competencies_long %>% rename(wave_comp = wave), 
+  by = c("ID_t")
 )
-length(unique(data_competencies_final$ID_t)) # 12,010
+length(unique(data_competencies_final$ID_t)) 
 
-# keep only individuals who have at least taken part once in the
-# competence measures
-# data_competencies_final <- data_competencies_final %>%
-#   subset(ID_t %in% unique(data_competencies_long$ID_t))
-# length(unique(data_competencies_final$ID_t)) # 10226
+# ensure that information is up to-date
+data_competencies_final <- data_competencies_final %>%
+  # generate year variable for wave cohort and wave competencies
+  mutate(year_cohort = str_sub(wave, 1, 4), year_comp = str_sub(wave_comp, 1, 4)) %>%
+  # year of competence measures must be smaller or equal than year of cohort
+  filter(year_comp <= year_cohort) %>%
+  # in case of duplicates keep newest competence measures
+  group_by(ID_t, wave) %>%
+  filter(year_comp == max(year_comp))
 
-# -> 11,810 individuals have taken part at least once in a competence measure
-# survey. 
-# -> 12,670 individuals are in cohort profile (have taken part in several CATI and CAWI surveys)
-# -> 10,226 individuals are in both data sets: competence and cohort profile
+# check that there are no duplicates (-> zero rows)
+data_competencies_final[duplicated(data_competencies_final %>% ungroup %>% select(ID_t, wave)),]
+
+# remove variables not needed anymore
+data_competencies_final <- data_competencies_final %>%
+  ungroup() %>%
+  arrange(ID_t, year_cohort) %>%
+  select(-c(starts_with("wave"), starts_with("year")))
+
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -168,110 +208,73 @@ length(unique(data_competencies_final$ID_t)) # 12,010
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 
-# drop individuals with missing values in wave
-# those individuals did not take part in the competence measures
-# data_competencies_final <- data_competencies_final %>%
-#   filter(!is.na(wave))
-# length(unique(data_competencies_final$ID_t))
+## 1.) Replace missing values downwards ##
+#++++++++++++++++++++++++++++++++++++++++#
 
-# replace missing values downwards
-sum(is.na(data_competencies_final))
+colSums(is.na(data_competencies_final))
 data_competencies_final <- 
   data_competencies_final %>% 
   group_by(ID_t) %>%
-  fill(data_competencies_final %>% select(-c(ID_t, wave)) %>% colnames(), 
+  fill(data_competencies_final %>% select(-c(ID_t)) %>% colnames(), 
        .direction = "down")
-sum(is.na(data_competencies_final))
+colSums(is.na(data_competencies_final))
 
-# domain-general competencies can be paper-based, computer-based or online.
+
+
+## 2.) domain-general competencies ##
+#+++++++++++++++++++++++++++++++++++#
+
+# can be paper-based, computer-based or online.
 # hence, missing values are replaced across those survey possibilities
+
 colSums(is.na(data_competencies_final))
 data_competencies_final <- data_competencies_final %>%
   mutate(
     # reasoning
-    reasoning_sum = ifelse(is.na(reasoning_paper_sum), reasoning_comp_sum, reasoning_paper_sum),
-    reasoning_sum = ifelse(is.na(reasoning_sum), reasoning_online_sum, reasoning_sum), 
+    comp_reasoning_sum = ifelse(is.na(comp_reasoning_paper_sum), comp_reasoning_comp_sum, comp_reasoning_paper_sum),
+    comp_reasoning_sum = ifelse(is.na(comp_reasoning_sum), comp_reasoning_online_sum, comp_reasoning_sum), 
     # perceptual speed
-    percspeed_sum = ifelse(is.na(percspeed_paper_sum), percspeed_comp_sum, percspeed_paper_sum),
-    percspeed_sum = ifelse(is.na(reasoning_sum), percspeed_online_sum, reasoning_sum)
+    comp_percspeed_sum = ifelse(is.na(comp_percspeed_paper_sum), comp_percspeed_comp_sum, comp_percspeed_paper_sum),
+    comp_percspeed_sum = ifelse(is.na(comp_reasoning_sum),comp_percspeed_online_sum, comp_reasoning_sum)
   ) %>%
   select(-c(matches(".*_comp_.*"), matches(".*_paper_.*"), matches(".*_online_.*")))
 colSums(is.na(data_competencies_final))
 
-
-# handle missing values (based on selection)
-  ## 1.) Create NA variables
-  ## 2.) Insert plausible values
-if (competencies == "NA_dummies") {
-  # NAs in WLE are replaced by 0 (average)
-  # for share 0.5 and for sum average sum across population
-  # in addition an indicator is generated telling that for those
-  # respondents no competence measures are available
-    ## extract columsn with NAs
-  cols_NA <- names(colSums(is.na(data_competencies_final))[colSums(is.na(data_competencies_final)) > 0])
-    ## create NA dummies
-  for (cols_NA_sel in cols_NA) {
-    cols_NA_mut <- paste0(cols_NA_sel, "_NA")
-    data_competencies_final <- data_competencies_final %>%
-      mutate(
-        {{cols_NA_mut}} := ifelse(is.na(!!!syms(cols_NA_sel)), 1, 0),
-        {{cols_NA_sel}} := ifelse(is.na(!!!syms(cols_NA_sel)), 0, !!!syms(cols_NA_sel))
-      )
-  }
-    ## replace missing values
-  data_competencies_final <- data_competencies_final %>%
-    mutate(
-      across(matches("wle"), ~ replace_na(., 0)),
-      across(matches("share"), ~ replace_na(., 0.5)),
-      across(matches("sum"), ~ replace_na(., mean(., na.rm = TRUE)))
-    )
-} else if (competencies == "plausible") {
-  data_competencies_final <- data_competencies_final
-} else {
-  data_competencies_final <- data_competencies_final
-}
-
-sum(is.na(data_competencies_final))
-length(unique(data_competencies_final$ID_t))
 
 
 #%%%%%%%%%%%%%%%%%%%#
 #### Final Steps ####
 #%%%%%%%%%%%%%%%%%%%#
 
-# add prefix to column names (easier to find variables later)
-col_names_prefix <- colnames(data_competencies_final)[
-  !colnames(data_competencies_final) %in% c("ID_t", "wave", "interview_date", "treatment_starts")
-  ]
-data_competencies_final <-
-  data_competencies_final %>%
-  rename_with(~ paste0("comp_", .), .cols = all_of(col_names_prefix))
+# check for duplicates
+sum(duplicated(data_competencies_final))
+sum(duplicated(data_competencies_final[, c("ID_t", "interview_date")]))
 
-# keep only unique values across treatment periods
-sum(duplicated(data_competencies_final[, c("ID_t", "treatment_starts")]))
-
+# sort data frame 
 data_competencies_final <- data_competencies_final %>%
-  arrange(ID_t, treatment_starts, wave) %>%
-  group_by(ID_t, treatment_starts) %>%
-  slice(n())
+  arrange(ID_t, interview_date) 
+ 
+# sample size 
+print(paste("Number of respondents with competence measures before data preparation:", num_id_comp))
+print(paste("Number of respondents with at least one non-missing competence measure:", num_id_comp_adj_1))
+print(paste("Number of respondents after merge with cohort_profile:", num_id_comp_adj_2))
 
-sum(duplicated(data_competencies_final[, c("ID_t", "treatment_starts")]))
 
-# sort data frame and drop wave column
-data_competencies_final <- data_competencies_final %>%
-  arrange(ID_t, treatment_starts) %>%
-  select(-wave)
-
-# sample size: 10,266
 print(paste("The final sample size includes", 
             length(unique(data_competencies_final$ID_t)),
             "respondents."))
-
 # number of rows and columns
 print(paste("Number of rows", nrow(data_competencies_final)))
 print(paste("Number of columns", ncol(data_competencies_final)))
 
 # save prepared competence data
-saveRDS(data_competencies_final, "Data/Prep_3/prep_3_competencies.rds")
+if (cohort_prep == "controls_same_outcome") {
+  data_comp_save <- "Data/Prep_3/prep_3_competencies.rds"
+} else if (cohort_prep == "controls_bef_outcome") {
+  data_comp_save <- "Data/Prep_3/prep_3_competencies_robustcheck.rds"
+}
+
+saveRDS(data_competencies_final, data_comp_save)
+
 
 
