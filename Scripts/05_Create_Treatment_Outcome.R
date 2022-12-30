@@ -11,8 +11,23 @@
 # treatment variable considering the frequency (daily, weekly, monthly, never).
 #++++
 # 1.) Treatment
+# -> Binary and multivalued treatment indicator: binary considers simply sport
+# participation vs. non-participation while multivalued treatment indicator
+# considers sport frequency.
+# -> Leisure/general and university sport is aggregated: if only one information
+# is provided, this info is used. If both are provided and do not coincide
+# the higher frequency is considered. 
 #++++
 # 2.) Outcome
+# -> Current grade average is replaced by final grade if current grade average
+# is missing (however, never the case here).
+#++++
+# 3.) Sample Selection
+# -> Drop students who have a missing value in binary treatment variable and/or
+# outcome
+# -> Drop students with grade outside interval [1,5]
+#++++
+# -> RESULT: PANEL DATA FRAME
 #++++
 
 
@@ -44,99 +59,94 @@ if (cohort_prep == "controls_same_outcome") {
 } else if (cohort_prep == "controls_bef_outcome") {
   data_raw <- readRDS("Data/Prep_4/prep_4_merge_all_robustcheck.rds")
 }
+num_id <- length(unique(data_raw$ID_t))
+
+
 
 
 #%%%%%%%%%%%%%%%%%#
 #### Treatment ####
 #%%%%%%%%%%%%%%%%%#
 
+data_raw %>% select(ID_t, starts_with("interview_date"), starts_with("sport"))
+
 # count missing values in treatment variables
 colSums(is.na(data_raw %>% select(starts_with("sport"))))
 
+# there are no non-missing values for sport_uni_freq if sport_uni is missing
+data_raw %>% filter(is.na(sport_uni) & !is.na(sport_uni_freq))
 
-# good test example
-# test_cati <- data_outcome_cati %>% subset(ID_t == 7001969) 
-# test_cawi <- data_outcome_cawi %>% subset(ID_t == 7001969) 
-
-if (treatment_cati == "period") {
-  ## FIRST APPROACH: PERIOD ##
-  # 1.) CATI information is taken from CATI survey of respective treatment period
-  # 2.) This information is compared with info from next treatment period. If
-  # they differ, closest info is taken (this is the idea but never the case)
-  data_outcome_cawi_cati <- 
-    # do not join by wave because they may differ
-    left_join(data_outcome_cawi %>% select(-wave), 
-              data_outcome_cati %>% select(-wave), 
-              by = c("ID_t", "treatment_ends" = "treatment_starts")) %>%
-    group_by(ID_t) %>%
-    mutate(sport_diff = if_else(sport_leisure_freq == lag(sport_leisure_freq), 1, 0))
-  
-  #table(data_outcome_cawi_cati$sport_diff) # never a difference
-  
-  data_outcome_cawi_cati <- data_outcome_cawi_cati %>% select(-sport_diff)
-} else if (treatment_cati == "distance") {
-  ## SECOND APPROACH: DISTANCE ##
-  # Take CATI treatment and outcome information from closest interview date to CAWI
-  data_outcome_cawi_cati <-
-    left_join(data_outcome_cawi %>% select(-wave), 
-              data_outcome_cati %>% select(-wave),
-              by = c("ID_t", "treatment_ends" = "treatment_starts")) %>%
-    group_by(ID_t) %>%
-    mutate(date_diff = abs(as.numeric(difftime(interview_date_outcome_cawi, interview_date_outcome_cati)))) %>%
-    group_by(ID_t, treatment_ends) %>%
-    filter(date_diff == min(date_diff))
-} else {
-  print("Select how treatment from CATI survey should be determined: period or distance")
-}
+# sport_uni_freq is always NA if sport_uni not involved
+data_raw %>% filter(sport_uni == "not involved") %>% pull(sport_uni_freq) %>% unique() # should return NA
 
 
-# length(unique(data_outcome_cawi_cati$ID_t)) # 12010 (CAWI due to left join)
 
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+## CREATE TREATMENT VARIABLE FOR SPORT FREQUENCY ##
+#+++++++++++++++++++++++++++++++++++++++++++++++++#
+
+data_1 <- data_raw
+
+# 1.) Recode sport_uni_freq as "never" for sport_uni == "not involved"
+data_1 <- data_1 %>%
+  mutate(sport_uni_freq = ifelse(
+    sport_uni == "not involved" & is.na(sport_uni_freq), "never", sport_uni_freq
+    ))
+
+table(data_1$sport_uni, useNA = "always")
+table(data_1$sport_uni_freq, useNA = "always")
+data_1 %>% filter(sport_uni == "not involved") %>% pull(sport_uni_freq) %>% unique()
 
 
-## CREATE ONE SPORT FREQUENCY VARIABLE ##
+# 2.) Recode values: 
+## General sport (g)
+##++ 1 = never
+##++ 2 = once a month or less
+##++ 3 = several times a month or once a week
+##++ 4 = several times a week
+##++ 5 = almost daily or daily
+## University sport (u)
+##++ 1 = daily, 
+##++ 2 = several times a week, 
+##++ 3 = once a week, 
+##++ 4 = several times a month, 
+##++ 5 = once a month, 
+##++ 6 = less frequently
+##++ 7 = never (own generation; see above)
+## AGGREGATED:
+##++ 1 = never: g1 & u7
+##++ 2 = less frequently: g2 & u5 & u6
+##++ 3 = monthly: g3 & u4 & u3
+##++ 4 = weekly: g4 & u2
+##++ 5 = daily: g5 & u1
 
-# display labels
-unique(data_outcome_cawi_cati$sport_uni_freq)
-unique(data_outcome_cawi_cati$sport_leisure_freq)
+table(data_1$sport_uni_freq, useNA = "always")
+table(data_1$sport_leisure_freq, useNA = "always")
 
-# recode: in original data set the order is reversed AND the meaning of the
-# labels is not identical. Thus, it does not make sense to unlabel them
-## 0 = never 
-## 1 = once a month or less frequently
-## 2 = several times a month or once a week
-## 3 = at least once per week
-## 4 = (almost) daily
-table(data_outcome_cawi_cati$sport_uni, useNA = "always")
-table(data_outcome_cawi_cati$sport_uni_freq, useNA = "always")
-table(data_outcome_cawi_cati$sport_leisure_freq, useNA = "always")
 
-data_outcome_cawi_cati <- data_outcome_cawi_cati %>%
+data_1 <- data_1 %>%
+  # labels
   mutate(
     sport_uni_freq = recode(
       sport_uni_freq,
-      "less frequently" = 1, "once a month" = 1, "several times a month" = 2,
-      "once a week" = 2, "several times a week" = 3, "daily" = 4
+      "never" = 1, "less frequently" = 2, "once a month" = 2, 
+      "several times a month" = 3, "once a week" = 3, 
+      "several times a week" = 4, "daily" = 5
     ),
     sport_leisure_freq = recode(
       sport_leisure_freq, 
-      "never" = 0, "once a month or less" = 1, "several times a month or once a week" = 2,
-      "several times a week" = 3, "almost daily or daily" = 4
+      "never" = 1, "once a month or less" = 2, 
+      "several times a month or once a week" = 3,
+      "several times a week" = 4, "almost daily or daily" = 5
     )
-  ) %>%
-  # also if: sport_uni == "not involved" then sport_uni_freq = 0 ("never")
-  mutate(
-    sport_uni_freq = ifelse(sport_uni == "not involved" & is.na(sport_uni_freq), 0, sport_uni_freq)
-  )
+  ) 
 
-# sport_uni_freq has less NA due to not involved variable
-table(data_outcome_cawi_cati$sport_uni, useNA = "always")
-table(data_outcome_cawi_cati$sport_uni_freq, useNA = "always")
-table(data_outcome_cawi_cati$sport_leisure_freq, useNA = "always")
+
+table(data_1$sport_uni_freq, useNA = "always")
+table(data_1$sport_leisure_freq, useNA = "always")
+
 
 # generate one treatment frequency variable (for both university and leisure sport)
-data_outcome_cawi_cati <- data_outcome_cawi_cati %>%
+data_1 <- data_1 %>%
   mutate(
     treatment_sport_freq = case_when(
       # if uni sport is missing use info on leisure sport
@@ -148,10 +158,11 @@ data_outcome_cawi_cati <- data_outcome_cawi_cati %>%
     )
   )
 
-table(data_outcome_cawi_cati$treatment_sport_freq, useNA = "always")
+table(data_1$treatment_sport_freq, useNA = "always")
+
 
 # create dummy to know if I used uni or leisure sport information
-data_outcome_cawi_cati <- data_outcome_cawi_cati %>%
+data_1 <- data_1 %>%
   mutate(sport_freq_source = 
            case_when(
              # if frequency of university sport equals frequency of sport in treatment variable
@@ -169,22 +180,31 @@ data_outcome_cawi_cati <- data_outcome_cawi_cati %>%
            )
   )
 
-table(data_outcome_cawi_cati$sport_freq_source, useNA = "always")
+table(data_1$sport_freq_source, useNA = "always")
 
 
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+# recode frequency variable
+data_1 <- data_1 %>% mutate(
+  treatment_sport_freq = recode(treatment_sport_freq,
+    "1" = "never", "2" = "less frequently", "3" = "monthly", "4" = "weekly", "5" = "daily"
+  ))
 
 
-## CREATE INDICATOR FOR UNIVERSITY AND LEISURE SPORT ##
+
+
+## CREATE BINARY TREATMENT INDICATOR ##
+#+++++++++++++++++++++++++++++++++++++#
+
+data_2 <- data_1
 
 # sport_uni = 1 if respondent participates in university sport
 # sport_leisure = 1 if respondent participates in leisure sport
 # -> also both variables can take on the value 1
-table(data_outcome_cawi_cati$sport_uni, useNA = "always")
-table(data_outcome_cawi_cati$sport_uni_freq, useNA = "always")
-table(data_outcome_cawi_cati$sport_leisure_freq, useNA = "always")
+table(data_2$sport_uni, useNA = "always")
+table(data_2$sport_uni_freq, useNA = "always")
+table(data_2$sport_leisure_freq, useNA = "always")
 
-data_outcome_cawi_cati <- data_outcome_cawi_cati %>%
+data_2 <- data_2 %>%
   # rename original sport_uni variable
   rename(sport_uni_orig = sport_uni) %>%
   # create variables
@@ -195,26 +215,21 @@ data_outcome_cawi_cati <- data_outcome_cawi_cati %>%
     sport_uni = ifelse(sport_uni_orig == "not involved", 0, 
                        ifelse(is.na(sport_uni_orig), NA, 1)),
     # respondent participates in leisure sport if sport_leisure_freq is NOT NA and not 0
-    sport_leisure = ifelse(sport_leisure_freq > 0, 1, 
+    sport_leisure = ifelse(sport_leisure_freq > 1, 1, 
                            ifelse(is.na(sport_leisure_freq), NA, 0))
   ) 
 
-table(data_outcome_cawi_cati$sport_uni, useNA = "always")
-table(data_outcome_cawi_cati$sport_leisure, useNA = "always")
+table(data_2$sport_uni, useNA = "always")
+table(data_2$sport_leisure, useNA = "always")
 
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-
-
-## CREATE BINARY TREATMENT VARIABLE ##
 
 # create general dummy for sport-participation (=1) and non-participation (=0)
 # keep NA as later individuals and treatment periods without sport information are dropped
-table(data_outcome_cawi_cati$treatment_sport_freq, useNA = "always")
-data_outcome_cawi_cati <- data_outcome_cawi_cati %>%
+data_2 <- data_2 %>%
   mutate(
-    treatment_sport = ifelse(treatment_sport_freq != 0 & !is.na(treatment_sport_freq), 1, 
-                             ifelse(is.na(treatment_sport_freq), NA, 0))
+    treatment_sport = case_when(sport_leisure == 1 | sport_uni == 1 ~ 1,
+                                is.na(sport_leisure) & is.na(sport_uni) ~ as.double(NA),
+                                TRUE ~ 0)
   ) %>%
   # create indicator for source
   mutate(
@@ -228,237 +243,133 @@ data_outcome_cawi_cati <- data_outcome_cawi_cati %>%
       )
   )
 
-table(data_outcome_cawi_cati$treatment_sport, useNA = "always")
-table(data_outcome_cawi_cati$sport_source, useNA = "always")
 
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+table(data_2$sport_uni, useNA = "always")
+table(data_2$sport_leisure, useNA = "always")
+table(data_2$treatment_sport, useNA = "always")
+table(data_2$sport_source, useNA = "always")
 
-## CREATE DATE FOR INTERVIEW ##
-
-# can be from CAWI or CATI depending on the source
-# if same info is in both sources, CAWI date is chosen.
-data_outcome_cawi_cati <- data_outcome_cawi_cati %>%
-  mutate(interview_date_treatment = case_when(
-    sport_source == "uni" ~ interview_date_outcome_cawi,
-    sport_source == "leisure" ~ interview_date_outcome_cati,
-    sport_source == "both" ~ interview_date_outcome_cawi,
-    TRUE ~ as.Date(NA)
-  ))
-
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 
 ## CHECK ##
+#+++++++++#
 
 # check
-data_outcome_cawi_cati %>% subset(ID_t == 7001968) %>% 
+data_2 %>% subset(ID_t == 7002010) %>% 
   select(ID_t, starts_with("sport"), starts_with("treatment"))
-data_outcome_cawi_cati %>% subset(ID_t == 7002010) %>% 
+data_2 %>% subset(ID_t == 7001969) %>% 
   select(ID_t, starts_with("sport"), starts_with("treatment"))
-data_outcome_cawi_cati %>% subset(ID_t == 7001969) %>% 
+data_2 %>% subset(ID_t == 7001977) %>% 
   select(ID_t, starts_with("sport"), starts_with("treatment"))
-data_outcome_cawi_cati %>% subset(ID_t == 7002074) %>% 
-  select(ID_t, starts_with("sport"), starts_with("treatment"))
-data_outcome_cawi_cati %>% subset(ID_t == 7001975) %>% 
-  select(ID_t, starts_with("sport"), starts_with("treatment"))
-data_outcome_cawi_cati %>% subset(ID_t == 7002011) %>% 
-  select(ID_t, starts_with("sport"), starts_with("treatment"))
-data_outcome_cawi_cati %>% subset(ID_t == 7002166) %>% 
+data_2 %>% subset(ID_t == 7002007) %>% 
   select(ID_t, starts_with("sport"), starts_with("treatment"))
 
+# drop variables not needed anymore
+data_2 <- data_2 %>% select(-starts_with("sport"))
+
 # number of respondents
-# length(unique(data_outcome_cawi_cati$ID_t)) # 12010 (unchanged)
+length(unique(data_2$ID_t)) # should be unchanged
 
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 
+
+#%%%%%%%%%%%%%%%#
 #### Outcome ####
-#+++++++++++++++#
+#%%%%%%%%%%%%%%%#
+
+data_3 <- data_2
 
 # better outcome is "grade_current" because it determines the grade for the
 # academic achievements so far
 # however, if it is missing, the final grade is used (does not happen often)
-summary(data_outcome_cawi_cati$grade_current) # 3,661 NAs
+summary(data_3$grade_current)
 
-data_outcome_cawi_cati <- data_outcome_cawi_cati %>%
+data_3 %>% filter(is.na(grade_current) & !is.na(grade_final)) %>%
+  pull(ID_t) %>% unique() %>% length()
+
+data_3 <- data_3 %>%
   mutate(outcome_grade = ifelse(is.na(grade_current), grade_final, grade_current))
 
-summary(data_outcome_cawi_cati$outcome_grade) # 3654 NAs
+summary(data_3$outcome_grade) 
 
+
+# number of respondents
+length(unique(data_3$ID_t)) # should be unchanged
+
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### Sample Selection: Treatment and Outcome ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+data_4 <- data_3
+
+# subset: keep only respondents who do not have any missing in treatment and
+# grade 
+data_4 <- data_4 %>% filter(!is.na(treatment_sport) & !is.na(outcome_grade))
+
+num_id_adj_1 <- length(unique(data_4$ID_t)) 
+drop_na <- num_id - num_id_adj_1
 
 # plausible values: every value above 5.0 is implausible
 # hence those are set NA; missing values are downward replaced; remaining
 # missing values are deleted
-# length(unique(data_outcome_cawi_cati$ID_t)) # 12010
-# data_outcome_cawi_cati <- data_outcome_cawi_cati %>%
-#   mutate(outcome_grade = replace(outcome_grade, outcome_grade > 5, NA)) %>%
-#   fill(outcome_grade, .direction = "down") %>%
-#   filter(outcome_grade <= 5)
-# summary(data_outcome_cawi_cati$outcome_grade)
-# length(unique(data_outcome_cawi_cati$ID_t)) # 10684
+summary(data_4$outcome_grade)
+data_4 <- data_4 %>%
+  mutate(outcome_grade = replace(outcome_grade, outcome_grade > 5, NA)) %>%
+  group_by(ID_t) %>%
+  fill(outcome_grade, .direction = "down") %>%
+  ungroup() %>%
+  filter(!is.na(outcome_grade))
 
+summary(data_4$outcome_grade)
+num_id_adj_2 <- length(unique(data_4$ID_t)) 
+drop_grade <- num_id_adj_1 - num_id_adj_2
 
-# interview date of outcome
-data_outcome_cawi_cati <- data_outcome_cawi_cati %>%
-  mutate(
-    interview_date_outcome = case_when(
-      # if grade from grade_current is used, the interview date is taken from CAWI
-      outcome_grade == grade_current & !is.na(outcome_grade) ~ interview_date_outcome_cawi,
-      # if final grade is used, the interview date is taken from CATI
-      outcome_grade == grade_final & !is.na(outcome_grade) ~ interview_date_outcome_cati,
-      # for downward replaced grades, interview date is CAWI
-      outcome_grade != grade_current & !is.na(outcome_grade) ~ interview_date_outcome_cawi, 
-      # for missing grades, interview date would be NA (this is never the case)
-      TRUE ~ as.Date(NA)
-    )
-  )
-
-# check missings
-sum(is.na(data_outcome_cawi_cati$outcome_grade)) # 0
-sum(is.na(data_outcome_cawi_cati$interview_date_outcome)) # 0 -> must coincide with outcome_grade
-
-# number of respondents
-# length(unique(data_outcome_cawi_cati$ID_t)) # 12,010 (unchanged)
-
+# drop grade variables
+data_4 <- data_4 %>% select(-starts_with("grade"))
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 
+#%%%%%%%%%%%%%%%%%%%#
+#### Final Steps ####
+#%%%%%%%%%%%%%%%%%%%#
 
-## GENERATE ONE INTERVIEW DATE END VARIABLE
+# ungroup data frame
+data_4 <- data_4 %>% ungroup()
 
-# this variable includes the date where the treatment period ends, that is
-# the last interview in the respective treatment period.
-# always highest date is taken from interview_date_outcome and interview_date_treatment
+# ensure that they are no missing values for treatment and outcome (except freq)
+colSums(is.na(data_4 %>% select(starts_with("treatment_s"), starts_with("outcome"))))
 
-# # For example, treatment may be taken from CATI but outcome from CAWI
-# sum(data_outcome_cawi_cati$interview_date_outcome != data_outcome_cawi_cati$interview_date_treatment, na.rm = TRUE)
-# data_outcome_cawi_cati %>% subset(ID_t == 7002011) %>% 
-#   select(ID_t, starts_with("sport"), starts_with("treatment"), starts_with("grade"), 
-#          starts_with("outcome"), interview_date_outcome, interview_date_treatment)
-# # Or grade is taken from CATI and sport from CAWI
-# data_outcome_cawi_cati %>% subset(ID_t == 7006217) %>%
-#   select(ID_t, starts_with("sport"), starts_with("treatment"), starts_with("grade"), starts_with("outcome"),
-#          interview_date_outcome, interview_date_treatment)
+# check for duplicates
+sum(duplicated(data_4))
 
+# save
+if (cohort_prep == "controls_same_outcome") {
+  data_save <- "Data/prep_5_treatment_outcome.rds"
+} else {
+  data_save <- "Data/prep_5_treatment_outcome.rds"
+}
 
-data_outcome_cawi_cati <- data_outcome_cawi_cati %>%
-  mutate(
-    interview_date_end = case_when(
-      interview_date_outcome > interview_date_treatment ~ interview_date_outcome,
-      is.na(interview_date_outcome) ~ as.Date(NA), is.na(interview_date_treatment) ~ as.Date(NA), 
-      TRUE ~ interview_date_treatment
-    )
-  )
+saveRDS(data_4, data_save)
 
-sum(is.na(data_outcome_cawi_cati$interview_date_treatment))
-sum(is.na(data_outcome_cawi_cati$interview_date_outcome))
-sum(is.na(data_outcome_cawi_cati$interview_date_end))
-
-
-## DROP VARIABLES NOT NEEDED ANYMORE
-
-str(data_outcome_cawi_cati)
-data_outcome_cawi_cati <- data_outcome_cawi_cati %>%
-  select(ID_t, starts_with("interview_date"), treatment_ends,
-         treatment_sport, treatment_sport_freq, outcome_grade, starts_with("sport"))
-
-
-## Number of rows and respondents
-num_id_cati_cawi_out_treat <- length(unique(data_outcome_cawi_cati$ID_t)) # 12010
-
-print(paste("Number of respondents after outcome and treatment preparation:", 
-            num_id_cati_cawi_out_treat))
-print(paste("Number of rows:", nrow(data_outcome_cawi_cati)))
-print(paste("Number of rows:", ncol(data_outcome_cawi_cati)))
-
-
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-
-
-#### Merge Control Variables ####
-#+++++++++++++++++++++++++#
-
-# merge control variables
-## happens over treatment_starts
-## wave is not necessary anymore
-## final control variable data set should have one row per treatment period
-data_controls <- inner_join(
-  data_controls_cati %>% select(-c(wave)), 
-  data_controls_cawi %>% select(-c(wave)),
-  by = c("ID_t", "treatment_starts")
+# save number of rows, columns, and respondents in excel file
+df_excel_save <- data.frame(
+  "data_prep_step" = "treatment_outcome",
+  "data_prep_choice_cohort" = cohort_prep,
+  "data_prep_treatment_repl" = treatment_repl, 
+  "num_id" = length(unique(data_4$ID_t)), 
+  "num_rows" = nrow(data_4),
+  "num_cols" = ncol(data_4),
+  "time_stamp" = Sys.time()
 )
-
-length(unique(data_controls_cati$ID_t)) # 11,726
-length(unique(data_controls_cawi$ID_t)) # 12,010
-length(unique(data_controls$ID_t)) # 11,726
-
-# merge outcome: observations without outcome or controls are useless -> inner join
-# rows from data_controls are left; data_outcome_cawi_cati contains rows with
-# treatment ends which do not have a start
-data_cati_cawi <- inner_join(
-  data_controls, data_outcome_cawi_cati,
-  by = c("ID_t", "treatment_starts" = "treatment_ends")
-)
-
-length(unique(data_cati_cawi$ID_t)) # 11,726
-
-# sort rows and column order
-data_cati_cawi <- data_cati_cawi %>%
-  arrange(ID_t, treatment_starts) %>%
-  select(ID_t, interview_date_treatment, interview_date_outcome, interview_date_cati, interview_date_cawi, 
-         treatment_starts, treatment_ends, everything())
-
-# generate one variable for interview_date_start
-# this variable is the smallest interview date between interview_date_cati and interview_date_cawi
-# typically it is CAWI (see below "never the case")
-sum(is.na(data_cati_cawi$interview_date_cati)) # 0 
-sum(is.na(data_cati_cawi$interview_date_cawi)) # 0
-data_cati_cawi %>% filter(interview_date_cawi > interview_date_cati) %>% nrow() # never the case
-data_cati_cawi <- data_cati_cawi %>%
-  mutate(
-    interview_date_start = case_when(
-      # only if CATI interview comes after CAWI use this as interview_date_start (however, never the case)
-      interview_date_cawi > interview_date_cati ~ interview_date_cati, TRUE ~ interview_date_cawi
-    )
-  )
-## check that interview_date_start always equals interview_date_cawi
-sum(data_cati_cawi$interview_date_start == data_cati_cawi$interview_date_cawi) == nrow(data_cati_cawi)
-
-# ensure that interview end date is always after interview start date
-data_cati_cawi %>%
-  ungroup() %>% 
-  filter(!is.na(interview_date_end)) %>%
-  summarise(sum_wrong = sum(interview_date_start >= interview_date_end)) 
-
-# check number of respondents
-## is again reduced due to missing observations in CATI
-num_id_cati_cawi_out_treat_contr <- length(unique(data_cati_cawi$ID_t))
-print(paste("Number of respondents after adding control variables from CATI & CAWI:", 
-            num_id_cati_cawi_out_treat_contr)) # 11,726
-print(paste("Number of rows:", nrow(data_cati_cawi)))
-print(paste("Number of rows:", ncol(data_cati_cawi)))
-
-
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-
-
-#### Sample Selection: Treatment and Outcome ####
-#+++++++++++++++++++++++++++++++++++++++++++++++#
-
-# subset: keep only respondents who do not have any missing in treatment and
-# grade 
-data_cati_cawi <- 
-  data_cati_cawi %>%
-  filter(!is.na(treatment_sport) & !is.na(outcome_grade))
-
-num_id_treatment_outcome_no_na <- length(unique(data_cati_cawi$ID_t)) # 9,069
-
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+## load function
+source("Functions/func_save_sample_reduction.R")
+func_save_sample_reduction(df_excel_save)
