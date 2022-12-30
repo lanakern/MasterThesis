@@ -94,6 +94,20 @@ data_target_cawi <- data_target_cawi %>%
   group_by(ID_t) %>%
   fill(names(data_target_cawi), .direction = "down")
 
+# depending on selection missing values in treatment variable may also be
+# replaced upwards
+if (treatment_repl == "downup") {
+  # because there are so many missing values in treatment, information is
+  # also copied upwards
+  data_target_cawi <- data_target_cawi %>%
+    group_by(ID_t) %>%
+    fill(c(sport_uni, sport_uni_freq), .direction = "downup") %>% ungroup()
+  # otherwise only downward which is done above
+} else {
+  data_target_cawi <- data_target_cawi
+}
+
+
 # merge cohort data to cawi data via inner_join:
 # only keep respondents who are in both data sets (also done above)
 data_cawi <- inner_join(
@@ -134,24 +148,6 @@ if (cohort_prep == "controls_same_outcome") {
   data_cawi <- data_cawi %>% select(-treatment_starts) %>%
     select(ID_t, wave, wave_2, interview_date, treatment_ends, everything())
   
-  # depending on selection you may replace missing values in the treatment
-  # variable also upwards
-  if (treatment_repl == "downup") {
-    # because there are so many missing values in treatment, information is
-    # also copied upwards
-    data_cawi %>% select(ID_t, wave, starts_with("sport"))
-    
-    data_cawi <- data_cawi %>%
-      group_by(ID_t) %>%
-      fill(c(sport_uni, sport_uni_freq), .direction = "downup") %>% ungroup()
-    
-    
-    data_cawi %>% select(ID_t, wave, starts_with("sport"))
-    # otherwise only downward which is done above
-  } else {
-    data_cawi <- data_cawi
-  }
-  
   # generate treatment_period variable
   data_cawi <- data_cawi %>% rename(treatment_period = treatment_ends, 
                                     interview_date_end = interview_date)
@@ -180,18 +176,7 @@ if (cohort_prep == "controls_same_outcome") {
            sport_uni, sport_uni_freq, grade_current) %>%
     subset(!is.na(treatment_ends)) %>% 
     rename(treatment_period = treatment_ends, interview_date_end = interview_date)
-  
-  # treatment replacement based on selection
-  if (treatment_repl == "downup") {
-    # because there are so many missing values in treatment, information is
-    # also copied upwards
-    data_treatment_outcome <- data_treatment_outcome %>%
-      group_by(ID_t) %>%
-      fill(c(sport_uni, sport_uni_freq), .direction = "downup") %>% ungroup()
-    # otherwise only downward which is done above
-  } else {
-    data_treatment_outcome <- data_treatment_outcome
-  }
+
   
   length(unique(data_treatment_outcome$ID_t))
   

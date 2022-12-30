@@ -48,8 +48,8 @@ Sys.setlocale("LC_TIME", "German")
 treatment_repl <- "downup" # with any other selection, only downward replacement is made
 
 # selection on cohort prepration
-cohort_prep <- "controls_bef_outcome" 
-#cohort_prep <- "controls_same_outcome"
+#cohort_prep <- "controls_bef_outcome" 
+cohort_prep <- "controls_same_outcome"
 
 
 
@@ -91,6 +91,19 @@ data_target_cati <- data_target_cati %>%
   group_by(ID_t) %>%
   fill(names(data_target_cati), .direction = "down")
 
+# depending on selection missing values in treatment variable may also be
+# replaced upwards
+if (treatment_repl == "downup") {
+  # because there are so many missing values in treatment, information is
+  # also copied upwards
+  data_target_cati <- data_target_cati %>%
+    group_by(ID_t) %>%
+    fill(sport_leisure_freq, .direction = "downup") %>% ungroup()
+  # otherwise only downward which is done above
+} else {
+  data_target_cati <- data_target_cati
+}
+
 # merge cati data to cohort date -> only respondents which are 
 # also in cohort data are kept (also ensured above)
 data_cati <- inner_join(
@@ -122,19 +135,6 @@ data_target_cati %>% select(ID_t, wave, starts_with("treatment")) %>% subset(ID_
 
 # same for both cohort profile data because from CATI interview always 
 # control variables and treatment information is taken.
-
-# depending on selection you may replace missing values in the treatment
-# variable also upwards
-if (treatment_repl == "downup") {
-  # because there are so many missing values in treatment, information is
-  # also copied upwards
-  data_cati <- data_cati %>%
-    group_by(ID_t) %>%
-    fill(sport_leisure_freq, .direction = "downup") %>% ungroup()
-  # otherwise only downward which is done above
-} else {
-  data_cati <- data_cati
-}
 
 # generate treatment_period variable and rename interview_date
   ## this differs (only for "controls_same_outcome" this is interview start)
