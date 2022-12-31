@@ -8,10 +8,18 @@
 # output: data frame with appended data (for user checking)
 
 func_save_sample_reduction <- function(data) {
-  # adjust data
+  
+  # adjust data: ensure all columns exist and order them
   if (!"data_prep_treatment_repl" %in% colnames(data)) {
     data <- data %>% mutate(data_prep_treatment_repl = NA)
   }
+  if (!"data_prep_treatment_def" %in% colnames(data)) {
+    data <- data %>% mutate(data_prep_treatment_def = NA)
+  }
+  
+  data <- data %>% select(data_prep_step, data_prep_choice_cohort, data_prep_treatment_repl,
+                          data_prep_treatment_def, num_id, num_rows, num_cols, time_stamp)
+  
   
   # load history
   df_excel_save_hist <- read.xlsx("Data/SAMPLE_REDUCTION_STEPS.xlsx", sheetName = "Sheet1")
@@ -19,11 +27,21 @@ func_save_sample_reduction <- function(data) {
   if (!"data_prep_treatment_repl" %in% colnames(df_excel_save_hist)) {
     df_excel_save_hist <- df_excel_save_hist %>% mutate(data_prep_treatment_repl = NA)
   }
+  if (!"data_prep_treatment_def" %in% colnames(df_excel_save_hist)) {
+    df_excel_save_hist <- df_excel_save_hist %>% mutate(data_prep_treatment_def = NA)
+  }
+  
+  df_excel_save_hist <- df_excel_save_hist %>% 
+    select(data_prep_step, data_prep_choice_cohort, data_prep_treatment_repl,
+           data_prep_treatment_def, num_id, num_rows, num_cols, time_stamp)
+  
+  
   # append current data frame
   df_excel_save <- rbind(df_excel_save_hist, data)
   # in case of duplicate, keep the most recent observation
   df_excel_save <- df_excel_save %>%
-    group_by(data_prep_step, data_prep_choice_cohort, data_prep_treatment_repl) %>%
+    group_by(data_prep_step, data_prep_choice_cohort, 
+             data_prep_treatment_repl, data_prep_treatment_def) %>%
     filter(time_stamp == max(time_stamp)) %>%
     ungroup() %>% data.frame()
   
