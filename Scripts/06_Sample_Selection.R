@@ -28,6 +28,9 @@ library(dplyr)  # to manipulate data
 if (!require("stringr")) install.packages("stringr")
 library(stringr)  # for string manipulations
 
+if (!require("tidyr")) install.packages("tidyr")
+library(tidyr)  # for fill() function
+
 if (!require("xlsx")) install.packages("xlsx")
 library(xlsx)  # for excel file
 
@@ -38,8 +41,8 @@ cohort_prep <- "controls_same_outcome"
   ## only for saving
 treatment_repl <- "downup" 
   ## treatment definition: all frequency levels or only weekly
-treatment_def <- "all"
-#treatment_def <- "weekly"
+#treatment_def <- "all"
+treatment_def <- "weekly"
 
 # load data
   ## extract file path
@@ -220,7 +223,7 @@ cols_extra_uni <- c("extracurricular_association", "extracurricular_committee",
 df_extracurricular_uni <- data_sub_2 %>% 
   select(ID_t, treatment_period, all_of(cols_extra_uni)) %>%
   mutate(check_uni = rowSums(select(., all_of(cols_extra_uni)), na.rm = TRUE)) %>%
-  mutate(check_uni_sum_na = rowSums(is.na(select(., cols_extra_uni)))) %>%
+  mutate(check_uni_sum_na = rowSums(is.na(select(., all_of(cols_extra_uni))))) %>%
   mutate(extracurricular_uni = case_when(
     check_uni_sum_na == length(cols_extra_uni) ~ as.double(NA), 
     check_uni == 0 & check_uni_sum_na != length(cols_extra_uni) ~ 0, 
@@ -239,7 +242,7 @@ cols_extra_uni_no <- data_sub_2 %>% select(matches("extracurricular_leisure") & 
 df_extracurricular_uni_no <- data_sub_2 %>% 
   select(ID_t, treatment_period, all_of(cols_extra_uni_no)) %>%
   mutate(check_uni = rowSums(select(., all_of(cols_extra_uni_no)), na.rm = TRUE)) %>%
-  mutate(check_uni_sum_na = rowSums(is.na(select(., cols_extra_uni_no)))) %>%
+  mutate(check_uni_sum_na = rowSums(is.na(select(., all_of(cols_extra_uni_no))))) %>%
   mutate(extracurricular_uni_no = case_when(
     check_uni_sum_na == length(cols_extra_uni_no) ~ as.double(NA), 
     check_uni == 0 & check_uni_sum_na != length(cols_extra_uni) ~ 0, TRUE ~ 1)) %>%
@@ -302,20 +305,20 @@ data_sub_3 <- data_sub_2
 
 # # Create birth date from month and year with day = 1
 # source("Functions/func_generate_date.R")
-# data_sub_3 <- func_generate_date(data_sub_3, month = "birth_month", 
+# data_sub_3 <- func_generate_date(data_sub_3, month = "birth_month",
 #                                  year = "birth_year", varname = "birth_date")
 # 
-# # Age = interview date used for spell - birth date 
+# # Age = interview date used for spell - birth date
 # data_sub_3 <- data_sub_3 %>%
 #   mutate(age = as.numeric(difftime(interview_date_spell, birth_date, units = "weeks") / 52.5))
 # summary(data_sub_3$age)
 # 
 # # Subset
 # data_sub_3 <- data_sub_3 %>%
-#   filter(age >= 17 & age <= 35)
+#   filter(age >= 17 & age <= 30)
 # summary(data_sub_3$age)
 # 
-# id_num_adj_2 <- length(unique(data_sub_3$ID_t)) 
+# id_num_adj_2 <- length(unique(data_sub_3$ID_t))
 
 
 
