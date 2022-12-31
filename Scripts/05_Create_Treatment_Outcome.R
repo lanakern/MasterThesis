@@ -42,6 +42,9 @@ rm(list = ls())
 if (!require("dplyr")) install.packages("dplyr")
 library(dplyr)  # to manipulate data
 
+if (!require("tidyr")) install.packages("tidyr")
+library(tidyr)  # for fill() function -> missing values
+
 if (!require("xlsx")) install.packages("xlsx")
 library(xlsx)  # for excel file
 
@@ -51,6 +54,9 @@ library(xlsx)  # for excel file
 cohort_prep <- "controls_same_outcome"
   ## only for saving
 treatment_repl <- "downup" 
+  ## treatment definition: all frequency levels or only weekly
+treatment_def <- "all"
+#treatment_def <- "weekly"
 
 
 # load data
@@ -204,48 +210,92 @@ table(data_2$sport_uni, useNA = "always")
 table(data_2$sport_uni_freq, useNA = "always")
 table(data_2$sport_leisure_freq, useNA = "always")
 
-data_2 <- data_2 %>%
-  # rename original sport_uni variable
-  rename(sport_uni_orig = sport_uni) %>%
-  # create variables
-  mutate(
-    # respondent participates in university sport if sport_uni_orig is "involved"
-    # or sport_uni_freq NOT NA (never the case that frequency is given but
-    # involved variable not but vice verca)
-    sport_uni = ifelse(sport_uni_orig == "not involved", 0, 
-                       ifelse(is.na(sport_uni_orig), NA, 1)),
-    # respondent participates in leisure sport if sport_leisure_freq is NOT NA and not 0
-    sport_leisure = ifelse(sport_leisure_freq > 1, 1, 
-                           ifelse(is.na(sport_leisure_freq), NA, 0))
-  ) 
+
+## CONSIDER ALL FREQUENCY LEVELS ##
+if (treatment_def == "all") {
+  data_2 <- data_2 %>%
+    # rename original sport_uni variable
+    rename(sport_uni_orig = sport_uni) %>%
+    # create variables
+    mutate(
+      # respondent participates in university sport if sport_uni_orig equals
+      # "involved".
+      sport_uni = ifelse(sport_uni_orig == "not involved", 0, 
+                         ifelse(is.na(sport_uni_orig), NA, 1)),
+      # respondent participates in leisure sport if sport_leisure_freq is NOT NA and not 0
+      sport_leisure = ifelse(sport_leisure_freq > 1, 1, 
+                             ifelse(is.na(sport_leisure_freq), NA, 0))
+    ) 
+  
+  table(data_2$sport_uni, useNA = "always")
+  table(data_2$sport_leisure, useNA = "always")
+  
+  
+  # create general dummy for sport-participation (=1) and non-participation (=0)
+  # keep NA as later individuals and treatment periods without sport information are dropped
+  data_2 <- data_2 %>%
+    mutate(
+      treatment_sport = case_when(sport_leisure == 1 | sport_uni == 1 ~ 1,
+                                  is.na(sport_leisure) & is.na(sport_uni) ~ as.double(NA),
+                                  TRUE ~ 0)
+    ) %>%
+    # create indicator for source
+    mutate(
+      sport_source = 
+        case_when(
+          is.na(treatment_sport) ~ as.character(NA),
+          !is.na(sport_uni_orig) & !is.na(sport_leisure_freq) & !is.na(treatment_sport) ~ "both",
+          !is.na(sport_uni_orig) & is.na(sport_leisure_freq) & !is.na(treatment_sport) ~ "uni",
+          is.na(sport_uni_orig) & !is.na(sport_leisure_freq) & !is.na(treatment_sport) ~ "leisure",
+          TRUE ~ as.character(NA)
+        )
+    )
+## ONLY CONSIDER AS SPORT PARTICIPATION WEEKLY PARTICIPATION
+} else {
+  data_2 <- data_2 %>%
+    rename(sport_uni_orig = sport_uni) %>%
+    # create variables
+    mutate(
+      # respondent participates in university sport if sport_uni_freq variable
+      # equals at least 4
+      sport_uni = ifelse(sport_uni_freq > 3, 1, 
+                         ifelse(is.na(sport_uni_freq), NA, 0)),
+      # respondent participates in leisure sport if sport_leisure_freq is NOT NA and not 0
+      sport_leisure = ifelse(sport_leisure_freq > 3, 1, 
+                             ifelse(is.na(sport_leisure_freq), NA, 0))
+    ) 
+  
+  table(data_2$sport_uni, useNA = "always")
+  table(data_2$sport_leisure, useNA = "always")
+  
+  
+  # create general dummy for sport-participation (=1) and non-participation (=0)
+  # keep NA as later individuals and treatment periods without sport information are dropped
+  data_2 <- data_2 %>%
+    mutate(
+      treatment_sport = case_when(sport_leisure == 1 | sport_uni == 1 ~ 1,
+                                  is.na(sport_leisure) & is.na(sport_uni) ~ as.double(NA),
+                                  TRUE ~ 0)
+    ) %>%
+    # create indicator for source
+    mutate(
+      sport_source = 
+        case_when(
+          is.na(treatment_sport) ~ as.character(NA),
+          !is.na(sport_uni_orig) & !is.na(sport_leisure_freq) & !is.na(treatment_sport) ~ "both",
+          !is.na(sport_uni_orig) & is.na(sport_leisure_freq) & !is.na(treatment_sport) ~ "uni",
+          is.na(sport_uni_orig) & !is.na(sport_leisure_freq) & !is.na(treatment_sport) ~ "leisure",
+          TRUE ~ as.character(NA)
+        )
+    )
+}
+
+
 
 table(data_2$sport_uni, useNA = "always")
 table(data_2$sport_leisure, useNA = "always")
-
-
-# create general dummy for sport-participation (=1) and non-participation (=0)
-# keep NA as later individuals and treatment periods without sport information are dropped
-data_2 <- data_2 %>%
-  mutate(
-    treatment_sport = case_when(sport_leisure == 1 | sport_uni == 1 ~ 1,
-                                is.na(sport_leisure) & is.na(sport_uni) ~ as.double(NA),
-                                TRUE ~ 0)
-  ) %>%
-  # create indicator for source
-  mutate(
-    sport_source = 
-      case_when(
-        is.na(treatment_sport) ~ as.character(NA),
-        !is.na(sport_uni_orig) & !is.na(sport_leisure_freq) & !is.na(treatment_sport) ~ "both",
-        !is.na(sport_uni_orig) & is.na(sport_leisure_freq) & !is.na(treatment_sport) ~ "uni",
-        is.na(sport_uni_orig) & !is.na(sport_leisure_freq) & !is.na(treatment_sport) ~ "leisure",
-        TRUE ~ as.character(NA)
-      )
-  )
-
-
-table(data_2$sport_uni, useNA = "always")
-table(data_2$sport_leisure, useNA = "always")
+table(data_2$sport_uni_freq, useNA = "always")
+table(data_2$sport_leisure_freq, useNA = "always")
 table(data_2$treatment_sport, useNA = "always")
 table(data_2$sport_source, useNA = "always")
 
@@ -351,12 +401,22 @@ colSums(is.na(data_4 %>% select(starts_with("treatment_s"), starts_with("outcome
 # check for duplicates
 sum(duplicated(data_4))
 
+
 # save
-if (cohort_prep == "controls_same_outcome") {
-  data_save <- "Data/prep_5_treatment_outcome.rds"
+if (treatment_def == "all") {
+  data_save <- "Data/Prep_5/prep_5_treatment_outcome_all"
 } else {
-  data_save <- "Data/prep_5_treatment_outcome.rds"
+  data_save <- "Data/Prep_5/prep_5_treatment_outcome_weekly"
 }
+
+
+if (cohort_prep == "controls_same_outcome") {
+  data_save <- paste0(data_save, ".rds")
+} else {
+  data_save <- paste0(data_save, "_robustcheck.rds")
+}
+
+
 
 saveRDS(data_4, data_save)
 
@@ -364,7 +424,8 @@ saveRDS(data_4, data_save)
 df_excel_save <- data.frame(
   "data_prep_step" = "treatment_outcome",
   "data_prep_choice_cohort" = cohort_prep,
-  "data_prep_treatment_repl" = treatment_repl, 
+  "data_prep_treatment_repl" = treatment_repl,
+  "data_prep_treatment_def" = treatment_def,
   "num_id" = length(unique(data_4$ID_t)), 
   "num_rows" = nrow(data_4),
   "num_cols" = ncol(data_4),
