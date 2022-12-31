@@ -5,32 +5,22 @@
 #++++
 # by Lana Kern
 #++++
-# 1.) Outcome & Treatment
-# -> Treatment: User can decide on the definition on participating in sport based on its
-# frequency. If frequency is considered, all students who participate in sports only
-# once a month or less are considered as students who do not do sports at all. Otherwise,
-# they also belong to the treatment group.
-# -> Outcome: Only respondents with plausible values in grades are kept (that is
-# grades between 1 and 5).
-#++++
-# 2.) Extracurricular Activity
+# 1.) Extracurricular Activity
 # Only respondents are kept who take part in at least one extracurricular activity
 # The code is generated flexible: 1.) Definition of extracurricular activity can
 # be selected; 2.) If frequency in participating is relevant can be selected (-> see ROBUSTNESS CHECKS)
 # Moreover, frequency variable is aggregated (not included for each extracurricular
 # activity because this would be too many correlated controls)
 #++++
-# 3.) Age
+# 1.) Age
 # Only respondents in the age range 18 to 25 (young adulthood) are kept.
 #++++
-# 4.) School
+# 3.) School
 # -> Drop respondents who report that there highest degree is an intermediate degree (Mittlere Reife)
 # or even no qualification -> For studying high degree is necessary
 # -> Drop respondents with unrealistic short and long school spells
 #++++
-# 5.) Length treatment period
-# -> Drop observations with treatment periods above two years. In this case, the
-# distance between control variables and outcome/treatment are too long.
+# -> Panel data set including the final sample size.
 #++++
 
 
@@ -49,11 +39,38 @@ library(dplyr)  # to manipulate data
 if (!require("stringr")) install.packages("stringr")
 library(stringr)  # for string manipulations
 
+if (!require("xlsx")) install.packages("xlsx")
+library(xlsx)  # for excel file
+
+# define inputs
+  ## selection on cohort preparation
+#cohort_prep <- "controls_bef_outcome" 
+cohort_prep <- "controls_same_outcome"
+  ## only for saving
+treatment_repl <- "downup" 
+  ## treatment definition: all frequency levels or only weekly
+treatment_def <- "all"
+#treatment_def <- "weekly"
+
 # load data
-data <- readRDS("Data/prep_4_merge.rds")
+  ## extract file path
+if (treatment_def == "all") {
+  data_load <- "Data/Prep_5/prep_5_treatment_outcome_all"
+} else {
+  data_load <- "Data/Prep_5/prep_5_treatment_outcome_weekly"
+}
+
+
+if (cohort_prep == "controls_same_outcome") {
+  data_load <- paste0(data_load, ".rds")
+} else {
+  data_load <- paste0(data_load, "_robustcheck.rds")
+}
+  ## load data
+data_raw <- readRDS(data_load)
 
 # number of respondents
-id_num_start <- length(unique(data$ID_t))
+id_num_start <- length(unique(data_raw$ID_t))
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%#
