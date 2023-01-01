@@ -45,9 +45,12 @@ func_replace_missings <- function(dataframe, vec_missings_num, vec_missings_char
     dataframe[colnames_num], function(x) replace(x,x %in% vec_missings_num, NA) 
     )
     ## character
-  dataframe[colnames_char] <- lapply(
-    dataframe[colnames_char], function(x) replace(x,x %in% vec_missings_char, NA) 
-  )
+  for (vec_missings_char_sel in vec_missings_char) {
+    dataframe[colnames_char] <- lapply(
+      dataframe[colnames_char], function(x) replace(x,str_detect(x, vec_missings_char_sel), NA) 
+    )
+  }
+
   
   # return dataframe
   return(dataframe)
