@@ -38,25 +38,25 @@
 # clear workspace
 rm(list = ls())
 
-# install packages if needed, load packages
-if (!require("dplyr")) install.packages("dplyr")
-library(dplyr)  # to manipulate data
-
-if (!require("tidyr")) install.packages("tidyr")
-library(tidyr)  # for fill() function -> missing values
-
-if (!require("xlsx")) install.packages("xlsx")
-library(xlsx)  # for excel file
-
-# define inputs
-  ## selection on cohort preparation
-#cohort_prep <- "controls_bef_outcome" 
-cohort_prep <- "controls_same_outcome"
-  ## only for saving
-treatment_repl <- "downup" 
-  ## treatment definition: all frequency levels or only weekly
-treatment_def <- "all"
-#treatment_def <- "weekly"
+# # install packages if needed, load packages
+# if (!require("dplyr")) install.packages("dplyr")
+# library(dplyr)  # to manipulate data
+# 
+# if (!require("tidyr")) install.packages("tidyr")
+# library(tidyr)  # for fill() function -> missing values
+# 
+# if (!require("xlsx")) install.packages("xlsx")
+# library(xlsx)  # for excel file
+# 
+# # define inputs
+#   ## selection on cohort preparation
+# #cohort_prep <- "controls_bef_outcome" 
+# cohort_prep <- "controls_same_outcome"
+#   ## only for saving
+# treatment_repl <- "downup" 
+#   ## treatment definition: all frequency levels or only weekly
+# treatment_def <- "all"
+# #treatment_def <- "weekly"
 
 
 # load data

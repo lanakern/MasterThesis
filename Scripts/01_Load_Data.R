@@ -52,23 +52,23 @@
 rm(list = ls())
 
 # install packages if needed, load packages
-if (!require("readstata13")) install.packages("readstata13")
-library(readstata13)  # to import stata (.dta) file into R (see data manual why this function is used)
-
-if (!require("dplyr")) install.packages("dplyr")
-library(dplyr)  # to manipulate data
-
-if (!require("zoo")) install.packages("zoo")
-library(zoo)  # to transform time data
-
-if (!require("lubridate")) install.packages("lubridate")
-library(lubridate)  # to create a date variable
-
-if (!require("naniar")) install.packages("naniar")
-library(naniar)  # to work with missing values
-
-if (!require("stringr")) install.packages("stringr")
-library(stringr)  # to work with strings
+# if (!require("readstata13")) install.packages("readstata13")
+# library(readstata13)  # to import stata (.dta) file into R (see data manual why this function is used)
+# 
+# if (!require("dplyr")) install.packages("dplyr")
+# library(dplyr)  # to manipulate data
+# 
+# if (!require("zoo")) install.packages("zoo")
+# library(zoo)  # to transform time data
+# 
+# if (!require("lubridate")) install.packages("lubridate")
+# library(lubridate)  # to create a date variable
+# 
+# if (!require("naniar")) install.packages("naniar")
+# library(naniar)  # to work with missing values
+# 
+# if (!require("stringr")) install.packages("stringr")
+# library(stringr)  # to work with strings
 
 
 
@@ -1477,6 +1477,14 @@ list2env(dfs_list_adj, envir = .GlobalEnv)
   ## remove lists as they are not needed anymore
 remove(dfs_list, dfs_list_adj)
 
+# remove columns only containing missing values
+func_drop_NA_cols <- function(data) {
+  return(data %>% select_if(~sum(!is.na(.)) > 0))
+}
+dfs_list <- Filter(function(x) is(x, "data.frame"), mget(ls()))
+dfs_list_adj <- lapply(dfs_list, func_drop_NA_cols)
+list2env(dfs_list_adj, envir = .GlobalEnv)
+
 # check for missing values
 func_num_missing <- function(data) {
   return(sum(is.na(data)))
@@ -1495,7 +1503,6 @@ lapply(dfs_list, func_num_dups)
 #%%%%%%%%%%%%%%%%%%%%%%%%#
 #### RECODE VARIABLES ####
 #%%%%%%%%%%%%%%%%%%%%%%%%#
-
 
 # recode all character variables as factor
 func_recode_character <- function(data) {

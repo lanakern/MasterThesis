@@ -34,24 +34,24 @@
 # clear workspace
 rm(list = ls())
 
-# install packages; if needed, load packages
-if (!require("dplyr")) install.packages("dplyr")
-library(dplyr)  # to manipulate data
-
-if (!require("lubridate")) install.packages("lubridate")
-library(lubridate)  # to transform time data and work with dates
-
-if (!require("tidyr")) install.packages("tidyr")
-library(tidyr)  # to work with missing values
-
-# set language for dates and times to German, since the NEPS month names
-# are written in German; otherwise date/time functions are not working
-# for German language
-Sys.setlocale("LC_TIME", "German")
-
-# define inputs: selection on cohort preparation
-#cohort_prep <- "controls_bef_outcome" 
-cohort_prep <- "controls_same_outcome"
+# # install packages; if needed, load packages
+# if (!require("dplyr")) install.packages("dplyr")
+# library(dplyr)  # to manipulate data
+# 
+# if (!require("lubridate")) install.packages("lubridate")
+# library(lubridate)  # to transform time data and work with dates
+# 
+# if (!require("tidyr")) install.packages("tidyr")
+# library(tidyr)  # to work with missing values
+# 
+# # set language for dates and times to German, since the NEPS month names
+# # are written in German; otherwise date/time functions are not working
+# # for German language
+# Sys.setlocale("LC_TIME", "German")
+# 
+# # define inputs: selection on cohort preparation
+# #cohort_prep <- "controls_bef_outcome" 
+# cohort_prep <- "controls_same_outcome"
 
 
 #%%%%%%%%%%%%%%%%%#

@@ -38,25 +38,25 @@
 # clear workspace
 rm(list = ls())
 
-# install packages if needed, load packages
-if (!require("dplyr")) install.packages("dplyr")
-library(dplyr)  # to manipulate data
-
-if (!require("tidyr")) install.packages("tidyr")
-library(tidyr)  # to manipulate data, e.g. replace_na, spread() etc.
-
-if (!require("sqldf")) install.packages("sqldf")
-library(sqldf)  # for sql syntax
-
-if (!require("xlsx")) install.packages("xlsx")
-library(xlsx)  # for excel file
-
-# define inputs
-  ## selection on cohort preparation
-#cohort_prep <- "controls_bef_outcome" 
-cohort_prep <- "controls_same_outcome"
-  ## treatment replacement
-treatment_repl <- "downup" # (only used for saving)
+# # install packages if needed, load packages
+# if (!require("dplyr")) install.packages("dplyr")
+# library(dplyr)  # to manipulate data
+# 
+# if (!require("tidyr")) install.packages("tidyr")
+# library(tidyr)  # to manipulate data, e.g. replace_na, spread() etc.
+# 
+# if (!require("sqldf")) install.packages("sqldf")
+# library(sqldf)  # for sql syntax
+# 
+# if (!require("xlsx")) install.packages("xlsx")
+# library(xlsx)  # for excel file
+# 
+# # define inputs
+#   ## selection on cohort preparation
+# #cohort_prep <- "controls_bef_outcome" 
+# cohort_prep <- "controls_same_outcome"
+#   ## treatment replacement
+# treatment_repl <- "downup" # (only used for saving)
 
 
 

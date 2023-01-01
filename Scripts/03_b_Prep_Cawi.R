@@ -30,26 +30,25 @@
 #### Setup ####
 #%%%%%%%%%%%%%#
 
-
 # clear workspace
 rm(list = ls())
 
-# load and install (if necessary) packages
-if (!require("dplyr")) install.packages("dplyr")
-library(dplyr)  # to manipulate data
-
-if (!require("tidyr")) install.packages("tidyr")
-library(tidyr)  # to manipulate data
-
-if (!require("xlsx")) install.packages("xlsx")
-library(xlsx)  # to load and write excel files
-
-# selection on treatment replacement
-treatment_repl <- "downup" # with any other selection, only downward replacement is made
-
-# selection on cohort prepration
-cohort_prep <- "controls_bef_outcome" 
-#cohort_prep <- "controls_same_outcome"
+# # load and install (if necessary) packages
+# if (!require("dplyr")) install.packages("dplyr")
+# library(dplyr)  # to manipulate data
+# 
+# if (!require("tidyr")) install.packages("tidyr")
+# library(tidyr)  # to manipulate data
+# 
+# if (!require("xlsx")) install.packages("xlsx")
+# library(xlsx)  # to load and write excel files
+# 
+# # selection on treatment replacement
+# treatment_repl <- "downup" # with any other selection, only downward replacement is made
+# 
+# # selection on cohort prepration
+# cohort_prep <- "controls_bef_outcome" 
+# #cohort_prep <- "controls_same_outcome"
 
 
 

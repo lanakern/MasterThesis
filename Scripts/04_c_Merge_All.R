@@ -9,7 +9,7 @@
 # are merged to the espisode+cati+cawi data set.
 # -> "Final" panel data frame with all control variables.
 #++++
-# 1.) Merge sibling: 
+# 1.) Merge sibling via ID_t: 
 # -> For all respondents who are not in the sibling data frame all columns from 
 # sibling are set to 0 (as they do not have an sibling).
 # -> Age of siblings is generated and a dummy indicating if respondent has a sibling or not.
@@ -18,11 +18,13 @@
 # same is done if sibling is younger than 18. For the number of sibling variables,
 # they are assumed to be constant over time.
 #++++
-# 2.) Merge child:
+# 2.) Merge child via ID_t and interview_date. All child variable values are NA 
+# for respondents who do not have children; they are all set to 0.
 #++++
-# 3.) Merge partner:
+# 3.) Merge partner: Same as for child
 #++++
-# 4.) Merge competencies:
+# 4.) Merge competencies: Merge same as for child and partner, but missing values
+# are kept missing (I deal with them later)
 #++++
 
 
@@ -34,25 +36,26 @@
 # clear workspace
 rm(list = ls())
 
-# install packages if needed, load packages
-if (!require("dplyr")) install.packages("dplyr")
-library(dplyr)  # to manipulate data
+# # install packages if needed, load packages
+# if (!require("dplyr")) install.packages("dplyr")
+# library(dplyr)  # to manipulate data
+# 
+# if (!require("tidyr")) install.packages("tidyr")
+# library(tidyr)  # to manipulate data, e.g. replace_na, spread() etc.
+# 
+# if (!require("lubridate")) install.packages("lubridate")
+# library(lubridate)  # for working with dates
+# 
+# if (!require("xlsx")) install.packages("xlsx")
+# library(xlsx)  # for excel file
+# 
+# # define inputs
+#   ## selection on cohort preparation
+# #cohort_prep <- "controls_bef_outcome" 
+# cohort_prep <- "controls_same_outcome"
+#   ## only for saving
+# treatment_repl <- "downup" 
 
-if (!require("tidyr")) install.packages("tidyr")
-library(tidyr)  # to manipulate data, e.g. replace_na, spread() etc.
-
-if (!require("sqldf")) install.packages("sqldf")
-library(sqldf)  # for sql syntax
-
-if (!require("xlsx")) install.packages("xlsx")
-library(xlsx)  # for excel file
-
-# define inputs
-  ## selection on cohort preparation
-cohort_prep <- "controls_bef_outcome" 
-#cohort_prep <- "controls_same_outcome"
-  ## treatment replacement
-treatment_repl <- "downup" # (only used for saving)
 
 
 #%%%%%%%%%%%%%%%%%#
@@ -86,13 +89,18 @@ if (cohort_prep == "controls_same_outcome") {
 
 
 # competencies
-data_competencies <- readRDS("Data/Prep_3/prep_3_competencies.rds")
+if (cohort_prep == "controls_same_outcome") {
+  data_competencies <- readRDS("Data/Prep_3/prep_3_competencies.rds")
+} else if (cohort_prep == "controls_bef_outcome") {
+  data_competencies <- readRDS("Data/Prep_3/prep_3_competencies_robustcheck.rds")
+}
+
+
 
 # number of respondents in different data sets
 num_id_cati_cawi_eps <- length(unique(data_cati_cawi_eps$ID_t))
 num_id_sib <- length(unique(data_sibling$ID_t))
 num_id_child <- length(unique(data_child$ID_t))
-
 num_id_partner <- length(unique(data_partner$ID_t))
 num_id_comp <- length(unique(data_competencies$ID_t))
 
@@ -248,14 +256,17 @@ setdiff(id_child, id_cati_cawi_eps_child)
 
 data_child %>% subset(ID_t == 7019629) %>% 
   select(ID_t, starts_with("interview_date"))
-
 data_merge_1 %>% subset(ID_t == 7019629) %>% 
+  select(ID_t, starts_with("interview_date"))
+
+data_child %>% subset(ID_t == 7010555) %>% 
+  select(ID_t, starts_with("interview_date"))
+data_merge_1 %>% subset(ID_t == 7010555) %>% 
   select(ID_t, starts_with("interview_date"))
 
 # keep only respondents in child who also have obsveration in other data set
 data_child <- data_child %>% subset(ID_t %in% id_cati_cawi_eps_child)
 length(unique(data_child$ID_t))
-
 
 # information about each respondent's children is appended.
 if (cohort_prep == "controls_bef_outcome") {
@@ -279,7 +290,7 @@ data_merge_2 %>%
   summarize(sum(is.na(.))) %>% pull()
 
 
-length(unique(data_merge_2$ID_t))
+num_id_cati_cawi_eps_sib_child <- length(unique(data_merge_2$ID_t))
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -289,11 +300,11 @@ length(unique(data_merge_2$ID_t))
 #### Partner ####
 #%%%%%%%%%%%%%%%#
 
-# number of respondents with children
+# number of respondents with a partner
 id_partner <- unique(data_partner$ID_t)
 length(id_partner)
 
-# number of respondents with children who have a match in merged data
+# number of respondents with partner who have a match in merged data
 if (cohort_prep == "controls_bef_outcome") {
   id_cati_cawi_eps_child_partner <- 
     inner_join(data_merge_2, data_partner, 
@@ -345,7 +356,7 @@ data_merge_3 %>%
   summarize(sum(is.na(.))) %>% pull()
 
 
-length(unique(data_merge_3$ID_t))
+num_id_cati_cawi_eps_sib_child_partner <- length(unique(data_merge_3$ID_t))
 
 
 
@@ -356,26 +367,89 @@ length(unique(data_merge_3$ID_t))
 #### Competencies ####
 #%%%%%%%%%%%%%%%%%%%%#
 
-# number of individuals with no competence measures
-length(setdiff(unique(data_merge_5$ID_t), unique(data_competencies$ID_t)))
+# number of respondents with a partner
+id_comp <- unique(data_competencies$ID_t)
+length(id_comp)
 
-# data competencies is merged via the treatment_starts indicator
-data_merge_6 <- left_join(data_merge_5, data_competencies, 
-                          by = c("ID_t", "treatment_starts"))
+# number of respondents with partner who have a match in merged data
+if (cohort_prep == "controls_bef_outcome") {
+  id_cati_cawi_eps_child_partner_comp <- 
+    inner_join(data_merge_3, data_competencies, 
+               by = c("ID_t", "interview_date_CATI" = "interview_date")) %>%
+    pull(ID_t) %>% unique() 
+  num_id_comp_adj_1 <- length(id_cati_cawi_eps_child_partner_comp)
+} else if (cohort_prep == "controls_same_outcome") {
+  id_cati_cawi_eps_child_partner_comp <- 
+    inner_join(data_merge_3, data_competencies, 
+               by = c("ID_t", "interview_date_start" = "interview_date")) %>%
+    pull(ID_t) %>% unique() 
+  num_id_comp_adj_1 <- length(id_cati_cawi_eps_child_partner_comp)
+}
 
-# check for missing values in competence measures
-data_merge_6 %>%
-  ungroup() %>% select(all_of(colnames(data_competencies)[-1])) %>%
-  summarize(sum(is.na(.))) %>% pull()
+# analyse differences
+setdiff(id_cati_cawi_eps_child_partner, id_cati_cawi_eps_child_partner_comp)
+
+data_merge_3 %>% subset(ID_t == 7009318) %>% select(ID_t, starts_with("interview_date"))
+data_competencies %>% subset(ID_t == 7009318)
 
 
-#length(unique(data_merge_5$ID_t)) # 9,062
+# keep only respondents who also have observation in other data set
+data_competencies <- data_competencies %>% subset(ID_t %in% id_cati_cawi_eps_child_partner_comp)
+length(unique(data_competencies$ID_t))
+data_competencies %>% subset(ID_t == 7010580)
+
+# information about each respondent's competencies is appended.
+# INNER JOIN TO KEEP ONLY RESPONDENTS WITH AT LEAST ONE COMPETENCE MEASURE?
+if (cohort_prep == "controls_bef_outcome") {
+  data_merge_4 <- inner_join(data_merge_3, data_competencies, 
+                            by = c("ID_t", "interview_date_CATI" = "interview_date"))
+} else if (cohort_prep == "controls_same_outcome") {
+  data_merge_4 <- inner_join(data_merge_3, data_competencies, 
+                            by = c("ID_t", "interview_date_start" = "interview_date"))
+}
+
+
+num_id_final <- length(unique(data_merge_4$ID_t)) 
+num_id_final
+
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 
-#%%%%%%%%%%%%%%#
-#### CHECKS ####
-#%%%%%%%%%%%%%%#
+#%%%%%%%%%%%%%%%%%%%#
+#### FINAL STEPS ####
+#%%%%%%%%%%%%%%%%%%%#
 
-# all child, sibling, and partner variables should not have any missing value.
+# all child and partner variables should not have any missing value.
+sum(is.na(data_merge_4 %>% select(starts_with("child_"), starts_with("partner_"))))
+
+# total missing values
+sum(is.na(data_merge_4))
+
+# check for duplicates
+sum(duplicated(data_merge_4))
+sum(duplicated(data_merge_4 %>% select(ID_t, starts_with("interview_date"))))
+sum(duplicated(data_merge_4 %>% select(ID_t, interview_date_start)))
+
+# save
+if (cohort_prep == "controls_same_outcome") {
+  data_merge_all_save <- "Data/Prep_4/prep_4_merge_all.rds"
+} else {
+  data_merge_all_save <- "Data/Prep_4/prep_4_merge_all_robustcheck.rds"
+}
+
+saveRDS(data_merge_4, data_merge_all_save)
+
+# save number of rows, columns, and respondents in excel file
+df_excel_save <- data.frame(
+  "data_prep_step" = "merge_all",
+  "data_prep_choice_cohort" = cohort_prep,
+  "data_prep_treatment_repl" = treatment_repl, 
+  "num_id" = length(unique(data_merge_4$ID_t)), 
+  "num_rows" = nrow(data_merge_4),
+  "num_cols" = ncol(data_merge_4),
+  "time_stamp" = Sys.time()
+)
+## load function
+source("Functions/func_save_sample_reduction.R")
+func_save_sample_reduction(df_excel_save)
