@@ -25,11 +25,12 @@ data <- data_sub
 outcome <- "outcome_grade"
 treatment <- "treatment_sport"
 group <- "group"
-K <- 2
+K <- 2 # 5
+S <- 2 # 100
 mlalgo <- "postlasso"
 
 
-func_double_ml <- function(data, outcome, treatment, group, K, mlalgo) {
+func_double_ml <- function(data, outcome, treatment, group, K, S, mlalgo) {
   
   # generate folds
     ## "v": number of folds / partitions specified by K 
@@ -105,6 +106,7 @@ func_double_ml <- function(data, outcome, treatment, group, K, mlalgo) {
     g1_pred[-indices_fold_sel] <- predict(
       model_g1, newdata = data_test %>% dplyr::select(-c(all_of(outcome), all_of(treatment)))
     )[, 1]
+    
   }
   
   
@@ -159,4 +161,4 @@ func_double_ml <- function(data, outcome, treatment, group, K, mlalgo) {
   
 }
 
-func_double_ml(data_sub, "outcome_grade", "treatment_sport", "group", 2, "postlasso")
+func_double_ml(data_sub, "outcome_grade", "treatment_sport", "group", 2, 2, "postlasso")
