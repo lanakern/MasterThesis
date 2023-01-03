@@ -14,7 +14,7 @@ set.seed(12345)
 
 data <- readRDS("Data/prep_8_FINAL.rds")
 data_sub <- data %>% 
-  subset(ID_t %in% unique(data$ID_t)[1:1000]) %>%
+  #subset(ID_t %in% unique(data$ID_t)[1:2000]) %>%
   dplyr::select(ID_t, treatment_sport, outcome_grade, starts_with("educ"),
          starts_with("interest"), age, starts_with("health"),
          starts_with("mother"), starts_with("father"))
@@ -27,14 +27,14 @@ outcome <- "outcome_grade"
 treatment <- "treatment_sport"
 group <- "group"
 K <- 2 # 5
-S <- 2 # 100
+S <- 3 # 100
 mlalgo <- "postlasso"
 
 
 func_double_ml <- function(data, outcome, treatment, group, K, S, mlalgo) {
   
   # Accounting for uncertainty by repeated the process S times
-  df_result_all <- data.frame()
+  df_result_all_detailed <- data.frame()
   
   # data frame for splitting
   data_split <- data 
@@ -43,6 +43,8 @@ func_double_ml <- function(data, outcome, treatment, group, K, S, mlalgo) {
   data <- data %>% dplyr::select(-group)
   
   for (S_rep in 1:S) {
+    
+    print(paste("Repetition", S_rep))
     
     ## Generate Folds ##
     #++++++++++++++++++#
@@ -62,10 +64,11 @@ func_double_ml <- function(data, outcome, treatment, group, K, S, mlalgo) {
     #++++++++++++++++++++++++++++++++++#
     
     # define variables and create empty vectors to store computations within loop
-    n <- nrow(data)
-    m <- mean(data %>% dplyr::select(all_of(treatment)) %>% pull()) 
+    N <- nrow(data) # number of observations in complete data set
+      ## to store treatment effect estimates
     theta_ATE_all <- c()
     theta_ATET_all <- c()
+      ## to store values of the score function
     score_ATE_all <- c()
     score_ATET_all <- c()
     
@@ -123,8 +126,11 @@ func_double_ml <- function(data, outcome, treatment, group, K, S, mlalgo) {
       ## TREATMENT EFFECTS ##
       #+++++++++++++++++++++#
       
+      
       Y <- data_test[, outcome] %>% pull() # outcome
       D <- data_test[, treatment] %>% pull() # treatment
+      n <- nrow(data_test) # number of observations in test data
+      m <- sum(data_test %>% dplyr::select(all_of(treatment)) %>% pull()) / (N - n) # E(D)
       
       ## ATE ##
       score_a_ATE <- rep(-1, nrow(data_test))
@@ -161,15 +167,17 @@ func_double_ml <- function(data, outcome, treatment, group, K, S, mlalgo) {
     #+++++++++++++#
     
     # generate function for easier computation
-    func_double_ml_inference <- function(theta, score, n) {
+    func_double_ml_inference <- function(effect, theta, score, N) {
       theta <- mean(theta) # treatment effect is mean over the K estimators
       variance <- var(score) # variance is the variance of the score function
-      stderror <- sqrt(variance / n) # standard error
+      stderror <- sqrt(variance / N) # standard error
       tvalue <- theta / stderror # t-value
-      pvalue <- 2 * pt(abs(tvalue), n, lower.tail = FALSE) # p-value
+      pvalue <- 2 * pt(abs(tvalue), N, lower.tail = FALSE) # p-value
       
       df_result <- data.frame(
-        "Rep" = S_rep, "Treatment_Effect" = theta, "Standard_Error" = stderror,
+        "Type" = effect, 
+        "Rep" = S_rep, "Treatment_Effect" = theta, 
+        "Variance" = variance, "Standard_Error" = stderror,
         "T_Value" = tvalue, "P_Value" = pvalue
       )
       
@@ -177,21 +185,44 @@ func_double_ml <- function(data, outcome, treatment, group, K, S, mlalgo) {
       
     }
     
-    df_result_ATE <- func_double_ml_inference(theta_ATE_all, score_ATE_all, n)
-    rownames(df_result_ATE) <- "ATE"
-    df_result_ATET <- func_double_ml_inference(theta_ATET_all, score_ATET_all, n)
-    rownames(df_result_ATET) <- "ATET"
+    df_result_ATE <- func_double_ml_inference("ATE", theta_ATE_all, score_ATE_all, N)
+    df_result_ATET <- func_double_ml_inference("ATET", theta_ATET_all, score_ATET_all, N)
     
-    df_result <- rbind(df_result_ATE, df_result_ATET)
-    df_result_all <- rbind(df_result_all, df_result)
+    df_result <- rbind(df_result_ATE, df_result_ATET) 
+    df_result_all_detailed <- rbind(df_result_all_detailed, df_result)
   }
 
-  
-  # Take median across folds
+  # detailed output
+  df_result_all_detailed <- df_result_all_detailed %>% 
+    mutate(ML_algo = mlalgo) %>%
+    select(ML_algo, everything())
+
+  # final output: take mean and median across folds
+  df_result_all <- df_result_all_detailed %>%
+    select(Type, ML_algo, Treatment_Effect, Variance) %>%
+    group_by(Type) %>% 
+    mutate(
+      Treatment_Effect_mean = mean(Treatment_Effect),
+      Treatment_Effect_median = median(Treatment_Effect),
+      Standard_Error_mean = sqrt(mean(Variance + (Treatment_Effect - Treatment_Effect_mean)^2)),
+      Standard_Error_median = median(sqrt(Variance + (Treatment_Effect - Treatment_Effect_median)^2)),
+      Tvalue_mean = Treatment_Effect_mean / Standard_Error_mean,
+      Tvalue_median = Treatment_Effect_median / Standard_Error_median ,
+      Pvalue_mean = 2 * pt(abs(Tvalue_mean), N, lower.tail = FALSE),
+      Pvalue_median = 2 * pt(abs(Tvalue_median), N, lower.tail = FALSE),
+      CI_lower_mean_95 = Treatment_Effect_mean - qt(0.95, df = N - 1)^-1 * (1 - 0.95 / 2) * Standard_Error_mean / sqrt(N),
+      CI_upper_mean_95 = Treatment_Effect_mean + qt(0.95, df = N - 1)^-1 * (1 - 0.95 / 2) * Standard_Error_mean / sqrt(N),
+      CI_lower_median_95 = Treatment_Effect_median - qt(0.95, df = N - 1)^-1 * (1 - 0.95 / 2) * Standard_Error_median / sqrt(N),
+      CI_upper_median_95 = Treatment_Effect_median + qt(0.95, df = N - 1)^-1 * (1 - 0.95 / 2) * Standard_Error_median / sqrt(N)
+    ) %>%
+    select(-c(Treatment_Effect, Variance)) %>% distinct()
+    
   
 
-  return(df_result_all)
+  return(list("final" = df_result_all, "detail" = df_result_all_detailed))
   
 }
 
-func_double_ml(data_sub, "outcome_grade", "treatment_sport", "group", 2, 2, "postlasso")
+ls_dml_result <- func_double_ml(data_sub, "outcome_grade", "treatment_sport", "group", 2, 3, "postlasso")
+ls_dml_result$final
+ls_dml_result$detail
