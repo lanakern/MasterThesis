@@ -31,7 +31,7 @@ Sys.setlocale("LC_TIME", "English")
 
 
 # load data
-data <- readRDS("Data/prep_5_sample_selection.rds")
+data <- readRDS("Data/Prep_6/prep_6_sample_selection_weekly.rds")
 
 # define parameters
   ## how to replace missing values
@@ -1108,6 +1108,31 @@ data_sub_1 <- data_sub_1 %>%
 
 data_sub_2 <- data_sub_1
 
+# COMPETENCIES: two strategies (own idea and regression tree)
+# # replace missing values
+# ## WLE replaced by 0 (average)
+# ## Share replaced by 0.5 (as it ranges from 0 to 1)
+# ## Sum is replaced by mean
+# 
+# ## extract columsn with NAs
+# cols_NA <- names(colSums(is.na(data_competencies_final))[colSums(is.na(data_competencies_final)) > 0])
+# ## create NA dummies
+# for (cols_NA_sel in cols_NA) {
+#   cols_NA_mut <- paste0(cols_NA_sel, "_NA")
+#   data_competencies_final <- data_competencies_final %>%
+#     mutate(
+#       {{cols_NA_mut}} := ifelse(is.na(!!!syms(cols_NA_sel)), 1, 0),
+#       {{cols_NA_sel}} := ifelse(is.na(!!!syms(cols_NA_sel)), 0, !!!syms(cols_NA_sel))
+#     )
+# }
+# ## replace missing values
+# data_competencies_final <- data_competencies_final %>%
+#   mutate(
+#     across(matches("wle"), ~ replace_na(., 0)),
+#     across(matches("share"), ~ replace_na(., 0.5)),
+#     across(matches("sum"), ~ replace_na(., mean(., na.rm = TRUE)))
+#   )
+
 # THINK ABOUT NO NA DUMMY FOR VARIABLES WITH E.G. ONLY 100 MISSING VALUES OR LESS
 # OR DROP OBSERVATIONS WITH LESS THAN 100 MISSING VALUES
 
@@ -1118,20 +1143,14 @@ colnames_any_missing <- names(colnames_any_missing[colnames_any_missing > 0])
 # for every variable containing at least one missing value, a dummy variable
 # is generated determining that the value was initially missing (-> replaced
 # in next step)
-func_generate_NA_dummies <- function(data, variable_NA_dummy) {
-  varname_NA <- paste0(variable_NA_dummy, "_NA")
-  data <- data %>%
-    mutate(
-      {{varname_NA}} := case_when(is.na(!!!rlang::syms(variable_NA_dummy)) ~ 1, TRUE ~ 0)
-    )
-  return(data)
-}
+source("Functions/func_generate_NA_dummies.R")
 
 i <- 0
 for (col_sel in colnames_any_missing) {
   i <- i + 1
   data_sub_2 <- func_generate_NA_dummies(data_sub_2, col_sel)
 }
+
 
 
 
