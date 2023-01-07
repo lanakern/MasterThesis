@@ -19,7 +19,7 @@
 
 
 # clear workspace
-rm(list = ls())
+rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", "treatment_def", "df_inputs", "prep_sel_num")))
 
 # # install packages if needed, load packages
 # if (!require("dplyr")) install.packages("dplyr")
@@ -45,20 +45,14 @@ rm(list = ls())
 # treatment_def <- "weekly"
 
 # load data
-  ## extract file path
-if (treatment_def == "all") {
-  data_load <- "Data/Prep_5/prep_5_treatment_outcome_all"
-} else {
-  data_load <- "Data/Prep_5/prep_5_treatment_outcome_weekly"
-}
-
-
 if (cohort_prep == "controls_same_outcome") {
-  data_load <- paste0(data_load, ".rds")
+  data_load <- paste0("Data/Prep_5/prep_5_treatment_outcome_", treatment_def, 
+                      "_", treatment_repl, ".rds")  
 } else {
-  data_load <- paste0(data_load, "_robustcheck.rds")
+  data_load <- paste0("Data/Prep_5/prep_5_treatment_outcome_", treatment_def, 
+                      "_", treatment_repl, "_robustcheck.rds")  
 }
-  ## load data
+
 data_raw <- readRDS(data_load)
 
 # number of respondents
@@ -304,15 +298,15 @@ data_sub_2 <- data_sub_2 %>%
 data_sub_3 <- data_sub_2
 
 # # Create birth date from month and year with day = 1
-# source("Functions/func_generate_date.R")
-# data_sub_3 <- func_generate_date(data_sub_3, month = "birth_month",
-#                                  year = "birth_year", varname = "birth_date")
-# 
-# # Age = interview date used for spell - birth date
-# data_sub_3 <- data_sub_3 %>%
-#   mutate(age = as.numeric(difftime(interview_date_spell, birth_date, units = "weeks") / 52.5))
-# summary(data_sub_3$age)
-# 
+source("Functions/func_generate_date.R")
+data_sub_3 <- func_generate_date(data_sub_3, month = "birth_month",
+                                 year = "birth_year", varname = "birth_date")
+
+# Age = interview date used for spell - birth date
+data_sub_3 <- data_sub_3 %>%
+  mutate(age = as.numeric(difftime(interview_date_spell, birth_date, units = "weeks") / 52.5))
+summary(data_sub_3$age)
+ 
 # # Subset
 # data_sub_3 <- data_sub_3 %>%
 #   filter(age >= 17 & age <= 30)
@@ -349,17 +343,12 @@ print(paste("Number of columns:", ncol(data_sub_3)))
 
 
 # save data frame
-if (treatment_def == "all") {
-  data_save <- "Data/Prep_6/prep_6_sample_selection_all"
-} else {
-  data_save <- "Data/Prep_6/prep_6_sample_selection_weekly"
-}
-
-
 if (cohort_prep == "controls_same_outcome") {
-  data_save <- paste0(data_save, ".rds")
+  data_save <- paste0("Data/Prep_6/prep_6_sample_selection_", treatment_def, 
+                      "_", treatment_repl, ".rds")
 } else {
-  data_save <- paste0(data_save, "_robustcheck.rds")
+  data_save <- paste0("Data/Prep_6/prep_6_sample_selection_", treatment_def, 
+                      "_", treatment_repl, "_robustcheck.rds")
 }
 
 saveRDS(data_sub_3, data_save)
