@@ -36,7 +36,7 @@
 #%%%%%%%%%#
 
 # clear workspace
-rm(list = ls())
+rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", "treatment_def", "df_inputs", "prep_sel_num")))
 
 # # install packages if needed, load packages
 # if (!require("dplyr")) install.packages("dplyr")
@@ -61,9 +61,9 @@ rm(list = ls())
 
 # load data
 if (cohort_prep == "controls_same_outcome") {
-  data_raw <- readRDS("Data/Prep_4/prep_4_merge_all.rds")
+  data_raw <- readRDS(paste0("Data/Prep_4/prep_4_merge_all_treat", treatment_repl, ".rds"))
 } else if (cohort_prep == "controls_bef_outcome") {
-  data_raw <- readRDS("Data/Prep_4/prep_4_merge_all_robustcheck.rds")
+  data_raw <- readRDS(paste0("Data/Prep_4/prep_4_merge_all_treat", treatment_repl, "_robustcheck.rds") )
 }
 num_id <- length(unique(data_raw$ID_t))
 
@@ -300,6 +300,13 @@ table(data_2$treatment_sport, useNA = "always")
 table(data_2$sport_source, useNA = "always")
 
 
+# create NA variable
+data_2 <- data_2 %>% 
+  mutate(
+    treatment_sport_NA = ifelse(sport_uni_NA == 1 & sport_leisure_freq_NA == 1, 1, 0),
+    treatment_sport_freq_NA = ifelse(sport_uni_freq_NA == 1 & sport_leisure_freq_NA == 1, 1, 0)
+    )
+
 
 ## CHECK ##
 #+++++++++#
@@ -403,17 +410,12 @@ sum(duplicated(data_4))
 
 
 # save
-if (treatment_def == "all") {
-  data_save <- "Data/Prep_5/prep_5_treatment_outcome_all"
-} else {
-  data_save <- "Data/Prep_5/prep_5_treatment_outcome_weekly"
-}
-
-
 if (cohort_prep == "controls_same_outcome") {
-  data_save <- paste0(data_save, ".rds")
+  data_save <- paste0("Data/Prep_5/prep_5_treatment_outcome_", treatment_def, 
+                      "_", treatment_repl, ".rds")  
 } else {
-  data_save <- paste0(data_save, "_robustcheck.rds")
+  data_save <- paste0("Data/Prep_5/prep_5_treatment_outcome_", treatment_def, 
+                      "_", treatment_repl, "_robustcheck.rds")  
 }
 
 
