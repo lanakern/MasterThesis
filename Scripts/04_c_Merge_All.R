@@ -34,7 +34,7 @@
 
 
 # clear workspace
-rm(list = ls())
+rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", "treatment_def", "df_inputs", "prep_sel_num")))
 
 # # install packages if needed, load packages
 # if (!require("dplyr")) install.packages("dplyr")
@@ -64,9 +64,9 @@ rm(list = ls())
 
 # CATI and CAWI
 if (cohort_prep == "controls_same_outcome") {
-  data_cati_cawi_eps <- readRDS("Data/Prep_4/prep_4_merge_cati_cawi_eps.rds")
+  data_cati_cawi_eps <- readRDS(paste0("Data/Prep_4/prep_4_merge_cati_cawi_eps_treat", treatment_repl, ".rds")  )
 } else if (cohort_prep == "controls_bef_outcome") {
-  data_cati_cawi_eps <- readRDS("Data/Prep_4/prep_4_merge_cati_cawi_eps_robustcheck.rds")
+  data_cati_cawi_eps <- readRDS(paste0("Data/Prep_4/prep_4_merge_cati_cawi_eps_treat", treatment_repl, "_robustcheck.rds")  )
 }
 
 # Sibling information (time-invariant)
@@ -431,11 +431,21 @@ sum(duplicated(data_merge_4))
 sum(duplicated(data_merge_4 %>% select(ID_t, starts_with("interview_date"))))
 sum(duplicated(data_merge_4 %>% select(ID_t, interview_date_start)))
 
+# number of respondents, rows, and columns
+print(paste("Number of respondents before data preparation:", num_id_cati_cawi_eps))
+print(paste("Number of respondents after merging sibling:", num_id_cati_cawi_eps_sib))
+print(paste("Number of respondents after merging child:", num_id_cati_cawi_eps_sib_child))
+print(paste("Number of respondents after merging partner:", num_id_cati_cawi_eps_sib_child_partner))
+print(paste("Number of respondents after merging competencies:", num_id_final))
+print(paste("Number of respondents after data preparation:", num_id_final))
+print(paste("Number of rows:", nrow(data_merge_4)))
+print(paste("Number of columns:", ncol(data_merge_4)))
+
 # save
 if (cohort_prep == "controls_same_outcome") {
-  data_merge_all_save <- "Data/Prep_4/prep_4_merge_all.rds"
+  data_merge_all_save <- paste0("Data/Prep_4/prep_4_merge_all_treat", treatment_repl, ".rds")  
 } else {
-  data_merge_all_save <- "Data/Prep_4/prep_4_merge_all_robustcheck.rds"
+  data_merge_all_save <- paste0("Data/Prep_4/prep_4_merge_all_treat", treatment_repl, "_robustcheck.rds") 
 }
 
 saveRDS(data_merge_4, data_merge_all_save)

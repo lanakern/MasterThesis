@@ -22,7 +22,7 @@
 #%%%%%%%%%#
 
 # clear workspace
-rm(list = ls())
+rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", "treatment_def", "df_inputs", "prep_sel_num")))
 
 # # install packages if needed, load packages
 # if (!require("dplyr")) install.packages("dplyr")
@@ -46,11 +46,11 @@ rm(list = ls())
 
 # CATI and CAWI
 if (cohort_prep == "controls_same_outcome") {
-  data_cati <- readRDS("Data/Prep_3/prep_3_cati.rds")
-  data_cawi <- readRDS("Data/Prep_3/prep_3_cawi.rds")
+  data_cati <- readRDS(paste0("Data/Prep_3/prep_3_cati_treat", treatment_repl, ".rds"))
+  data_cawi <- readRDS(paste0("Data/Prep_3/prep_3_cawi_treat", treatment_repl, ".rds"))
 } else if (cohort_prep == "controls_bef_outcome") {
-  data_cati <- readRDS("Data/Prep_3/prep_3_cati_robustcheck.rds")
-  data_cawi <- readRDS("Data/Prep_3/prep_3_cawi_robustcheck.rds")
+  data_cati <- readRDS(paste0("Data/Prep_3/prep_3_cati_treat", treatment_repl, "_robustcheck.rds"))
+  data_cawi <- readRDS(paste0("Data/Prep_3/prep_3_cawi_treat", treatment_repl, "_robustcheck.rds"))
 }
 
 
@@ -141,11 +141,27 @@ if (cohort_prep == "controls_same_outcome") {
 }
 
 
+#%%%%%%%%%%%%%%%%%%%#
+#### FINAL STEPS ####
+#%%%%%%%%%%%%%%%%%%%#
+
+# missing values
+sum(is.na(data_cati_cawi))
+
+# duplicates
+sum(duplicated(data_cati_cawi))
+
+# number of respondents, rows, and columns
+print(paste("Number of respondents before data preparation:", max(num_id_cawi, num_id_cati)))
+print(paste("Number of respondents after data preparation:", num_id_cati_cawi))
+print(paste("Number of rows:", nrow(data_cati_cawi)))
+print(paste("Number of columns:", ncol(data_cati_cawi)))
+
 # save data frame
 if (cohort_prep == "controls_same_outcome") {
-  data_cati_cawi_save <- "Data/Prep_4/prep_4_merge_cati_cawi.rds"
+  data_cati_cawi_save <- paste0("Data/Prep_4/prep_4_merge_cati_cawi_treat", treatment_repl, ".rds")
 } else if (cohort_prep == "controls_bef_outcome") {
-  data_cati_cawi_save <- "Data/Prep_4/prep_4_merge_cati_cawi_robustcheck.rds"
+  data_cati_cawi_save <- paste0("Data/Prep_4/prep_4_merge_cati_cawi_treat", treatment_repl, "_robustcheck.rds")
 }
 saveRDS(data_cati_cawi, data_cati_cawi_save)
 

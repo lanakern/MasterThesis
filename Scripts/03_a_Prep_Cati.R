@@ -24,7 +24,7 @@
 #%%%%%%%%%%%%%#
 
 # clear workspace
-rm(list = ls())
+rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", "treatment_def", "df_inputs", "prep_sel_num")))
 
 # # load and install (if necessary) packages
 # if (!require("dplyr")) install.packages("dplyr")
@@ -83,25 +83,39 @@ sum(id_cohort %in% id_cati) == length(id_cohort) # should be TRUE
 data_target_cati <- data_target_cati %>% filter(ID_t %in% id_cohort)
 id_num_cati_adj_1 <- length(unique(data_target_cati$ID_t))
 
+# indicator if treatment and outcome are NA
+data_target_cati <- data_target_cati %>%
+  mutate(
+    sport_leisure_freq_NA = ifelse(is.na(sport_leisure_freq), 1, 0),
+    grade_final_NA = ifelse(is.na(grade_final), 1, 0) 
+  )
 
 # handle many missing values in CATI: unless a new value has been reported,
 # value is copied downwards, i.e., to later waves. 
-data_target_cati <- data_target_cati %>%
-  arrange(ID_t, wave) %>%
-  group_by(ID_t) %>%
-  fill(names(data_target_cati), .direction = "down")
-
 # depending on selection missing values in treatment variable may also be
 # replaced upwards
 if (treatment_repl == "downup") {
-  # because there are so many missing values in treatment, information is
-  # also copied upwards
+  # downward replacement for all
+  data_target_cati <- data_target_cati %>%
+    arrange(ID_t, wave) %>%
+    group_by(ID_t) %>%
+    fill(names(data_target_cati), .direction = "down")
+  
+  # additional also upward replacement of treatment
   data_target_cati <- data_target_cati %>%
     group_by(ID_t) %>%
     fill(sport_leisure_freq, .direction = "downup") %>% ungroup()
-  # otherwise only downward which is done above
+} else if (treatment_repl == "down") {
+  data_target_cati <- data_target_cati %>%
+    arrange(ID_t, wave) %>%
+    group_by(ID_t) %>%
+    fill(names(data_target_cati), .direction = "down")
 } else {
-  data_target_cati <- data_target_cati
+  repl_controls <- names(data_target_cati)[!names(data_target_cati) %in% c("sport_leisure_freq", "grade_final")]
+  data_target_cati <- data_target_cati %>%
+    arrange(ID_t, wave) %>%
+    group_by(ID_t) %>%
+    fill(all_of(repl_controls), .direction = "down")
 }
 
 # merge cati data to cohort date -> only respondents which are 
@@ -180,9 +194,9 @@ print(paste("Number of columns:", ncol(data_cati)))
 
 # save
 if (cohort_prep == "controls_same_outcome") {
-  data_cohort_profile_save <- "Data/Prep_3/prep_3_cati.rds"
+  data_cohort_profile_save <- paste0("Data/Prep_3/prep_3_cati_treat", treatment_repl, ".rds")
 } else {
-  data_cohort_profile_save <- "Data/Prep_3/prep_3_cati_robustcheck.rds"
+  data_cohort_profile_save <- paste0("Data/Prep_3/prep_3_cati_treat", treatment_repl, "_robustcheck.rds")
 }
 
 saveRDS(data_cati, data_cohort_profile_save)

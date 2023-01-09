@@ -32,7 +32,7 @@
 
 
 # clear workspace
-rm(list = ls())
+rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", "treatment_def", "df_inputs", "prep_sel_num")))
 
 # # install packages; if needed, load packages
 # if (!require("dplyr")) install.packages("dplyr")
@@ -213,14 +213,12 @@ summary(data_partner$partner_previous_length) # no negative values
 # ungroup
 data_partner <- data_partner %>% ungroup()
 
-
 # EXAMPLE
 data_partner %>% 
   select(ID_t, start_date, end_date, interview_date, end_date_adj,  partner_num, partner_num_total, 
          partner_current, partner_current_length, partner_previous_length, partner_previous_length_total) %>%
   subset(ID_t %in% c(7002147, 7002012, 7001970)) %>% 
   arrange(ID_t, interview_date)
-
 
 # checks: 
   ## no missings in length
@@ -334,7 +332,7 @@ data_partner_no_current <-
   cbind(data_partner_no_current, setNames(lapply(add_cols, function(x) x = 0), add_cols)) %>%
   # create one dummy for partner
   mutate(partner = 1) %>% 
-  select(ID_t, interview_date, partner, partner_current, partner_num, 
+  select(ID_t, interview_date, partner_current, partner_num, 
          partner_current_length, partner_previous_length_total, 
          partner_male, partner_age, partner_migration, partner_living_ger, 
          partner_school_degree_highest, partner_uni_degree, starts_with("partner_educ"), 

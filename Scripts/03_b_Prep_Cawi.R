@@ -31,7 +31,7 @@
 #%%%%%%%%%%%%%#
 
 # clear workspace
-rm(list = ls())
+rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", "treatment_def", "df_inputs", "prep_sel_num")))
 
 # # load and install (if necessary) packages
 # if (!require("dplyr")) install.packages("dplyr")
@@ -85,25 +85,40 @@ sum(id_cohort %in% id_cawi) == length(id_cohort) # should be TRUE
 data_target_cawi <- data_target_cawi %>% filter(ID_t %in% id_cohort)
 id_num_cawi_adj_1 <- length(unique(data_target_cawi$ID_t))
 
+# indicator if treatment and outcome are NA
+data_target_cawi <- data_target_cawi %>%
+  mutate(
+    sport_uni_NA = ifelse(is.na(sport_uni), 1, 0),
+    sport_uni_freq_NA = ifelse(is.na(sport_uni_freq), 1, 0),
+    grade_current_NA = ifelse(is.na(grade_current), 1, 0) 
+  )
 
 # fill missing values of CAWI: down here because cohort profile does not
 # contain all waves anymore
-data_target_cawi <- data_target_cawi %>%
-  arrange(ID_t, wave) %>%
-  group_by(ID_t) %>%
-  fill(names(data_target_cawi), .direction = "down")
-
 # depending on selection missing values in treatment variable may also be
 # replaced upwards
 if (treatment_repl == "downup") {
-  # because there are so many missing values in treatment, information is
-  # also copied upwards
+  data_target_cawi <- data_target_cawi %>%
+    arrange(ID_t, wave) %>%
+    group_by(ID_t) %>%
+    fill(names(data_target_cawi), .direction = "down")
+  
+  # also upward replacement of treatment
   data_target_cawi <- data_target_cawi %>%
     group_by(ID_t) %>%
     fill(c(sport_uni, sport_uni_freq), .direction = "downup") %>% ungroup()
-  # otherwise only downward which is done above
+
+} else if (treatment_repl == "down") {
+  data_target_cawi <- data_target_cawi %>%
+    arrange(ID_t, wave) %>%
+    group_by(ID_t) %>%
+    fill(names(data_target_cawi), .direction = "down")
 } else {
-  data_target_cawi <- data_target_cawi
+  repl_controls <- names(data_target_cawi)[!names(data_target_cawi) %in% c("sport_uni", "sport_uni_freq", "grade_current")]
+  data_target_cawi <- data_target_cawi %>%
+    arrange(ID_t, wave) %>%
+    group_by(ID_t) %>%
+    fill(all_of(repl_controls), .direction = "down")
 }
 
 
@@ -240,11 +255,17 @@ sum(duplicated(data_cawi))
 # check for missing values
 colSums(is.na(data_cawi))
 
+# number of rows, columns and respondents
+print(paste("Number of respondents before data preparation:", id_num_cawi))
+print(paste("Number of respondents after merge with cohort profile:", id_num_cawi_adj_1))
+print(paste("Number of rows:", nrow(data_cawi)))
+print(paste("Number of columns:", ncol(data_cawi)))
+
 # save
 if (cohort_prep == "controls_same_outcome") {
-  data_cohort_profile_save <- "Data/Prep_3/prep_3_cawi.rds"
+  data_cohort_profile_save <- paste0("Data/Prep_3/prep_3_cawi_treat", treatment_repl, ".rds")
 } else {
-  data_cohort_profile_save <- "Data/Prep_3/prep_3_cawi_robustcheck.rds"
+  data_cohort_profile_save <- paste0("Data/Prep_3/prep_3_cawi_treat", treatment_repl, "_robustcheck.rds") 
 }
 
 saveRDS(data_cawi, data_cohort_profile_save)

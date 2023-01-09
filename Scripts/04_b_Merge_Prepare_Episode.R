@@ -36,7 +36,7 @@
 
 
 # clear workspace
-rm(list = ls())
+rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", "treatment_def", "df_inputs", "prep_sel_num")))
 
 # # install packages if needed, load packages
 # if (!require("dplyr")) install.packages("dplyr")
@@ -66,9 +66,9 @@ rm(list = ls())
 
 # CATI and CAWI
 if (cohort_prep == "controls_same_outcome") {
-  data_cati_cawi <- readRDS("Data/Prep_4/prep_4_merge_cati_cawi.rds")
+  data_cati_cawi <- readRDS(paste0("Data/Prep_4/prep_4_merge_cati_cawi_treat", treatment_repl, ".rds"))
 } else if (cohort_prep == "controls_bef_outcome") {
-  data_cati_cawi <- readRDS("Data/Prep_4/prep_4_merge_cati_cawi_robustcheck.rds")
+  data_cati_cawi <- readRDS(paste0("Data/Prep_4/prep_4_merge_cati_cawi_treat", treatment_repl, "_robustcheck.rds"))
 }
 
 # Episode data
@@ -460,9 +460,9 @@ print(paste("Number of columns after merge process:", ncol(data_cati_cawi_unispe
 
 # save data frame
 if (cohort_prep == "controls_same_outcome") {
-  data_cati_cawi_eps_save <- "Data/Prep_4/prep_4_merge_cati_cawi_eps.rds"
+  data_cati_cawi_eps_save <- paste0("Data/Prep_4/prep_4_merge_cati_cawi_eps_treat", treatment_repl, ".rds") 
 } else if (cohort_prep == "controls_bef_outcome") {
-  data_cati_cawi_eps_save <- "Data/Prep_4/prep_4_merge_cati_cawi_eps_robustcheck.rds"
+  data_cati_cawi_eps_save <- paste0("Data/Prep_4/prep_4_merge_cati_cawi_eps_treat", treatment_repl, "_robustcheck.rds")  
 }
 saveRDS(data_cati_cawi_unispell_emp, data_cati_cawi_eps_save)
 
