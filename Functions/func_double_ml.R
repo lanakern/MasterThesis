@@ -12,23 +12,23 @@ library(dplyr)
 set.seed(12345)
 
 
-data <- readRDS("Data/prep_8_FINAL.rds")
-data_sub <- data %>% 
-  #subset(ID_t %in% unique(data$ID_t)[1:2000]) %>%
-  dplyr::select(ID_t, treatment_sport, outcome_grade, starts_with("educ"),
-         starts_with("interest"), age, starts_with("health"),
-         starts_with("mother"), starts_with("father"))
-data_sub <- data_sub[!duplicated(data_sub %>% dplyr::select(ID_t, treatment_sport, outcome_grade)), ]
-data_sub$group <- as.integer(factor(data_sub$ID_t,levels = unique(data_sub$ID_t)))
-data_sub <- data_sub %>% dplyr::select(-ID_t) %>% na.omit()
-
-data <- data_sub
-outcome <- "outcome_grade"
-treatment <- "treatment_sport"
-group <- "group"
-K <- 2 # 5
-S <- 3 # 100
-mlalgo <- "postlasso"
+# data <- readRDS("Data/prep_8_FINAL.rds")
+# data_sub <- data %>% select(-c(starts_with("interview"),"end_date_adj"))
+#   #subset(ID_t %in% unique(data$ID_t)[1:2000]) %>%
+#   # dplyr::select(ID_t, treatment_sport, outcome_grade, starts_with("educ"),
+#   #        starts_with("interest"), age, starts_with("health"),
+#   #        starts_with("mother"), starts_with("father"))
+# data_sub <- data_sub[!duplicated(data_sub %>% dplyr::select(ID_t, treatment_sport, outcome_grade)), ]
+# data_sub$group <- as.integer(factor(data_sub$ID_t,levels = unique(data_sub$ID_t)))
+# data_sub <- data_sub %>% dplyr::select(-ID_t) %>% na.omit()
+# 
+# data <- data_sub
+# outcome <- "outcome_grade"
+# treatment <- "treatment_sport"
+# group <- "group"
+# K <- 2 # 5
+# S <- 3 # 100
+# mlalgo <- "postlasso"
 
 
 func_double_ml <- function(data, outcome, treatment, group, K, S, mlalgo) {
@@ -54,6 +54,7 @@ func_double_ml <- function(data, outcome, treatment, group, K, S, mlalgo) {
     # "strata": outcome variable used for conducting stratified sampling (numeric variable is binned into quartiles)
     # balance = "observations": assigns roughly the same number of observations to each fold
     # https://rsample.tidymodels.org/reference/group_vfold_cv.html
+    # https://scikit-learn.org/stable/modules/cross_validation.html#group-k-fold
     K_folds <- group_vfold_cv(
       data = data_split,  v = K, group = group, strata = outcome, balance = "observations"
     )
@@ -223,6 +224,6 @@ func_double_ml <- function(data, outcome, treatment, group, K, S, mlalgo) {
   
 }
 
-ls_dml_result <- func_double_ml(data_sub, "outcome_grade", "treatment_sport", "group", 2, 3, "postlasso")
-ls_dml_result$final
-ls_dml_result$detail
+# ls_dml_result <- func_double_ml(data_sub, "outcome_grade", "treatment_sport", "group", 2, 3, "postlasso")
+# ls_dml_result$final
+# ls_dml_result$detail
