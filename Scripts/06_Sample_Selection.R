@@ -9,6 +9,8 @@
 # Only respondents are kept who take part in at least one extracurricular activity
 # (definition see in respective section below).
 #++++
+# 2.) Subset on age: 17-30
+#++++
 # -> Panel data set includes the final sample size.
 #++++
 
@@ -103,9 +105,9 @@ data_count <- data_sub_1 %>%
   mutate_at(vars(colnames_extra), ~ as.integer(.)) %>%
   # sum up how often individual has "involved" (or rather 1)
   # ignore NAs (handled in next step)
-  mutate(extracurricular_num = rowSums(select(., colnames_extra), na.rm = TRUE)) %>%
+  mutate(extracurricular_num = rowSums(select(., all_of(colnames_extra)), na.rm = TRUE)) %>%
   # sum up NA in extracurricular activity
-  mutate(sum_na = rowSums(is.na(select(., colnames_extra)))) %>%
+  mutate(sum_na = rowSums(is.na(select(., all_of(colnames_extra))))) %>%
   # only if all are NA, then "extracurricular_num" variable is set to NA instead of 0
   mutate(extracurricular_num = case_when(sum_na == length(colnames_extra) ~ as.double(NA), 
                                          TRUE ~ extracurricular_num)) %>%
@@ -128,6 +130,7 @@ data_sub_2 <- left_join(
   filter(extracurricular_num > 0)
 
 id_num_adj_1 <- length(unique(data_sub_2$ID_t)) 
+id_treatment_periods_1 <- nrow(data_sub_2)
 id_num_drop <- id_num_start - id_num_adj_1
 
 # set NA in extracurricular_num to zero
@@ -307,13 +310,13 @@ data_sub_3 <- data_sub_3 %>%
   mutate(age = as.numeric(difftime(interview_date_spell, birth_date, units = "weeks") / 52.5))
 summary(data_sub_3$age)
  
-# # Subset
-# data_sub_3 <- data_sub_3 %>%
-#   filter(age >= 17 & age <= 30)
-# summary(data_sub_3$age)
-# 
-# id_num_adj_2 <- length(unique(data_sub_3$ID_t))
+# Subset
+data_sub_3 <- data_sub_3 %>%
+  filter(age >= 17 & age <= 30)
+summary(data_sub_3$age)
 
+id_num_adj_2 <- length(unique(data_sub_3$ID_t))
+id_treatment_periods_2 <- nrow(data_sub_3)
 
 
 #%%%%%%%%%%%%%%%%%%%#
@@ -321,9 +324,13 @@ summary(data_sub_3$age)
 #%%%%%%%%%%%%%%%%%%%#
 
 # adjust treatment period
+data_sub_3 <- data_sub_3 %>% 
+  arrange(ID_t, interview_date_spell) %>%
+  group_by(ID_t) %>% 
+  mutate(treatment_period = row_number())
 
-# ungroup
-data_sub_3 <- data_sub_3 %>% ungroup()
+# ungroup and sort 
+data_sub_3 <- data_sub_3 %>% ungroup() %>% arrange(ID_t, treatment_period)
 
 # check for duplicates
 sum(duplicated(data_sub_3))
@@ -331,9 +338,11 @@ sum(duplicated(data_sub_3 %>% select(ID_t, treatment_period)))
 
 # number of respondents, number of rows, and number of columns before sample selection
 print(paste("Number of respondents before sample selection:", id_num_start))
-print(paste(
-"Number of respondents after dropping students who do not participate in any extracurricular activity:", 
-id_num_adj_1))
+print(paste("Number of respondents after dropping students who do not participate in any extracurricular activity:", 
+            id_num_adj_1))
+print(paste("Number of treatment periods:", id_treatment_periods_1))
+print(paste("Number of respondents after dropping students who are not in age range 17 to 30:", id_num_adj_2))
+print(paste("Number of treatment periods:", id_treatment_periods_2))
 
 # number of respondents, number of rows, and number of columns after sample selection
 print("AFTER SAMPLE SELECTION:")
