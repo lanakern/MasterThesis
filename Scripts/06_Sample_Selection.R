@@ -21,7 +21,7 @@
 
 
 # clear workspace
-rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", "treatment_def", "df_inputs", "prep_sel_num")))
+# rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", "treatment_def", "df_inputs", "prep_sel_num")))
 
 # # install packages if needed, load packages
 # if (!require("dplyr")) install.packages("dplyr")
@@ -123,11 +123,16 @@ data_count <- data_sub_1 %>%
 
 summary(data_count$extracurricular_num)
 
+
+# Subset #
+#++++++++#
+
 # add information about number of extracurricular activities and subset data frame
+# individuals either take part in extracurricular activity or do sports
 data_sub_2 <- left_join(
   data_sub_1, data_count, by = c("ID_t", "treatment_period")
 ) %>%
-  filter(extracurricular_num > 0)
+  filter(extracurricular_num > 0 | treatment_sport == 1)
 
 id_num_adj_1 <- length(unique(data_sub_2$ID_t)) 
 id_treatment_periods_1 <- nrow(data_sub_2)
