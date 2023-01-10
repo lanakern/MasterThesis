@@ -27,8 +27,8 @@
 #%%%%%%%%%#
 
 # clear workspace
-rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", "treatment_def", 
-                          "df_inputs", "prep_sel_num", ls()[str_starts(ls(), "func_")])))
+# rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", "treatment_def", 
+#                           "df_inputs", "prep_sel_num", ls()[str_starts(ls(), "func_")])))
 
 # # install packages if needed, load packages
 # if (!require("dplyr")) install.packages("dplyr")
@@ -99,7 +99,7 @@ sum(rowSums(is.na(data_prep_1[, c("health_weight", "health_height")])) > 0) # nu
 
 # BMI = weight / height^2
 data_prep_1 <- data_prep_1 %>%
-  mutate(health_bmi = health_weight / ((health_height/100)^2)) %>%
+  mutate(health_bmi = as.numeric(health_weight / ((health_height/100)^2))) %>%
   select(-c(health_weight, health_height))
 
 summary(data_prep_1$health_bmi) # number of NA in generated variable
@@ -467,36 +467,36 @@ table(data_prep_1$uni_prob_graduation, useNA = "always")
 ## Employment ##
 #++++++++++++++#
 
-table(data_prep_1$current_emp, useNA = "always")
+table(data_prep_1$emp_current, useNA = "always")
 
-# 1.) If any employment variable has a value, current_emp must equal 1
+# 1.) If any employment variable has a value, emp_current must equal 1
 data_prep_1 <- data_prep_1 %>%
   ungroup() %>%
-  mutate(current_emp = ifelse(
-    rowSums(!is.na(data_prep_1 %>% select(starts_with("current_emp_")))) > 0, 1, current_emp)
+  mutate(emp_current = ifelse(
+    rowSums(!is.na(data_prep_1 %>% select(starts_with("emp_current_")))) > 0, 1, emp_current)
     )
 
-table(data_prep_1$current_emp, useNA = "always")
+table(data_prep_1$emp_current, useNA = "always")
 
 
 # 2.) Dummies
 data_prep_1 <- data_prep_1 %>%
   mutate(
-    current_emp_self = case_when(
-      grepl("freelancer", current_emp_prof_pos) | grepl("self-employed", current_emp_prof_pos) | 
-        grepl("freelance", current_emp_student_job_type) | grepl("self-employment", current_emp_student_job_type) ~ 1,
-      is.na(current_emp_student_job_type) & is.na(current_emp_prof_pos) ~ as.double(NA),
+    emp_current_self = case_when(
+      grepl("freelancer", emp_current_prof_pos) | grepl("self-employed", emp_current_prof_pos) | 
+        grepl("freelance", emp_current_student_job_type) | grepl("self-employment", emp_current_student_job_type) ~ 1,
+      is.na(emp_current_student_job_type) & is.na(emp_current_prof_pos) ~ as.double(NA),
       TRUE ~ 0
     ),
-    current_emp_student = case_when(
-      grepl("student", current_emp_student_job_type) | grepl("tutoring", current_emp_student_job_type) |
-        grepl("student", current_emp_prof_pos) ~ 1,
-      current_emp_student_job == 1 ~ 1,
-      is.na(current_emp_student_job_type) & is.na(current_emp_prof_pos) ~ as.double(NA),
+    emp_current_student = case_when(
+      grepl("student", emp_current_student_job_type) | grepl("tutoring", emp_current_student_job_type) |
+        grepl("student", emp_current_prof_pos) ~ 1,
+      emp_current_student_job == 1 ~ 1,
+      is.na(emp_current_student_job_type) & is.na(emp_current_prof_pos) ~ as.double(NA),
       TRUE ~ 0
     )
   ) %>%
-  select(-c(current_emp_student_job, current_emp_student_job_type, current_emp_prof_pos, current_emp_student_job_rel))
+  select(-c(emp_current_student_job, emp_current_student_job_type, emp_current_prof_pos, emp_current_student_job_rel))
 
 
 
@@ -825,11 +825,11 @@ data_prep_2 <- data_prep_1 %>% ungroup()
 
 # Students who do not work, for instance, have an income of 0, do not obtain
 # a student job etc.
-sum(is.na(data_prep_2 %>% select(starts_with("current_emp_"))))
+sum(is.na(data_prep_2 %>% select(starts_with("emp_current_"))))
 data_prep_2 <- data_prep_2 %>%
-  mutate(across(starts_with("current_emp_"), ~ ifelse(current_emp == 0, 0, .)))
-sum(is.na(data_prep_2 %>% select(starts_with("current_emp_"))))
-sum(is.na(data_prep_2 %>% filter(current_emp == 0) %>% select(starts_with("current_emp_"))))
+  mutate(across(starts_with("emp_current_"), ~ ifelse(emp_current == 0, 0, .)))
+sum(is.na(data_prep_2 %>% select(starts_with("emp_current_"))))
+sum(is.na(data_prep_2 %>% filter(emp_current == 0) %>% select(starts_with("emp_current_"))))
 
 # Partner
 sum(is.na(data_prep_2 %>% select(starts_with("partner_"))))
@@ -881,11 +881,12 @@ data_prep_2 <- data_prep_2 %>%
 
 # there are some variables which are just not useful anymore
 vars_drop <- c(
-  "educ_uni_start", "birth_date", "birth_month", "day", "educ_study",
+  "educ_uni_start", "birth_date", "day", "educ_study",
   "current_family_status", "current_residence_country", 
   "educ_uni_break_deregist_nform", "educ_uni_break_deregist_temp", "educ_uni_break_term_off",
   "educ_uni_degree_1", "educ_uni_degree_2", "educ_uni_start", "educ_uni_start_WT10",
-  "end_date_adj", "end_date_orig", "educ_uni_type_inst", "wave", "wave_2"
+  "end_date_adj", "end_date_orig", "educ_uni_type_inst", "wave", "wave_2",
+  "uni_time_employment"
 )
 data_prep_2 <- data_prep_2 %>%
   select(-all_of(vars_drop))
@@ -936,31 +937,29 @@ data_prep_3 <- data_prep_2
 # }
 
 # drop NA dummies
-data_prep_3 <- data_prep_3 %>% select(-ends_with("_NA"))
+# data_prep_3 <- data_prep_3 %>% select(-ends_with("_NA"))
 
 
 
 ## Replace NAs ##
 #+++++++++++++++#
 
+# https://stefvanbuuren.name/fimd/ch-longitudinal.html
 
-# CHECK: logged events and remaining missing values
 data_prep_4 <- data_prep_3
+
+# number of missing values before replacement
 sum(is.na(data_prep_4))
 
-# mice.impute.2l.norm
-# https://www.gerkovink.com/miceVignettes/Multi_level/Multi_level_data.html
-ini <- mice(data_prep_4, maxit = 0)
-pred <- ini$pred
-pred[pred == 1] <- 2 # all predictors as random effects
-pred[, "ID_t"] <- rep(-2, ncol(test)) # class
-pred["ID_t", "ID_t"] <- 0
-meth <- ini$meth
-meth[meth != ""] <- "2l.norm"
-mice_result_class <- mice(data_prep_4, pred = pred, meth = meth, seed = 1234, m = 1, maxit = 1)
+# to make replacement for categorical variables they need to be converted 
+# as factors
+data_prep_4 <- data_prep_4 %>%
+  mutate_if(is.character, as.factor)
 
-# wide format
+
+## wide format ##
 library("reshape2")
+  ## transform data set in wide format
 data_prep_4_wide <- data_prep_4
 data_prep_4_wide <- data_prep_4_wide %>% 
   complete(ID_t, nesting(treatment_period)) %>% 
@@ -969,7 +968,27 @@ data_prep_4_wide <- data_prep_4_wide %>%
 data_prep_4_wide <- dcast(
   melt(data_prep_4_wide, id.vars = c("ID_t", "treatment_period")), 
   ID_t ~ variable + treatment_period)
+  ## apply mice
 mice_result <- mice(data_prep_4_wide, method = "cart", seed = 1234, m = 1, maxit = 1)
+  ## extract data set
+data_result_mice <- complete(mice_result)
+  ## convert back to long format
+  ## drop waves in which individual did not participated
+
+
+# mice.impute.2l.norm
+# https://www.gerkovink.com/miceVignettes/Multi_level/Multi_level_data.html
+ini <- mice(data_prep_4, maxit = 0)
+pred <- ini$pred
+pred[pred == 1] <- 2 # all predictors as random effects
+pred[, "ID_t"] <- rep(-2, ncol(data_prep_4)) # class
+pred["ID_t", "ID_t"] <- 0
+meth <- ini$meth
+meth[meth != ""] <- "2l.norm"
+mice_result_class <- mice(data_prep_4, pred = pred, meth = meth, seed = 1234, m = 1, maxit = 1)
+data_result_mice <- complete(mice_result_class)
+
+
 
 
 # normal approach
@@ -994,6 +1013,36 @@ sum(is.na(data_test$father_emp_prof))
 saveRDS(data_test, "data_mice_rep.rds")
 saveRDS(data_prep_4, "data_mice_result.rds")
 
+
+# check plausibility of missing value replacement
+  ## BMI
+sum(is.na(data_prep_4$health_bmi))
+summary(data_prep_4$health_bmi)
+sum(is.na(data_test$health_bmi))
+summary(data_test$health_bmi)
+  ## 
+table(data_prep_4$personality_nervous, useNA = "always")
+sum(is.na(data_test$personality_nervous))
+  ##
+table(data_prep_4$bigfive_conscientiousness, useNA = "always")
+sum(is.na(data_test$bigfive_conscientiousness))
+
+data_test_2_raw <- data_prep_4 %>% select(ID_t, treatment_period, starts_with("educ_uni"), personality_nervous, bigfive_conscientiousness)
+data_test_2_raw <- data_test_2_raw %>%
+  mutate_if(is.character, as.factor)
+colSums(is.na(data_test_2_raw))
+
+mice_test <- mice(data_test_2_raw, method = "cart", seed = 1234, m = 1, maxit = 5, remove_collinear = FALSE)
+mice_test$loggedEvents
+data_test_2 <- complete(mice_test)
+table(data_test_2$bigfive_conscientiousness, useNA = "always")
+colSums(is.na(data_test_2))
+
+
+
+# reconvert factor variables as character
+data_prep_4 <- data_prep_4 %>%
+  mutate_if(is.factor, as.character)
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
@@ -1244,140 +1293,92 @@ data_prep_5 %>% select(starts_with("uni_offers")) %>% head(5)
 #### Numeric in Categorical Variables ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
+data_prep_6 <- data_prep_5
 
-if (convert_num_char == "yes") {
-  data_sub_4 <- data_sub_3
+
+## BMI ##
+#+++++++#
+
+# generate categories
+# https://www.cdc.gov/obesity/basics/adult-defining.html and Flegal et al.
+# normal weight: BMI of 18.5-25
+# underweight: BMI < 18.5
+# overweight: 25-30
+# obesity: > 30
+summary(data_prep_6$health_bmi)
+data_prep_6 <- data_prep_6 %>%
+  mutate(
+    health_bmi_cat_over_under = case_when(health_bmi > 25 ~ 1, health_bmi < 18.5 ~ 1, TRUE ~ 0),
+  )
+table(data_prep_6$health_bmi_cat_over_under, useNA = "always")
+
+
+
+## OTHER VARIABLES ##
+#+++++++++++++++++++#
+
+# create age categories
+for (vars_categorized in c("age", "educ_years", "extracurricular_num",
+                           "uni_offers", "uni_counsel_offer", "uni_counsel_use",
+                           "current_emp_act_work_hours", "uni_time_courses",
+                           "uni_time_studyact", "uni_time_household", "uni_time_childcare",
+                           "uni_time_study")) {
   
-  ## AGE ##
+  # generate splitting values
+  split_one <- unname(quantile(data_prep_6 %>% pull(vars_categorized), 0.25))
+  split_two <- unname(quantile(data_prep_6 %>% pull(vars_categorized), 0.75))
+  split_max <- max(data_prep_6 %>% pull(vars_categorized))
   
-  # create age categories
-  summary(data_sub_4$age)
-  data_sub_4 <- data_sub_4 %>%
-    mutate(
-      age_cat = as.character(cut(age, breaks = c(-Inf, 21, 23, Inf), 
-                                 labels = c("21", "23", "25")))
-    )
-  table(data_sub_4$age_cat, useNA = "always")
+  # new variable name
+  vars_categorized_name <- paste0(vars_categorized, "_cat")
   
+  if (split_one != split_two) {
+    # generate new variable
+    data_prep_6 <- data_prep_6 %>%
+      mutate({{vars_categorized_name}} := as.character(
+        cut(!!!syms(vars_categorized), breaks = c(-Inf, split_one, split_two, Inf),
+            labels = c(as.character(round(split_one)), as.character(round(split_two)), 
+                       as.character(ceiling(split_max))))
+      ))
+  } else {
+    data_prep_6 <- data_prep_6 %>%
+      mutate({{vars_categorized_name}} := as.character(
+        cut(!!!syms(vars_categorized), breaks = c(-Inf, split_one, Inf),
+            labels = c(as.character(round(split_one)),  as.character(ceiling(split_max))))
+      ))
+  }
+
   
-  ## BMI ##
-  
-  # generate categories
-  # https://www.cdc.gov/obesity/basics/adult-defining.html and Flegal et al.
-  # normal weight: BMI of 18.5-25
-  # underweight: BMI < 18.5
-  # overweight: 25-30
-  # obesity: > 30
-  summary(data_sub_4$BMI)
-  data_sub_4 <- data_sub_4 %>%
-    mutate(
-      BMI_normal = case_when(BMI >= 18.5 & BMI <= 25 ~ 1, TRUE ~ 0),
-      BMI_over = case_when(BMI > 25 ~ 1, TRUE ~ 0)
-    )
-  table(data_sub_4$BMI_normal, useNA = "always")
-  table(data_sub_4$BMI_over, useNA = "always")
-  
-  
-  ## YEARS OF EDUCATION ##
-  
-  summary(data_sub_4$educ_years)
-  data_sub_4 <- data_sub_4 %>%
-    mutate(educ_years_cat = as.character(
-      cut(educ_years, breaks = c(-Inf,  14, 17, Inf), labels = c("14", "17", "20")
-      )))
-  table(data_sub_4$educ_years_cat, useNA = "always")
-  
-  # ## EXTRACURRICULAR ##
-  # extracurricular_num 
-  # extracurricular_freq
-  # 
-  # 
-  # ## HOUSEHOLD SIZE ##
-  # 
-  # summary(data_sub_4$living_hh_size)
-  # 
-  # data_sub_4 <- data_sub_4 %>%
-  #   mutate(
-  #     living_hh_size_2 = ifelse(living_hh_size == 2, 1, 0),
-  #     living_hh_size_3_4 = ifelse(living_hh_size %in% c(3, 4), 1, 0),
-  #     living_hh_size_5plus = ifelse(living_hh_size >= 5, 1, 0)
-  #   )
-  # 
-  # table(data_sub_4$living_hh_size_2)
-  # table(data_sub_4$living_hh_size_3_4)
-  # table(data_sub_4$living_hh_size_5plus)
-  # 
-  # 
-  # ## RENT ##
-  # 
-  # summary(data_sub_4$living_rent)
-  # 
-  # data_sub_4$living_rent_cat <- cut(
-  #   data_sub_4$living_rent, breaks = c(-Inf, 250, 500, 1000, Inf), 
-  #   labels = paste0("living_rent_", c("250", "500", "1000", "1000plus"))
-  #   )
-  #   
-  # 
-  # ## UNI ##
-  # 
-  # uni_counsel_offer uni_counsel_use  uni_offers_partic   uni_offers
-  # 
-  # 
-  # ## SPENDING TIME ##
-  # 
-  # uni_time_courses uni_time_studyact uni_time_employment
-  # uni_time_household uni_time_childcare uni_time_study
-  # 
-  # # courses
-  # 
-  # # study
-  # 
-  # # employment
-  # 
-  # # household 
-  # 
-  # # child care
-  # 
-  # 
-  # ## INCOME ##
-  # 
-  # current_emp_net_income
-  # 
-  # ## CHILD ##
-  # 
-  # child_total_num    
-  # child_age_youngest 
-  # child_age_oldest
-  # child_school_num    
-  # child_male_num   
-  # 
-  # 
-  # ## PARTNER ##
-  # 
-  # partner_length_previous partner_length_current  partner_age
-  # partner_num_total
-  # 
-  # ## LENGTH TREATMENT PERIOD
-  # treatment_period_length
-} else {
-  data_sub_4 <- data_sub_3
 }
+
+table(data_prep_6$age_cat, useNA = "always")
+table(data_prep_6$educ_years_cat, useNA = "always")
+table(data_prep_6$extracurricular_num_cat, useNA = "always")
+table(data_prep_6$uni_counsel_offer_cat, useNA = "always")
+table(data_prep_6$uni_counsel_use_cat, useNA = "always")
+table(data_prep_6$current_emp_act_work_hours_cat, useNA = "always")
+table(data_prep_6$uni_time_courses_cat, useNA = "always")
+table(data_prep_6$uni_time_studyact_cat, useNA = "always")
+table(data_prep_6$uni_time_household_cat, useNA = "always")
+table(data_prep_6$uni_time_childcare_cat, useNA = "always")
+table(data_prep_6$uni_time_study_cat, useNA = "always")
+
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%#
 #### Dummy Variables ####
 #%%%%%%%%%%%%%%%%%%%%%%%#
 
-data_sub_5 <- data_sub_4
+data_sub_7 <- data_prep_6
 
 # automatically generate dummy variables for categorical variables
 # LASSO will select which are important
 ## identify all categorical columns
-vars_categoric <- data_sub_5 %>% ungroup() %>% select_if(~ is.character(.)) %>% colnames()
-data_sub_5 <- dummy_cols(
-  # selected column cannot be removed due to descriptives, 
+vars_categoric <- data_sub_7 %>% ungroup() %>% select_if(~ is.character(.)) %>% colnames()
+data_sub_7 <- dummy_cols(
+  # selected column cannot be removed due to descriptives (hence saved and removed later)
   # base category is omitted 
-  data_sub_5, remove_selected_columns = FALSE, remove_first_dummy = TRUE, 
+  data_sub_7, remove_selected_columns = FALSE, remove_first_dummy = TRUE, 
   select_columns = vars_categoric
 )
 
@@ -1385,30 +1386,44 @@ saveRDS(vars_categoric, "Data/prep_6_variables_drop_cat.rds")
 
 
 # birth month and birth year as additional dummys
-data_sub_5$birth_month_name <- as.character(month(data_sub_5$birth_month, label = TRUE, abbr = TRUE))
-data_sub_5 <- dummy_cols(
+data_sub_7$birth_month_name <- as.character(month(data_sub_7$birth_month, label = TRUE, abbr = TRUE))
+data_sub_7 <- dummy_cols(
   # selected column is removed, and base category is omitted 
-  data_sub_5, remove_selected_columns = FALSE, remove_first_dummy = TRUE, 
+  data_sub_7, remove_selected_columns = FALSE, remove_first_dummy = TRUE, 
   select_columns = c("birth_month_name", "birth_year", "interview_start_year", "interview_end_year")
-) %>% select(-c("birth_month_name", "birth_year", "interview_start_year", "interview_end_year"))
+) %>% select(-c("birth_month_name", "birth_month", "birth_year", "interview_start_year", "interview_end_year"))
+
 
 
 #%%%%%%%%%%%%%%%%%%%#
 #### Final Steps ####
 #%%%%%%%%%%%%%%%%%%%#
 
+data_final <- data_sub_7
+
+# ungroup
+data_final <- data_final %>% ungroup()
+
 # check for missing values
-sum(is.na(data_sub_5))
+sum(is.na(data_final))
 
 # check for duplicates
-sum(duplicated(data_sub_5))
+sum(duplicated(data_final))
   ## remove duplicates
-data_sub_5 <- data_sub_5 %>% distinct()
+data_final <- data_final %>% distinct()
 
 # number of respondents, rows, and columns
-print(paste("Number of respondents:", length(unique(data_sub_5$ID_t))))
-print(paste("Number of rows", nrow(data_sub_5)))
-print(paste("Number of columns", ncol(data_sub_5)))
+print(paste("Number of respondents:", length(unique(data_final$ID_t))))
+print(paste("Number of rows", nrow(data_final)))
+print(paste("Number of columns", ncol(data_final)))
 
 # save data frame
-saveRDS(data_sub_5, "Data/prep_6_variables.rds")
+if (cohort_prep == "controls_same_outcome") {
+  data_save <- paste0("Data/Prep_7/prep_7_control_vars_", treatment_def, 
+                      "_", treatment_repl, ".rds")
+} else {
+  data_save <- paste0("Data/Prep_7/prep_7_control_vars_", treatment_def, 
+                      "_", treatment_repl, "_robustcheck.rds")
+}
+
+saveRDS(data_final, data_save)
