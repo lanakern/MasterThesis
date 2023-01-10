@@ -57,6 +57,9 @@ library(psych)  # for Cronbach#s alpha
 if (!require("mice")) install.packages("mice")
 library(mice)  # for replacing missing values with mice()
 
+if (!require("reshape2")) install.packages("reshape2")
+library(reshape2)  # for converting data frame from long to wide format
+
 # set language for dates and times to German, since the NEPS month names
 # are written in German; otherwise date/time functions are not working
 # for German language
@@ -110,21 +113,29 @@ for (func_load in load_function) {
 }
 
 
+keep_after_file_run <- 'rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", 
+"treatment_def", "df_inputs", "prep_sel_num", "aggr_vars", "cronbach_a", 
+ls()[str_starts(ls(), "func_")])))'
+
 #### RUN DATA PREPARATION ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 # Load all data files and make basic preparations like renaming variables and
 # recoding missing values as NA
 source("Scripts/01_Load_Data.R")
+eval(parse(text = keep_after_file_run))
 
 # Prepare episode / life course data, i.e., educational history of each respondents
 source("Scripts/02_a_Prep_Data_Life_Course.R")
+eval(parse(text = keep_after_file_run))
 
 # Prepare treatment periods
 for (cohort_prep_sel in unique(na.omit(df_inputs$cohort_prep))) {
   cohort_prep <- cohort_prep_sel
   print(cohort_prep)
   source("Scripts/02_b_Prep_Data_Interview_Participation.R")
+  eval(parse(text = keep_after_file_run))
+  
 }
 
 # Prepare everything else
@@ -136,22 +147,40 @@ for (prep_sel_num in 1:nrow(df_inputs)) {
   
   # Prepare individual data sets
   source("Scripts/03_a_Prep_Cati.R")
+  eval(parse(text = keep_after_file_run))
+  
   source("Scripts/03_b_Prep_Cawi.R")
+  eval(parse(text = keep_after_file_run))
+  
   source("Scripts/03_c_Prep_Sibling.R")
+  eval(parse(text = keep_after_file_run))
+  
   source("Scripts/03_d_Prep_Child.R")
+  eval(parse(text = keep_after_file_run))
+  
   source("Scripts/03_e_Prep_Partner.R")
+  eval(parse(text = keep_after_file_run))
+  
   source("Scripts/03_f_Prep_Competencies.R")
+  eval(parse(text = keep_after_file_run))
   
   # Merge 
   source("Scripts/04_a_Merge_CATI_CAWI.R") # merge CATI & CAWI
+  eval(parse(text = keep_after_file_run))
+  
   source("Scripts/04_b_Merge_Prepare_Episode.R") # add episode data
+  eval(parse(text = keep_after_file_run))
+  
   source("Scripts/04_c_Merge_All.R") # add all other data sets
+  eval(parse(text = keep_after_file_run))
   
   # Prepare treatment and outcome
   source("Scripts/05_Create_Treatment_Outcome.R") 
+  eval(parse(text = keep_after_file_run))
   
   # Sample selection
   source("Scripts/06_Sample_Selection.R") 
+  eval(parse(text = keep_after_file_run))
   
   print(paste0("FINISHED COMBINATION", prep_sel_num))
   gc()

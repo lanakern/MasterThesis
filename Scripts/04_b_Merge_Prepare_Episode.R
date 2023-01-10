@@ -302,9 +302,10 @@ data_cati_cawi_eps_all_2 %>% subset(ID_t == 7001992) %>%
 
 # in this case, the last (most recent) uni spell is kept
 data_cati_cawi_eps_all_2 <- data_cati_cawi_eps_all_2 %>%
+  ungroup() %>%
   arrange(ID_t, treatment_period, start_date) %>%
   group_by(ID_t, treatment_period) %>%
-  slice(n())
+  dplyr::slice(n())
 data_cati_cawi_eps_all_2 %>% subset(ID_t == 7001992) %>%
   select(ID_t, treatment_period, starts_with("interview_date"), start_date, end_date)  
 
@@ -396,11 +397,11 @@ data_check_emp <- data_check_emp %>%
   select(-start_date)
 
 
-# add prefix for emp_ variables
+# add prefix for emp_ variables: all starts with emp_current
 data_check_emp <- cbind(
   data_check_emp %>%
     select(starts_with("emp")) %>%
-    rename_with(~ paste("current",.x,  sep = "_")),
+    rename_with(~ gsub(.x, pattern = "emp", replacement = "emp_current")),
   data_check_emp %>%
     select(-starts_with("emp"))
 )
@@ -414,7 +415,7 @@ data_check_emp %>% subset(ID_t == 7001970) %>% select(ID_t, interview_date_spell
 data_check_emp <- data_check_emp %>%
   arrange(ID_t, interview_date_spell, spell_length_current_Emp) %>%
   group_by(ID_t, interview_date_spell) %>%
-  slice(n())
+  dplyr::slice(n())
 data_check_emp %>% subset(ID_t == 7001970) %>% select(ID_t, interview_date_spell, everything())
 
 # add employment to respective treatment period
@@ -422,15 +423,17 @@ data_cati_cawi_unispell_emp <- left_join(
   data_cati_cawi_unispell, data_check_emp, by = c("ID_t", "interview_date_spell")
 )
 
-# set current_emp indicator to 0 for individuals who do not work during their study
-table(data_cati_cawi_unispell_emp$current_emp, useNA = "always")
+# set emp_current indicator to 0 for individuals who do not work during their study
+table(data_cati_cawi_unispell_emp$emp_current, useNA = "always")
 data_cati_cawi_unispell_emp <- data_cati_cawi_unispell_emp %>%
-  mutate(current_emp = ifelse(is.na(current_emp), 0, current_emp))
-table(data_cati_cawi_unispell_emp$current_emp, useNA = "always")
+  mutate(emp_current = ifelse(is.na(emp_current), 0, emp_current))
+table(data_cati_cawi_unispell_emp$emp_current, useNA = "always")
 
 # drop the employment variables not needed anymore
+cols_emp_drop <- data_cati_cawi_unispell_emp %>% select(starts_with("emp")) %>% colnames()
+cols_emp_drop <- cols_emp_drop[!str_detect(cols_emp_drop, "current")]
 data_cati_cawi_unispell_emp <- data_cati_cawi_unispell_emp %>%
-  select(-starts_with("emp"))
+  select(-all_of(cols_emp_drop))
 
 
 # number of respondents

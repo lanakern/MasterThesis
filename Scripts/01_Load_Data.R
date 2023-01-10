@@ -49,7 +49,7 @@
 
 
 # clear workspace
-rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", "treatment_def")))
+# rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", "treatment_def")))
 
 # install packages if needed, load packages
 # if (!require("readstata13")) install.packages("readstata13")

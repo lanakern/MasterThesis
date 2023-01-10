@@ -31,7 +31,7 @@
 #%%%%%%%%%%%%%#
 
 # clear workspace
-rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", "treatment_def", "df_inputs", "prep_sel_num")))
+# rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", "treatment_def", "df_inputs", "prep_sel_num")))
 
 # # load and install (if necessary) packages
 # if (!require("dplyr")) install.packages("dplyr")
