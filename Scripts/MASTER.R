@@ -114,8 +114,9 @@ for (func_load in load_function) {
 
 
 keep_after_file_run <- 'rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", 
-"treatment_def", "df_inputs", "prep_sel_num", "aggr_vars", "cronbach_a", 
+"treatment_def", "df_inputs", "prep_sel_num", "aggr_vars", "cronbach_a", "keep_after_file_run",
 ls()[str_starts(ls(), "func_")])))'
+
 
 #### RUN DATA PREPARATION ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -187,13 +188,11 @@ for (prep_sel_num in 1:nrow(df_inputs)) {
 }
 
 
-
-  # load file showing sample reduction
+# load file showing sample reduction
 df_excel_save_hist <- read.xlsx("Data/SAMPLE_REDUCTION_STEPS.xlsx", sheetName = "Sheet1")
 df_excel_save_hist
 
 
-#
 # Prepare control variables
 # now set language for dates and times to English
 Sys.setlocale("LC_TIME", "English")
