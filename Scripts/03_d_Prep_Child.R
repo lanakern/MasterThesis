@@ -36,6 +36,7 @@
 # it is assumed that child goes to school
 # -> Missing values in household variable are replaced: if child_type == "other child in household", 
 # I assume that child lives in household.
+# -> Remaining missing values are replaced in file 07
 #++++
 # --> FINAL DATA FRAME IS A PANEL DATA SET (one row for each respondent-interview_date combination).
 #++++
@@ -297,8 +298,7 @@ data_child_2 <- left_join(
   mutate(child_school_num = replace_na(child_school_num, 0)) %>%
   distinct()
 
-sum(is.na(data_child_2$child_age_school_num))
-
+sum(is.na(data_child_2$child_school_num))
 
 
 ## NUMBER BIOLOGICAL CHILDREN ##
@@ -322,7 +322,6 @@ data_child_2 <- left_join(
 
 
 sum(is.na(data_child$child_biological_num))
-
 
 
 
@@ -358,22 +357,22 @@ sum(is.na(data_child_2$child_living_hh_num))
 
 # add dummy indicating if at least for one child in the current wave
 # the respondent did not answer
-data_child_2 <- left_join(
-  data_child_2, 
-  data_child_2 %>%
-    select(ID_t, interview_date, child_hh) %>%
-    group_by(ID_t, interview_date) %>%
-    mutate(child_living_hh_num_NA = if_else(is.na(child_hh), 1, 0)) %>%
-    group_by(ID_t, interview_date) %>%
-    mutate(child_living_hh_num_NA = sum(child_living_hh_num_NA)) %>%
-    distinct() %>%
-    mutate(child_living_hh_num_NA = if_else(child_living_hh_num_NA > 0, 1, 0)) %>%
-    select(-child_hh) %>%
-    ungroup(),
-  by = c("ID_t", "interview_date")
-) %>% distinct()
-
-table(data_child_2$child_living_hh_num_NA, useNA = "always")
+# data_child_2 <- left_join(
+#   data_child_2, 
+#   data_child_2 %>%
+#     select(ID_t, interview_date, child_hh) %>%
+#     group_by(ID_t, interview_date) %>%
+#     mutate(child_living_hh_num_NA = if_else(is.na(child_hh), 1, 0)) %>%
+#     group_by(ID_t, interview_date) %>%
+#     mutate(child_living_hh_num_NA = sum(child_living_hh_num_NA)) %>%
+#     distinct() %>%
+#     mutate(child_living_hh_num_NA = if_else(child_living_hh_num_NA > 0, 1, 0)) %>%
+#     select(-child_hh) %>%
+#     ungroup(),
+#   by = c("ID_t", "interview_date")
+# ) %>% distinct()
+# 
+# table(data_child_2$child_living_hh_num_NA, useNA = "always")
 
 
 
@@ -404,13 +403,18 @@ sum(is.na(data_child_2$child_male_num))
 #### Final Steps ####
 #%%%%%%%%%%%%%%%%%%%#
 
+data_child_final <- data_child_2 
+
+# generate sibling dummy
+data_child_final <- data_child_final %>% mutate(child = 1)
+
 # keep only variables of interest
-data_child_final <- data_child_2 %>%
-  select(ID_t, interview_date, child_total_num, 
+data_child_final <- data_child_final %>%
+  select(ID_t, interview_date, child, child_total_num, 
          child_age_youngest, child_age_oldest, child_age_toddler_num, 
          child_age_preschool_num, child_age_school_num, child_age_teen_num, 
          child_school_num, child_biological_num,
-         child_living_hh_num, child_living_hh_num_NA, child_male_num) %>%
+         child_living_hh_num, child_male_num) %>%
   ungroup() %>%
   distinct() %>%
   arrange(ID_t, interview_date)

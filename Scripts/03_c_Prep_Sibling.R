@@ -14,11 +14,9 @@
 # 3.) Identify two oldest or closest siblings for non missing values 
 # -> Create variables for school degree etc. for them
 #++++
-# 4.) Create NA dummies which equal 1 if respondent did not give an answer and 
-# 0 otherwise; NA in other dummies are then replaced with 0 so that no missing
-# values are left. 
-# -> For respondents with only one sibling sibling_2 and their respective NA
-# dummies are set to 0. 
+# 4.) Missing Values
+# -> Replaced later in 07
+# -> For respondents with only one sibling sibling_2 dummies are set to 0. 
 #++++
 # --> Cross-sectional data set: one row for each respondent
 
@@ -471,14 +469,13 @@ data_sibling_final_2 <- left_join(
 
 
 
-#%%%%%%%%%%%%%%%%%#
-#### NA Dummys ####
-#%%%%%%%%%%%%%%%%%#
+#%%%%%%%%%%%%%%%%%%%%%%#
+#### Missing Values ####
+#%%%%%%%%%%%%%%%%%%%%%%#
 
 
 # check for NAs in sibling variable
 sapply(data_sibling_final_2, function(y) sum(length(which(is.na(y)))))
-table(data_sibling_final_2$sibling_employed_1, useNA = "always") # for later check
 
 # for all individuals who do not have a second sibling, set the sibling_*_2 variables
 # to 0
@@ -492,31 +489,29 @@ data_sibling_final_2 <- data_sibling_final_2 %>%
 data_sibling_final_2 %>% subset(ID_t == 7001969)
 data_sibling_final_2 %>% subset(ID_t == 7001970)
 
-# for all other NAs, create NA dummys and then set NAs in those variables to zero
-cols_NA <- names(colSums(is.na(data_sibling_final_2))[colSums(is.na(data_sibling_final_2)) > 0])
-cols_NA <- cols_NA[!str_detect(cols_NA, "birth_date")]
-  ## create NA dummies
-for (cols_NA_sel in cols_NA) {
-  cols_NA_mut <- paste0(cols_NA_sel, "_NA")
-  data_sibling_final_2 <- data_sibling_final_2 %>%
-    mutate(
-      {{cols_NA_mut}} := ifelse(is.na(!!!syms(cols_NA_sel)), 1, 0),
-      {{cols_NA_sel}} := ifelse(is.na(!!!syms(cols_NA_sel)), 0, !!!syms(cols_NA_sel))
-    )
-}
+# # for all other NAs, create NA dummys and then set NAs in those variables to zero
+# cols_NA <- names(colSums(is.na(data_sibling_final_2))[colSums(is.na(data_sibling_final_2)) > 0])
+# cols_NA <- cols_NA[!str_detect(cols_NA, "birth_date")]
+#   ## create NA dummies
+# for (cols_NA_sel in cols_NA) {
+#   cols_NA_mut <- paste0(cols_NA_sel, "_NA")
+#   data_sibling_final_2 <- data_sibling_final_2 %>%
+#     mutate(
+#       {{cols_NA_mut}} := ifelse(is.na(!!!syms(cols_NA_sel)), 1, 0),
+#       {{cols_NA_sel}} := ifelse(is.na(!!!syms(cols_NA_sel)), 0, !!!syms(cols_NA_sel))
+#     )
+# }
 
 # check for NAs
 colSums(is.na(data_sibling_final_2)) # only NAs for birth columns
-
-# check if replacement is correct -> yes
-table(data_sibling_final_2$sibling_employed_1)
-table(data_sibling_final_2$sibling_employed_1_NA)
-
 
 
 #%%%%%%%%%%%%%%%%%%%#
 #### Final Steps ####
 #%%%%%%%%%%%%%%%%%%%#
+
+# generate sibling dummy
+data_sibling_final_2 <- data_sibling_final_2 %>% mutate(sibling = 1)
 
 # check if all individuals are kept
 length(unique(data_sibling_final_2$ID_t)) == id_num_sib
@@ -525,8 +520,8 @@ setdiff(id_sib, unique(data_sibling_final_2$ID_t))
 
 # reorder columns
 data_sibling_final_2 <- data_sibling_final_2 %>%
-  select(ID_t, sibling_total, starts_with("sibling_older_total"), starts_with("sibling_twin"),
-         matches("sibling_.*_1"), matches("sibling_.*_2"))
+  select(ID_t, sibling, sibling_total, starts_with("sibling_older_total"), 
+         starts_with("sibling_twin"), matches("sibling_.*_1"), matches("sibling_.*_2"))
 
 # check respondents
 # df_check_1 <- data_target_cati %>% subset(ID_t %in% c(7001975, 7001971, 7002373, 7002298, 7001994, 7002007))
@@ -542,6 +537,7 @@ data_sibling_final_2 <- data_sibling_final_2 %>%
 sum(duplicated(data_sibling_final_2))
 
 # check for missing values
+sum(is.na(data_sibling_final_2))
 colSums(is.na(data_sibling_final_2))
 
 # all columns as integer

@@ -655,7 +655,6 @@ table(data_prep_1$uni_institution_choice, useNA = "always")
 ## Parents ##
 #+++++++++++#
 
-
 data_prep_1 <- data_prep_1 %>%
   mutate(
     # Importance profession: set NA everything not indicating importance
@@ -831,24 +830,15 @@ data_prep_2 <- data_prep_2 %>%
 sum(is.na(data_prep_2 %>% select(starts_with("emp_current_"))))
 sum(is.na(data_prep_2 %>% filter(emp_current == 0) %>% select(starts_with("emp_current_"))))
 
-# Partner
-sum(is.na(data_prep_2 %>% select(starts_with("partner_"))))
-data_prep_2 <- data_prep_2 %>%
-  mutate(across(starts_with("partner_"), ~ ifelse(partner_current == 0, 0, .)))
+# Partner (already done in 04_c)
 sum(is.na(data_prep_2 %>% select(starts_with("partner_"))))
 sum(is.na(data_prep_2 %>% filter(partner_current == 0) %>% select(starts_with("partner_"))))
 
-# Child
-sum(is.na(data_prep_2 %>% select(starts_with("child_"))))
-data_prep_2 <- data_prep_2 %>%
-  mutate(across(starts_with("child_"), ~ ifelse(child == 0, 0, .)))
+# Child (already done in 04_c)
 sum(is.na(data_prep_2 %>% select(starts_with("child_"))))
 sum(is.na(data_prep_2 %>% filter(child == 0) %>% select(starts_with("child_"))))
 
-# Sibling
-sum(is.na(data_prep_2 %>% select(starts_with("sibling_"))))
-data_prep_2 <- data_prep_2 %>%
-  mutate(across(starts_with("sibling_"), ~ ifelse(sibling == 0, 0, .)))
+# Sibling (already done in 04_c)
 sum(is.na(data_prep_2 %>% select(starts_with("sibling_"))))
 sum(is.na(data_prep_2 %>% filter(sibling == 0) %>% select(starts_with("sibling_"))))
 
@@ -865,7 +855,7 @@ col_names_na_drop <- sort(names(col_names_na_drop))
 
 # generate vector containing columns which I keep anyway
 col_keep <- c("comp_", "educ_uni_degree_achieve", "educ_uni_degree_aspire", 
-              "uni_prof_expected", "stress","motivation")
+              "uni_prof_expected", "stress","motivation", "sibling", "partner", "child")
 col_keep_all <- data_prep_2 %>% select(matches(paste0(col_keep, collapse = "|"))) %>% colnames()
 
 # adjust vector with colnames to drop
@@ -945,21 +935,27 @@ data_prep_3 <- data_prep_2
 #+++++++++++++++#
 
 # https://stefvanbuuren.name/fimd/ch-longitudinal.html
+# https://datascienceplus.com/imputing-missing-data-with-r-mice-package/
 
 data_prep_4 <- data_prep_3
 
 # number of missing values before replacement
+  ## total
 sum(is.na(data_prep_4))
+  ## percentage of missing values per column
+unique(sort(unname(colSums(is.na(data_prep_4))))) / nrow(data_prep_4)*100
+length(colSums(is.na(data_prep_4))[colSums(is.na(data_prep_4)) > 0])
 
 # to make replacement for categorical variables they need to be converted 
 # as factors
 data_prep_4 <- data_prep_4 %>%
   mutate_if(is.character, as.factor)
 
+# all continuous variables as numeric
+# data_prep_4 <- data_prep_4 %>%
+#   mutate_if(is.integer, as.numeric)
 
-## wide format ##
-library("reshape2")
-  ## transform data set in wide format
+# transform data set in wide format
 data_prep_4_wide <- data_prep_4
 data_prep_4_wide <- data_prep_4_wide %>% 
   complete(ID_t, nesting(treatment_period)) %>% 
@@ -968,77 +964,63 @@ data_prep_4_wide <- data_prep_4_wide %>%
 data_prep_4_wide <- dcast(
   melt(data_prep_4_wide, id.vars = c("ID_t", "treatment_period")), 
   ID_t ~ variable + treatment_period)
-  ## apply mice
+  ## melt() converts all variables as numeric; hence re-convert them
+data_prep_4_wide <- data_prep_4_wide %>%
+  type.convert(as.is = TRUE) %>% # R finds correct type
+  mutate_if(is.character, as.factor) # character as factors (needed for mice)
+
+# set up mice
+init <- mice(data_prep_4_wide, maxit = 0) 
+meth <- "CART"
+pred_matrix <-  init$predictorMatrix
+
+# adjust predictor matrix to reduce the number of variables
+  ## ID_t and interview dates are not used as a predictor
+pred_matrix[, c("ID_t")] <- 0
+pred_matrix[, c(data_prep_4_wide %>% select(starts_with("interview_date")) %>% colnames())] <- 0
+  ## for all waves only predictor variables of current wave are used (except for variable to be predicted)
+pred_matrix_vars <- rownames(pred_matrix)
+for (pred_matrix_vars_sel in pred_matrix_vars) {
+  pred_matrix_vars_num <- str_sub(pred_matrix_vars_sel, -1, -1)
+  pred_matrix_vars_set_0 <- pred_matrix_vars[str_ends(pred_matrix_vars, paste0("_", pred_matrix_vars_num), negate = TRUE)]
+  pred_matrix[pred_matrix_vars_sel, c(pred_matrix_vars_set_0)] <- 0
+}
+  ## only closely related variables are used, e.g. for personality variables only personality variables.
+pred_matrix_vars <- c("educ", "interest", "uni", "comp", "child", "sibling", "partner")
+for (pred_matrix_vars_sel in pred_matrix_vars) {
+  pred_matrix_vars_num <- pred_matrix %>% as.data.frame() %>% select(starts_with(pred_matrix_vars_sel)) %>% colnames()
+  pred_matrix_vars_set_0 <- pred_matrix %>% as.data.frame() %>% select(!starts_with(pred_matrix_vars_sel)) %>% colnames()
+  pred_matrix[pred_matrix_vars_num, c(pred_matrix_vars_set_0)] <- 0
+}
+pred_matrix_vars_num <- pred_matrix %>% as.data.frame() %>% select(starts_with("personality"), starts_with("bigfive")) %>% colnames()
+pred_matrix_vars_set_0 <- pred_matrix %>% as.data.frame() %>% select(!c(starts_with("personality"), starts_with("bigfive"))) %>% colnames()
+pred_matrix[pred_matrix_vars_num, c(pred_matrix_vars_set_0)] <- 0
+
+
+# apply mice
 mice_result <- mice(data_prep_4_wide, method = "cart", seed = 1234, m = 1, maxit = 1)
   ## extract data set
 data_result_mice <- complete(mice_result)
   ## convert back to long format
   ## drop waves in which individual did not participated
-
-
-# mice.impute.2l.norm
-# https://www.gerkovink.com/miceVignettes/Multi_level/Multi_level_data.html
-ini <- mice(data_prep_4, maxit = 0)
-pred <- ini$pred
-pred[pred == 1] <- 2 # all predictors as random effects
-pred[, "ID_t"] <- rep(-2, ncol(data_prep_4)) # class
-pred["ID_t", "ID_t"] <- 0
-meth <- ini$meth
-meth[meth != ""] <- "2l.norm"
-mice_result_class <- mice(data_prep_4, pred = pred, meth = meth, seed = 1234, m = 1, maxit = 1)
-data_result_mice <- complete(mice_result_class)
-
-
-
-
-# normal approach
-mice_result <- mice(data_prep_4, method = "cart", seed = 1234, m = 1, maxit = 1)
-
-print(data_prep_4)
-
-unique(data_prep_4$satisfaction_life_1)
-mice_result$imp$satisfaction_life_1
-
-unique(data_prep_3$personality_goal_pers_1)
-unique(data_prep_4$imp$personality_goal_pers_1)
-
-
-sum(is.na(data_prep_4))
-data_test <- complete(data_prep_4)
-sum(is.na(data_test))
-
-colSums(is.na(data_test))[colSums(is.na(data_test)) > 0 ]
-sum(is.na(data_test$father_emp_prof))
-
-saveRDS(data_test, "data_mice_rep.rds")
-saveRDS(data_prep_4, "data_mice_result.rds")
+saveRDS(data_result_mice, "data_mice_result_wide.rds")
 
 
 # check plausibility of missing value replacement
   ## BMI
-sum(is.na(data_prep_4$health_bmi))
+summary(data_prep_3$health_bmi)
 summary(data_prep_4$health_bmi)
-sum(is.na(data_test$health_bmi))
-summary(data_test$health_bmi)
-  ## 
+  ## motivation degree
+summary(data_prep_3$motivation_degree_1)
+unique(data_prep_3$motivation_degree_1)
+summary(data_prep_4$motivation_degree_1)
+unique(data_prep_4$motivation_degree_1)
+  ## personality nervous
+table(data_prep_3$personality_nervous, useNA = "always")
 table(data_prep_4$personality_nervous, useNA = "always")
-sum(is.na(data_test$personality_nervous))
-  ##
+  ## big five personality conscientiousness
+table(data_prep_3$bigfive_conscientiousness, useNA = "always")
 table(data_prep_4$bigfive_conscientiousness, useNA = "always")
-sum(is.na(data_test$bigfive_conscientiousness))
-
-data_test_2_raw <- data_prep_4 %>% select(ID_t, treatment_period, starts_with("educ_uni"), personality_nervous, bigfive_conscientiousness)
-data_test_2_raw <- data_test_2_raw %>%
-  mutate_if(is.character, as.factor)
-colSums(is.na(data_test_2_raw))
-
-mice_test <- mice(data_test_2_raw, method = "cart", seed = 1234, m = 1, maxit = 5, remove_collinear = FALSE)
-mice_test$loggedEvents
-data_test_2 <- complete(mice_test)
-table(data_test_2$bigfive_conscientiousness, useNA = "always")
-colSums(is.na(data_test_2))
-
-
 
 # reconvert factor variables as character
 data_prep_4 <- data_prep_4 %>%

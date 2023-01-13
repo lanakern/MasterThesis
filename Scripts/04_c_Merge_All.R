@@ -12,7 +12,7 @@
 # 1.) Merge sibling via ID_t: 
 # -> For all respondents who are not in the sibling data frame all columns from 
 # sibling are set to 0 (as they do not have an sibling).
-# -> Age of siblings is generated and a dummy indicating if respondent has a sibling or not.
+# -> Age of siblings is generated.
 # -> The activity variables (employment and study) only refer to the CATI interview 
 # in 2010/11. Hence, they are set NA for further waves. For school degree the
 # same is done if sibling is younger than 18. For the number of sibling variables,
@@ -34,7 +34,7 @@
 
 
 # clear workspace
-rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", "treatment_def", "df_inputs", "prep_sel_num")))
+# rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", "treatment_def", "df_inputs", "prep_sel_num")))
 
 # # install packages if needed, load packages
 # if (!require("dplyr")) install.packages("dplyr")
@@ -110,6 +110,10 @@ num_id_comp <- length(unique(data_competencies$ID_t))
 #### SIBLING ####
 #%%%%%%%%%%%%%%%#
 
+# check for missing values and duplicates
+sum(duplicated(data_sibling))
+sum(is.na(data_sibling))
+
 # sibling data: keep only respondents who are in data_cati_cawi_eps
 id_cati_cawi_eps <- unique(data_cati_cawi_eps$ID_t)
 data_sibling_adj <- data_sibling %>% subset(ID_t %in% id_cati_cawi_eps)
@@ -117,7 +121,7 @@ num_id_sib_adj_1 <- length(unique(data_sibling_adj$ID_t))
 
 # sub data frame
 data_sibling_adj_1 <- data_sibling_adj %>%
-  select(ID_t, sibling_total, starts_with("sibling_older_total"), starts_with("sibling_twin"),
+  select(ID_t, sibling, sibling_total, starts_with("sibling_older_total"), starts_with("sibling_twin"),
          matches(".*birth_date.*"), starts_with("sibling_uni_entrance_quali"))
 
 data_sibling_adj_2 <- data_sibling_adj %>%
@@ -145,22 +149,22 @@ length(unique(data_merge_sib$ID_t))
 
 
 # replace sibling_activity_NA and set sibling activity variable 0
-cols_NA <- data_merge_sib %>% select(matches(".*employed.*"), matches(".*study.*")) %>% colnames()
-  ## create NA dummy
-data_merge_sib <- data_merge_sib %>%
-  mutate(
-    sibling_employed_1_NA = ifelse(is.na(sibling_employed_1), 1, 0),
-    sibling_employed_2_NA = ifelse(is.na(sibling_employed_2), 1, 0),
-    sibling_study_1_NA = ifelse(is.na(sibling_study_1), 1, 0),
-    sibling_study_2_NA = ifelse(is.na(sibling_study_2), 1, 0)
-    )
-  ## iterate over columns
-for (cols_NA_sel in cols_NA) {
-  data_merge_sib <- data_merge_sib %>%
-    mutate(
-      {{cols_NA_sel}} := ifelse(is.na(!!!syms(cols_NA_sel)), 0, !!!syms(cols_NA_sel))
-    )
-}
+# cols_NA <- data_merge_sib %>% select(matches(".*employed.*"), matches(".*study.*")) %>% colnames()
+#   ## create NA dummy
+# data_merge_sib <- data_merge_sib %>%
+#   mutate(
+#     sibling_employed_1_NA = ifelse(is.na(sibling_employed_1), 1, 0),
+#     sibling_employed_2_NA = ifelse(is.na(sibling_employed_2), 1, 0),
+#     sibling_study_1_NA = ifelse(is.na(sibling_study_1), 1, 0),
+#     sibling_study_2_NA = ifelse(is.na(sibling_study_2), 1, 0)
+#     )
+#   ## iterate over columns
+# for (cols_NA_sel in cols_NA) {
+#   data_merge_sib <- data_merge_sib %>%
+#     mutate(
+#       {{cols_NA_sel}} := ifelse(is.na(!!!syms(cols_NA_sel)), 0, !!!syms(cols_NA_sel))
+#     )
+# }
 
 
 # generate age of sibling
@@ -178,21 +182,26 @@ data_merge_sib <- data_merge_sib %>%
 
 data_merge_sib <- data_merge_sib %>%
   mutate(
-    sibling_uni_entrance_quali_1_NA = ifelse(
-      sibling_age_1 < 18 & !is.na(sibling_age_1) & year(interview_date_spell) >= 2013, 1, sibling_uni_entrance_quali_1_NA),
-    sibling_uni_entrance_quali_1 = ifelse(
-      sibling_uni_entrance_quali_1_NA == 1 & sibling_age_1 < 18 & !is.na(sibling_age_1) & year(interview_date_spell) >= 2013, 
+    # sibling_uni_entrance_quali_1_NA = ifelse(
+    #   sibling_age_1 < 18 & !is.na(sibling_age_1) & year(interview_date_spell) >= 2013, 1, sibling_uni_entrance_quali_1_NA),
+    sibling_uni_entrance_quali_1 = ifelse(#sibling_uni_entrance_quali_1_NA == 1 & 
+      sibling_age_1 < 18 & !is.na(sibling_age_1) & year(interview_date_spell) >= 2013, 
       0, sibling_uni_entrance_quali_1),
-    sibling_uni_entrance_quali_2_NA = ifelse(
-      sibling_age_2 < 18 & !is.na(sibling_age_2) & year(interview_date_spell) >= 2013, 1, sibling_uni_entrance_quali_2_NA),
-    sibling_uni_entrance_quali_2 = ifelse(
-      sibling_uni_entrance_quali_2_NA == 1 & sibling_age_2 < 18 & !is.na(sibling_age_2) & year(interview_date_spell) >= 2013, 
+    # sibling_uni_entrance_quali_2_NA = ifelse(
+    #   sibling_age_2 < 18 & !is.na(sibling_age_2) & year(interview_date_spell) >= 2013, 1, sibling_uni_entrance_quali_2_NA),
+    sibling_uni_entrance_quali_2 = ifelse(#sibling_uni_entrance_quali_2_NA == 1 & 
+      sibling_age_2 < 18 & !is.na(sibling_age_2) & year(interview_date_spell) >= 2013, 
       0, sibling_uni_entrance_quali_2)
     ) 
 
 colSums(is.na(data_merge_sib)) # should be only missings for age
 length(unique(data_merge_sib$ID_t))
 
+# for all students with only one sibling, "_2" variables are set to zero
+cols_sib_2 <- data_merge_sib %>% select(ends_with("_2")) %>% colnames()
+data_merge_sib <- data_merge_sib %>%
+  mutate_if(is.integer, as.numeric) %>%
+  mutate(across(all_of(cols_sib_2), ~ case_when(sibling_total == 1 ~ 0, TRUE ~ .)))
 
 # merge this prepared data frame to data_cati_cawi_eps
 data_merge_1 <- left_join(
@@ -201,27 +210,28 @@ data_merge_1 <- left_join(
 )
 length(unique(data_merge_1$ID_t))
 
-# generate dummy if respondent has a sibling
-data_merge_1 <- data_merge_1 %>%
-  mutate(sibling = ifelse(is.na(sibling_total), 0, 1))
 
 # for respondents with no siblings all variables are set to 0
+  ## replace sibling var with 0
+table(data_merge_1$sibling, useNA = "always")
+data_merge_1 <- data_merge_1 %>% 
+  replace_na(list(sibling = 0, sibling_older_total = 0, sibling_twin = 0))
+table(data_merge_1$sibling, useNA = "always")
+  ## replace all other vars with ß
 col_sibling <- colnames(data_merge_sib %>% select(starts_with("sibling")))
 data_merge_1 <- data_merge_1 %>%
   mutate_if(is.integer, as.numeric) %>% 
   mutate(across(all_of(col_sibling), ~ case_when(sibling == 0 ~ as.numeric(0), TRUE ~ .)))
 
-## check that there are no NAs in sibling variable (except age)
-data_merge_1 %>%
-  ungroup() %>% select(all_of(col_sibling)) %>% select(-starts_with("sibling_age")) %>%
-  summarize(sum(is.na(.))) %>% pull()
+# check NAs in sibling variables
+sum(is.na(data_merge_1 %>% select(starts_with("sibling"))))
+colSums(is.na(data_merge_1 %>% select(starts_with("sibling"))))
+
+# if sibling == 0, all sibling_ variables need to be 0
+data_merge_1 %>% filter(sibling == 0) %>% select(starts_with("sibling")) %>% unique() %>% pull()
 
 # number of respondents, rows and columns
 num_id_cati_cawi_eps_sib <- length(unique(data_merge_1$ID_t)) 
-
-# checks
-## if sibling == 0, all sibling_ variables need to be 0
-data_merge_1 %>% filter(sibling == 0) %>% select(starts_with("sibling")) %>% unique() %>% pull()
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -230,6 +240,9 @@ data_merge_1 %>% filter(sibling == 0) %>% select(starts_with("sibling")) %>% uni
 #%%%%%%%%%%%%%#
 #### CHILD ####
 #%%%%%%%%%%%%%#
+
+# missing values
+sum(is.na(data_child))
 
 # number of respondents with children
 id_child <- unique(data_child$ID_t)
@@ -347,17 +360,22 @@ if (cohort_prep == "controls_bef_outcome") {
 col_partner <- data_partner %>% select(-c(ID_t, interview_date)) %>% colnames()
 
 # for respondents with no partner all variables are set to zero
+colSums(is.na(data_merge_3))
+
+table(data_merge_3$partner_current, useNA = "always")
+data_merge_3 <- data_merge_3 %>% replace_na(list(partner_current = 0, partner_num = 0))
+table(data_merge_3$partner_current, useNA = "always")
+
 data_merge_3 <- data_merge_3 %>%
-  mutate_at(all_of(col_partner), ~ replace_na(.,0))
+  mutate_if(is.integer, as.numeric) %>%
+  mutate(across(all_of(col_partner), ~ case_when(partner_current == 0 ~ as.numeric(0), TRUE ~ .))) 
+
 
 # check that there are no NAs in partner variables
-data_merge_3 %>%
-  ungroup() %>% select(all_of(col_partner)) %>%
-  summarize(sum(is.na(.))) %>% pull()
+colSums(is.na(data_merge_3 %>% select(all_of(col_partner))))
 
 
 num_id_cati_cawi_eps_sib_child_partner <- length(unique(data_merge_3$ID_t))
-
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -409,6 +427,8 @@ if (cohort_prep == "controls_bef_outcome") {
 }
 
 
+colSums(is.na(data_merge_4 %>% select(starts_with("comp_"))))
+
 num_id_final <- length(unique(data_merge_4$ID_t)) 
 num_id_final
 
@@ -419,6 +439,9 @@ num_id_final
 #%%%%%%%%%%%%%%%%%%%#
 #### FINAL STEPS ####
 #%%%%%%%%%%%%%%%%%%%#
+
+# correct data types
+data_merge_4 <- data_merge_4 %>% type.convert(as.is = TRUE)
 
 # all child and partner variables should not have any missing value.
 sum(is.na(data_merge_4 %>% select(starts_with("child_"), starts_with("partner_"))))

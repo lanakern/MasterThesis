@@ -20,9 +20,6 @@
 # current partnership. For individuals with no current partner those are 
 # set to 0. 
 #++++
-# 4.) Handling missing values: All missing values are set to zero and a dummy variable
-# indicating that those were NA is generated. 
-#++++
 # --> FINAL DATA FRAME IS A PANEL DATA SET (one row for each respondent-wave combination).
 
 
@@ -191,7 +188,7 @@ data_partner <- data_partner %>%
                                   TRUE ~ end_date_adj))
 sum(data_partner$end_date_adj < data_partner$start_date, na.rm = TRUE)
 sum(is.na(data_partner$end_date_adj))
-  ## length of current partnership
+  ## length of current partnership (in years)
 data_partner <- data_partner %>%
   mutate(partner_current_length = case_when(
     partner_current == 1 ~ as.numeric(difftime(end_date_adj, start_date, units = "weeks")) / 52.5,
@@ -199,7 +196,7 @@ data_partner <- data_partner %>%
     ))
 summary(data_partner$partner_current_length) # no negative values
 
-  ## length of previous partnership: 1.) calculate length 2.) cumsum
+  ## length of previous partnership (in years): 1.) calculate length 2.) cumsum
 data_partner <- data_partner %>%
   mutate(partner_previous_length = case_when(
     partner_current == 0 ~ as.numeric(difftime(end_date_adj, start_date, units = "weeks")) / 52.5,
@@ -275,17 +272,17 @@ data_partner_current <- data_partner_current %>%
     # indicator for partner frequency seeing each other
     partner_freq_daily = if_else(grepl("daily", partner_freq), 1, 0), # seeing partner (almost) every day: daily + almost daily
     partner_freq_monthly = if_else(partner_freq %in% c("monthly", "less frequently"), 1, 0), # seeing partner once a month or less
-    partner_freq_NA = if_else(is.na(partner_freq), 1, 0), # NA
+    #partner_freq_NA = if_else(is.na(partner_freq), 1, 0), # NA
     # partner_living_apart
     partner_living_apart = if_else(partner_living_apart == 1, 1, 0),
     # partner_living_ger
     partner_living_ger = case_when(partner_living_ger == "yes, partner was/is living in Germany" ~ 1,
                                    is.na(partner_living_ger) ~ as.numeric(NA), TRUE ~ 0),
     # partner_educ_years
-    partner_educ_years_12 = if_else(partner_educ_years %in% c(9:12), 1, 0),
-    partner_educ_years_15 = if_else(partner_educ_years %in% c(13:15), 1, 0),
-    partner_educ_years_18 = if_else(partner_educ_years %in% c(16:18), 1, 0),
-    partner_educ_years_NA = if_else(is.na(partner_educ_years), 1, 0),
+    # partner_educ_years_12 = if_else(partner_educ_years %in% c(9:12), 1, 0),
+    # partner_educ_years_15 = if_else(partner_educ_years %in% c(13:15), 1, 0),
+    # partner_educ_years_18 = if_else(partner_educ_years %in% c(16:18), 1, 0),
+    # partner_educ_years_NA = if_else(is.na(partner_educ_years), 1, 0),
     # partner: migration
     partner_migration = case_when(
       partner_birth_country != "in Germany/within the current borders of Germany" | partner_ger == 0 ~ 1,
@@ -299,7 +296,7 @@ data_partner_current <- data_partner_current %>%
          partner_male, partner_age, partner_migration, partner_living_ger, 
          partner_school_degree_highest, partner_uni_degree, starts_with("partner_educ"), 
          partner_study_current, partner_emp_current,
-         partner_living_apart, partner_freq_daily, partner_freq_monthly, partner_freq_NA)
+         partner_living_apart, partner_freq_daily, partner_freq_monthly)
 
 
 # NO CURRENT PARTNER #
@@ -337,7 +334,7 @@ data_partner_no_current <-
          partner_male, partner_age, partner_migration, partner_living_ger, 
          partner_school_degree_highest, partner_uni_degree, starts_with("partner_educ"), 
          partner_study_current, partner_emp_current,
-         partner_living_apart, partner_freq_daily, partner_freq_monthly, partner_freq_NA)
+         partner_living_apart, partner_freq_daily, partner_freq_monthly)
 
 # add information together
 data_partner_final <- rbind(data_partner_current, data_partner_no_current)
@@ -348,26 +345,29 @@ length(unique(data_partner_final$ID_t))
 #### Missing Values ####
 #%%%%%%%%%%%%%%%%%%%%%%#
 
-# number of missing values per column
-colSums(is.na(data_partner_final))
-
-# remaining missing values are due to missing responses
-# for those variables NA dummies are generated
-# the NAs in original variable are set to zero
-colnames_any_missing <- colSums(is.na(data_partner_final))
-colnames_any_missing <- names(colnames_any_missing[colnames_any_missing > 0])
-source("Functions/func_generate_NA_dummies.R")
-for (col_sel in colnames_any_missing) {
-  data_partner_final <- func_generate_NA_dummies(data_partner_final, col_sel)
-}
-data_partner_final <- data_partner_final %>% replace(is.na(.), 0)
-
-sum(is.na(data_partner_final))
+# # number of missing values per column
+# colSums(is.na(data_partner_final))
+# 
+# # remaining missing values are due to missing responses
+# # for those variables NA dummies are generated
+# # the NAs in original variable are set to zero
+# colnames_any_missing <- colSums(is.na(data_partner_final))
+# colnames_any_missing <- names(colnames_any_missing[colnames_any_missing > 0])
+# source("Functions/func_generate_NA_dummies.R")
+# for (col_sel in colnames_any_missing) {
+#   data_partner_final <- func_generate_NA_dummies(data_partner_final, col_sel)
+# }
+# data_partner_final <- data_partner_final %>% replace(is.na(.), 0)
+# 
+# sum(is.na(data_partner_final))
 
 
 #%%%%%%%%%%%%%%%%%%%#
 #### Final Steps ####
 #%%%%%%%%%%%%%%%%%%%#
+
+# create indicator for partner
+# data_partner_final <- data_partner_final %>% mutate(partner = 1)
 
 # ungroup 
 data_partner_final <- data_partner_final %>% ungroup()
@@ -402,6 +402,7 @@ print(paste("Number of respondents after keeping only respondents where partner 
 print(paste("The final data frame includes", length(unique(data_partner_final$ID_t)), "respondents."))
 print(paste("Number of rows", nrow(data_partner_final)))
 print(paste("Number of columns", ncol(data_partner_final)))
+
 
 # save data frame
 if (cohort_prep == "controls_same_outcome") {
