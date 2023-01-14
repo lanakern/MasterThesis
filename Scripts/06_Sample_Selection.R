@@ -9,7 +9,7 @@
 # Only respondents are kept who take part in at least one extracurricular activity
 # (definition see in respective section below).
 #++++
-# 2.) Subset on age: 17-30
+# 2.) Subset on age: 17-30 at start of study
 #++++
 # -> Panel data set includes the final sample size.
 #++++
@@ -314,10 +314,18 @@ data_sub_3 <- func_generate_date(data_sub_3, month = "birth_month",
 data_sub_3 <- data_sub_3 %>%
   mutate(age = as.numeric(difftime(interview_date_spell, birth_date, units = "weeks") / 52.5))
 summary(data_sub_3$age)
- 
+
+# Subset on age between 17 and 30 at start of study
+id_keep <-
+  data_sub_3 %>% 
+  group_by(ID_t) %>% 
+  filter(interview_date_spell == min(interview_date_spell) & between(age, 17, 30)) %>% 
+  pull(ID_t) %>% 
+  unique()
+
 # Subset
 data_sub_3 <- data_sub_3 %>%
-  filter(age >= 17 & age <= 30)
+  subset(ID_t %in% id_keep)
 summary(data_sub_3$age)
 
 id_num_adj_2 <- length(unique(data_sub_3$ID_t))
