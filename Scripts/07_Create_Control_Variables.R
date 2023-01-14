@@ -971,8 +971,7 @@ data_prep_4_wide <- data_prep_4_wide %>%
 
 # set up mice
 init <- mice(data_prep_4_wide, maxit = 0) 
-meth <- "CART"
-pred_matrix <-  init$predictorMatrix
+pred_matrix <- init$predictorMatrix
 
 # adjust predictor matrix to reduce the number of variables
   ## ID_t and interview dates are not used as a predictor
@@ -996,14 +995,40 @@ pred_matrix_vars_num <- pred_matrix %>% as.data.frame() %>% select(starts_with("
 pred_matrix_vars_set_0 <- pred_matrix %>% as.data.frame() %>% select(!c(starts_with("personality"), starts_with("bigfive"))) %>% colnames()
 pred_matrix[pred_matrix_vars_num, c(pred_matrix_vars_set_0)] <- 0
 
-
 # apply mice
-mice_result <- mice(data_prep_4_wide, method = "cart", seed = 1234, m = 1, maxit = 1)
-  ## extract data set
+mice_result <- mice(data_prep_4_wide, method = "cart", predictorMatrix = pred_matrix, 
+                    seed = 1234, m = 1, maxit = 5)
+
+# extract data set
 data_result_mice <- complete(mice_result)
-  ## convert back to long format
-  ## drop waves in which individual did not participated
-saveRDS(data_result_mice, "data_mice_result_wide.rds")
+saveRDS(data_result_mice, "data_mice_result_wide_5.rds")
+sum(is.na(data_result_mice))
+
+# convert back to long format and drop waves in which individual did not participated
+  ## create data frame with ID_t and respective treatment periods
+data_prep_4_reshape <- data_prep_3 %>% select(ID_t, treatment_period)
+  ## extract column names without suffixes _1, _2, _3, _4, _5
+col_reshape <- sort(unique(str_sub(colnames(data_result_mice), 1, str_length(colnames(data_result_mice)) - 2)))
+col_reshape <- col_reshape[!col_reshape %in% "ID"] # drop ID
+  ## iterate over columns to convert data frame from wide to long
+for (col_reshape_sel in col_reshape) {
+  ## generate columns
+  col_reshape_sel_all <- paste0(col_reshape_sel, "_", 1:5)
+  ## select columns
+  data_result_mice_sub <- data_result_mice %>% select(ID_t, all_of(col_reshape_sel_all))
+  ## reshape in long format
+  data_result_mice_sub <- 
+    reshape(data_result_mice_sub, idvar = "ID_t", varying = list(2:6), 
+            v.names = col_reshape_sel, direction = "long") %>% arrange(ID_t)
+  ## enumerate rows
+  rownames(data_result_mice_sub) <- 1:nrow(data_result_mice_sub)
+  ## join to treatment periods
+  data_prep_4_reshape <- left_join(
+    data_prep_4_reshape, data_result_mice_sub, by = c("ID_t", "treatment_period" = "time")
+  )
+}
+
+data_prep_4 <- data_prep_4_reshape
 
 
 # check plausibility of missing value replacement
@@ -1025,6 +1050,7 @@ table(data_prep_4$bigfive_conscientiousness, useNA = "always")
 # reconvert factor variables as character
 data_prep_4 <- data_prep_4 %>%
   mutate_if(is.factor, as.character)
+
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
@@ -1232,6 +1258,17 @@ if (aggr_vars == "mean") {
   }
 }
 
+# relabel uni_offers_.*_helpful variables
+label_cawi_sel <- list_labels[["uni_offers_helpful"]]
+label_cawi_sel <- setNames(names(label_cawi_sel), label_cawi_sel)
+
+for (cols_offers_help_sel in cols_offers_help) {
+  data_prep_5 <- data_prep_5 %>%
+    mutate(
+      {{cols_offers_help_sel}} := recode(!!!rlang::syms(cols_offers_help_sel), !!!label_cawi_sel)
+    )
+}
+
 
 # "apply" variables
 ## extract variables
@@ -1302,7 +1339,7 @@ table(data_prep_6$health_bmi_cat_over_under, useNA = "always")
 # create age categories
 for (vars_categorized in c("age", "educ_years", "extracurricular_num",
                            "uni_offers", "uni_counsel_offer", "uni_counsel_use",
-                           "current_emp_act_work_hours", "uni_time_courses",
+                           "emp_current_act_work_hours", "uni_time_courses",
                            "uni_time_studyact", "uni_time_household", "uni_time_childcare",
                            "uni_time_study")) {
   
@@ -1338,7 +1375,7 @@ table(data_prep_6$educ_years_cat, useNA = "always")
 table(data_prep_6$extracurricular_num_cat, useNA = "always")
 table(data_prep_6$uni_counsel_offer_cat, useNA = "always")
 table(data_prep_6$uni_counsel_use_cat, useNA = "always")
-table(data_prep_6$current_emp_act_work_hours_cat, useNA = "always")
+table(data_prep_6$emp_current_act_work_hours_cat, useNA = "always")
 table(data_prep_6$uni_time_courses_cat, useNA = "always")
 table(data_prep_6$uni_time_studyact_cat, useNA = "always")
 table(data_prep_6$uni_time_household_cat, useNA = "always")
@@ -1364,7 +1401,7 @@ data_sub_7 <- dummy_cols(
   select_columns = vars_categoric
 )
 
-saveRDS(vars_categoric, "Data/prep_6_variables_drop_cat.rds")
+saveRDS(vars_categoric, "Data/Prep_7/prep_7_variables_drop_cat.rds")
 
 
 # birth month and birth year as additional dummys
@@ -1391,8 +1428,6 @@ sum(is.na(data_final))
 
 # check for duplicates
 sum(duplicated(data_final))
-  ## remove duplicates
-data_final <- data_final %>% distinct()
 
 # number of respondents, rows, and columns
 print(paste("Number of respondents:", length(unique(data_final$ID_t))))
