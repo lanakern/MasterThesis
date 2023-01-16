@@ -36,6 +36,8 @@ func_aggregate_vars <- function(data, varsel_prefix, cr_alpha, method) {
   # ungroup data; otherwise problem
   data <- data %>% ungroup()
   
+  
+  #++++++++++++++++++++#
   ## CRONBACH's ALPHA ##
   #++++++++++++++++++++#
   
@@ -80,6 +82,7 @@ func_aggregate_vars <- function(data, varsel_prefix, cr_alpha, method) {
     vars_keep <- data %>% select(matches(paste0("^", varsel_prefix))) %>% colnames()
   }
   
+
   if (length(vars_keep) == 0) {
     # do not aggregate variables
     data_final <- data 
@@ -105,10 +108,15 @@ func_aggregate_vars <- function(data, varsel_prefix, cr_alpha, method) {
       column_names_drop <- paste0(varsel_prefix, "_.*$")
     }
     
-    ## AGRREGATION METHOD ##
-    #++++++++++++++++++++++#
+    
+    #+++++++++++++++++++++++#
+    ## AGRREGATION METHODS ##
+    #+++++++++++++++++++++++#
+    
     
     ## MEAN ##
+    #--------#
+    
     if (method == "mean") {
       data_final <- data %>% 
         mutate(
@@ -117,7 +125,10 @@ func_aggregate_vars <- function(data, varsel_prefix, cr_alpha, method) {
         ) %>%
         select(-matches(column_names_drop))
       
+      
     ## SUM ##
+    #-------#
+      
     } else if (method == "sum") {
       data_final <- data %>% 
         mutate(
@@ -126,35 +137,52 @@ func_aggregate_vars <- function(data, varsel_prefix, cr_alpha, method) {
         ) %>%
         select(-matches(column_names_drop))
       
+      
     ## PCA ##
+    #-------#
+      
     # https://towardsdatascience.com/learn-principle-component-analysis-in-r-ddba7c9b1064
     } else if (method == "pca") {
-      # select variables for PCA
-      data_pca <- data %>%
-        select(all_of(vars_keep)) 
-      # calculate PCA
-      pca_result <- prcomp(data_pca, center = TRUE, scale. = TRUE)
-      # calculate eigenvalues
-      pca_eigenvalues <- pca_result$sdev^2
-      # keep components with eigenvalues larger than 1
-      pca_keep <- sum(pca_eigenvalues > 1)
-      # keep variables
-      if (pca_keep == 1) {
-        data_final <- data %>%
-          mutate({{new_column_name}} := pca_result$x[, 1]) %>% 
-          select(-matches(column_names_drop))
-      } else {
-        # for more than two components, variables are enumerated
-        data_final <- data %>% select(-matches(column_names_drop))
-        for (comp_sel in 1:pca_keep) {
-          new_column_name_sel <- paste0(new_column_name, "_", comp_sel)
-          data_final <- data_final %>%
-            mutate({{new_column_name_sel}} := pca_result$x[, comp_sel]) 
+      # PCA can only be performed if at least two variables are kept
+      if (length(vars_keep) > 1) {
+        # select variables for PCA
+        data_pca <- data %>%
+          select(all_of(vars_keep)) 
+        # calculate PCA
+        pca_result <- prcomp(data_pca, center = TRUE, scale. = TRUE)
+        # calculate eigenvalues
+        pca_eigenvalues <- pca_result$sdev^2
+        # keep components with eigenvalues larger than 1
+        pca_keep <- sum(pca_eigenvalues > 1)
+        # keep variables
+        if (pca_keep == 1) {
+          data_final <- data %>%
+            mutate({{new_column_name}} := pca_result$x[, 1]) %>% 
+            select(-matches(column_names_drop))
+        } else {
+          # for more than two components, variables are enumerated
+          data_final <- data %>% select(-matches(column_names_drop))
+          for (comp_sel in 1:pca_keep) {
+            new_column_name_sel <- paste0(new_column_name, "_", comp_sel)
+            data_final <- data_final %>%
+              mutate({{new_column_name_sel}} := pca_result$x[, comp_sel]) 
+          }
+          
         }
+      } else {
+        # if only one variable is kept, no PCA is performed
+        # -> variable is left as it is 
+        # -> variable is labelled later (hence, stored in vars_not_aggr)
+        data_final <- data %>%
+          mutate({{new_column_name}} := !!sym(vars_keep)) %>% 
+          select(-matches(column_names_drop))
         
+        vars_not_aggr <- new_column_name
       }
       
     ## BINARY ##
+    #----------#
+      
     } else if (method == "binary") {
       data_final <- data %>%
         mutate(
