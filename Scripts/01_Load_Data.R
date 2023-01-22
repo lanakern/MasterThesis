@@ -98,6 +98,8 @@ length(unique(data_bio$ID_t)) # 17, 909 respondents
 nrow(data_bio) # 231,136
 ncol(data_bio) # 10
 
+print("Finished Biography")
+
 
 #### CohortProfile ####
 #+++++++++++++++++++++#
@@ -155,7 +157,10 @@ length(unique(data_cohort_profile$ID_t)) # 17,909
 nrow(data_cohort_profile) # 157,107
 ncol(data_cohort_profile) # 13
 
-  
+
+print("Finished Cohort Profile")
+
+
 #### pTargetCATI ####
 #++++++++++++++++++#
 
@@ -301,7 +306,7 @@ data_target_cati <- data_target_cati %>%
     birth_country = t405010_g2,
     birth_ger_eastwest = t700101_g1, 
     birth_nationality_ger = t406060, 
-    degree_uentrance_ger = tf11105, 
+    educ_degree_uentrance_ger = tf11105, 
     bilingual = t414050,
     current_residence_country = t751004_g2, 
     current_residence_eastwest = t751001_g1, 
@@ -533,6 +538,8 @@ length(unique(data_target_cati$ID_t)) # 17909
 nrow(data_target_cati) # 101038
 ncol(data_target_cati) # 1050
 
+
+print("Finished CATI")
 
 
 #### pTargetCAWI ####
@@ -801,7 +808,7 @@ data_target_cawi <- data_target_cawi %>%
     uni_commitment_4 = tg53234, 
     uni_commitment_5 = tg53235, 
     uni_commitment_6 = tg53236, 
-    degree_importance_well = tg54131,
+    uni_degree_importance_well = tg54131,
     # good preparation for studies
     uni_prep_1 = t291541, 
     uni_prep_2 = t291542, 
@@ -917,6 +924,8 @@ data_target_cawi <- data_target_cawi %>%
 length(unique(data_target_cawi$ID_t)) # 15,239
 nrow(data_target_cawi) # 54,465
 ncol(data_target_cawi) # 244
+
+print("Finished CAWI")
 
 
 #### School ####
