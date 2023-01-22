@@ -290,13 +290,30 @@ table(data_prep_1$health_drugs_ever, useNA = "always")
 # spell length variables are NA for individuals who never experienced this spell,
 # for example for individuals who never went to the military, never undertook
 # vocational training etc. In this case, the values are set to zero.
-# for all variables already done except spell_length_current_Emp
-colSums(is.na(data_prep_1 %>% select(starts_with("spell_length"))))
+# for all variables already done except educ_years_current_Emp
+colSums(is.na(data_prep_1 %>% select(starts_with("educ_year"))))
 
+summary(data_prep_1$educ_years_current_Emp)
 data_prep_1 <- data_prep_1 %>%
-  mutate(spell_length_current_Emp = case_when(spell_length_current_Emp > 0 ~ 1, TRUE ~ 0))
-
+  mutate(educ_years_current_Emp = case_when(is.na(educ_years_current_Emp) ~ 0, 
+                                            TRUE ~ educ_years_current_Emp))
+summary(data_prep_1$educ_years_current_Emp)
 sum(is.na(data_prep_1 %>% select(starts_with("spell_length"))))
+
+
+# problem with dummies (always zero) -> one if educ_year > 0
+data_prep_1 <- data_prep_1 %>%
+  mutate(
+    educ_military = ifelse(educ_years_Military > 0, 1, 0),
+    educ_vocprep = ifelse(educ_years_VocPrep > 0, 1, 0),
+    educ_voctrain = ifelse(educ_years_VocTrain > 0, 1, 0),
+    educ_intern = ifelse(educ_years_Internship > 0, 1, 0)
+    )
+
+table(data_prep_1$educ_military)
+table(data_prep_1$educ_vocprep)
+table(data_prep_1$educ_voctrain)
+table(data_prep_1$educ_intern)
 
 
 ## Child ##
@@ -576,7 +593,7 @@ sum(data_prep_1$outcome_grade != data_prep_1$outcome_grade_lag)
 # NA dummies equal 1 if value is used from previous interview
 table(data_prep_1$treatment_sport_NA)
 table(data_prep_1$treatment_sport_freq_NA)
-
+table(data_prep_1$outcome_grade_NA)
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -661,6 +678,8 @@ table(data_prep_1$educ_highest_degree, useNA = "always")
 table(data_prep_1$educ_uni_type, useNA = "always")
 table(data_prep_1$uni_learn_group_partic, useNA = "always")
 table(data_prep_1$uni_institution_choice, useNA = "always")
+
+
 
 ## Parents ##
 #+++++++++++#
@@ -901,8 +920,9 @@ vars_drop <- c(
   "uni_time_employment", "birth_nationality_ger", "educ_degree_uentrance_ger", "educ_profession_aspired",
   "father_emp_manager", "mother_emp_manager", "living_rent",
   "helpless_grades_improve", "helpless_grades_revision", 
-  "intern", "intern_study_rel", "intern_type", "educ_voc_prep", "military",
-  "uni_admission_restr_other", "uni_degree_achieve", "uni_degree_aspire"
+  "intern_study_rel", "intern_type", "educ_voc_prep", 
+  "uni_admission_restr_other", "educ_uni_degree_achieve", "educ_uni_degree_aspire",
+  "personality_sociable", "personality_thorough", "personality_imaginative"
 )
 data_prep_2 <- data_prep_2 %>%
   select(-all_of(vars_drop))
@@ -1112,9 +1132,12 @@ df_reverse_vars <- data.frame(
                      paste0("personality_selfesteem_", c(2, 5, 6, 8, 9)),
                      paste0("opinion_educ_", c(2,4,8,9,14,15)),
                      paste0("satisfaction_study_", c(2,3,5,6,8,9)),
-                     "uni_prep_4"
+                     "uni_prep_4", 
+                     "bigfive_conscientiousness", "bigfive_openness",
+                     "bigfive_extraversion", "bigfive_neuroticism"
                      ),
-  "num_scores" = c(4, rep(5, 6), 5, 5, rep(5, 5), rep(5,6), rep(10, 6), 4)
+  "num_scores" = c(4, rep(5, 6), 5, 5, rep(5, 5), rep(5,6), rep(10, 6), 4,
+                   rep(5, 4))
 )
 
 
