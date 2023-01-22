@@ -210,7 +210,6 @@ table(round(df_plausi$emp_current_act_work_hours), df_plausi$emp_current) # due 
 df_plausi %>% select(starts_with("emp")) %>% filter(emp_current == 0) %>% distinct() %>% pull()
 
 
-
 ## TREATMENT PERIODS ##
 #+++++++++++++++++++++#
 

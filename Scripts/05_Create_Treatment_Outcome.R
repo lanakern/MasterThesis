@@ -353,6 +353,10 @@ data_3 <- data_3 %>%
 summary(data_3$outcome_grade) 
 
 
+# create NA variable
+data_3 <- data_3 %>% 
+  mutate(outcome_grade_NA = ifelse(grade_current_NA == 1, 1, 0))
+
 # number of respondents
 length(unique(data_3$ID_t)) # should be unchanged
 
