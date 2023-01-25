@@ -60,6 +60,16 @@ library(mice)  # for replacing missing values with mice()
 if (!require("reshape2")) install.packages("reshape2")
 library(reshape2)  # for converting data frame from long to wide format
 
+if (!require("tidymodels")) install.packages("tidymodels")
+library(tidymodels)  # for machine learning (prediction of nuisance functions)
+
+if (!require("rsample")) install.packages("rsample")
+library(rsample)  # for machine learning (prediction of nuisance functions)
+
+if (!require("glmnet")) install.packages("glmnet")
+library(glmnet)  # for lasso
+
+
 # set language for dates and times to German, since the NEPS month names
 # are written in German; otherwise date/time functions are not working
 # for German language
