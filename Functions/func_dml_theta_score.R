@@ -35,14 +35,22 @@ func_dml_theta_score <- function(data_pred, data_test, outcome, treatment) {
   g1_pred <- data_pred %>% pull(g1)
   
   
+  ## APO ##
+  #-------#
+  
+  pseudo_0 <- g0_pred + (1 - D) * (Y - g0_pred) / (1 - m_pred)
+  pseudo_1 <- g1_pred + D * (Y - g1_pred) / m_pred
+  
+  apo_0 <- mean(pseudo_0)
+  apo_1 <- mean(pseudo_1)
+  
+  
   ## ATE ##
   #-------#
   
   # calculate theta
   score_a_ATE <- rep(-1, nrow(data_test))
-  pseudo_0_ATE <- g0_pred + (1 - D) * (Y - g0_pred) / (1 - m_pred)
-  pseudo_1_ATE <- g1_pred + D * (Y - g1_pred) / m_pred
-  score_b_ATE <- pseudo_1_ATE - pseudo_0_ATE
+  score_b_ATE <- pseudo_1 - pseudo_0
   theta_ATE <- -sum(score_b_ATE) / sum(score_a_ATE)
 
   
@@ -66,5 +74,6 @@ func_dml_theta_score <- function(data_pred, data_test, outcome, treatment) {
 
   
   return(list("score_ATE" = score_ATE, "theta_ATE_all" = theta_ATE, 
-              "score_ATTE" = score_ATTE, "theta_ATTE_all" = theta_ATTE))
+              "score_ATTE" = score_ATTE, "theta_ATTE_all" = theta_ATTE,
+              "APO_0" = apo_0, "APO_1" = apo_1))
 }
