@@ -2,9 +2,6 @@
 #### FUNCTION DOUBLE ML ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-# PROPENSITY SCORES
-# "To reduce the disproportionate impact of extreme propensity score weights in 
-# the interactive model we trim the propensity scores which are close to the bounds."
 
 library(rsample) # for group_vfold_cv()
 library(glmnet) # for glmnet() (-> lasso)
@@ -19,18 +16,25 @@ func_dml <- function(data, outcome, treatment, group, K, K_tuning, S, mlalgo, tr
   lambda_val <- 1000
   
   # generate empty data frames
-  data_pred_all <- data.frame()
-  data_error_all <- data.frame()
+  df_pred_all <- data.frame()
+  df_param_all <- data.frame()
+  df_error_all <- data.frame()
   df_result_all_detailed <- data.frame()
   
   # generate empty vectors
+  min_trimming_all <- c()
+  max_trimming_all <- c()
   theta_ATE_all <- c()
   score_ATE_all <- c()
   theta_ATTE_all <- c()
   score_ATTE_all <- c()
+  APO_0_all <- c()
+  APO_1_all <- c()
   
   
-  # Accounting for uncertainty by repeating the process S times
+  # Accounting for uncertainty by repeating the process S times #
+  #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
+  
   for (S_rep in 1:S) {
     
     print(paste("Repetition", S_rep))
@@ -43,7 +47,7 @@ func_dml <- function(data, outcome, treatment, group, K, K_tuning, S, mlalgo, tr
     # https://rsample.tidymodels.org/reference/group_vfold_cv.html
     # https://scikit-learn.org/stable/modules/cross_validation.html#group-k-fold
     K_folds <- group_vfold_cv(
-      data = data,  v = K, group = "group", strata = outcome, balance = "observations"
+      data = data,  v = K, group = "group", strata = c(outcome, treatment), balance = "observations"
     )
     
     
@@ -96,15 +100,15 @@ func_dml <- function(data, outcome, treatment, group, K, K_tuning, S, mlalgo, tr
       data_train_g <- data_train %>% select(-c(all_of(cols_treatment_drop), all_of(cols_outcome_drop)))
       
       
-      #++++++++++++++++++++++++++++++++++++++++#
-      ## PREDICT NUISANCE PARAMETER FUNCTIONS ##
-      #++++++++++++++++++++++++++++++++++++++++#
+      #++++++++++++++++++++++++++++++++++++++++++++#
+      #### PREDICT NUISANCE PARAMETER FUNCTIONS ####
+      #++++++++++++++++++++++++++++++++++++++++++++#
       
       # select machine learning algorithm based on user selection and make predictions
       if (mlalgo == "postlasso") {
         model_func <- rlasso
       } else if (mlalgo == "lasso") {
-        data_pred <- func_ml_lasso(data_train_m, data_train_g, data_test, outcome, treatment, K_tuning, lambda_val)
+        ls_ml <- func_ml_lasso(data_train_m, data_train_g, data_test, outcome, treatment, K_tuning, lambda_val)
       } else if (mlalgo == "xgboost") {
         model_func <- xgboost
       } else {
@@ -112,13 +116,20 @@ func_dml <- function(data, outcome, treatment, group, K, K_tuning, S, mlalgo, tr
       }
       
       # append predictions to data frame
+      data_pred <- ls_ml$pred
       data_pred <- data_pred %>% mutate(fold = fold_sel)
-      data_pred_all <- rbind(data_pred_all, data_pred)
+      df_pred_all <- rbind(df_pred_all, data_pred)
+      
+      # append tuning parameters to data frame
+      data_param <- ls_ml$param
+      data_param <- data_param %>% mutate(Fold = fold_sel, Repetition = S_rep) %>%
+        select(Repetition, Fold, everything())
+      df_param_all <- rbind(df_param_all, data_param)
       
       
-      #++++++++++++#
-      ## TRIMMING ##
-      #++++++++++++#
+      #++++++++++++++++#
+      #### TRIMMING ####
+      #++++++++++++++++#
       
       # for sub-setting adjust row names / numbering of rows
       data_pred <- data.frame(data_pred)
@@ -127,22 +138,25 @@ func_dml <- function(data, outcome, treatment, group, K, K_tuning, S, mlalgo, tr
       rownames(data_pred) <- 1:nrow(data_pred)
       rownames(data_test) <- 1:nrow(data_test)
       
-      ls_trimming <- func_dml_trimming(data_pred, data_test, "min-max")
+      ls_trimming <- func_dml_trimming(data_pred, data_test, trimming)
       data_pred <- ls_trimming$data_pred
       data_test <- ls_trimming$data_test
+      min_trimming <- ls_trimming$min_trimming
+      min_trimming_all <- c(min_trimming_all, min_trimming)
+      max_trimming <- ls_trimming$max_trimming
+      max_trimming_all <- c(max_trimming_all, max_trimming)
       
-      
-      #+++++++++++++++++#
-      ## ERROR METRICS ##
-      #+++++++++++++++++#
-      
+      #+++++++++++++++++++++#
+      #### ERROR METRICS ####
+      #+++++++++++++++++++++#
       
       df_error <- func_ml_error_metrics(data_pred, S_rep, fold_sel)
-      data_error_all <- rbind(df_error)
+      df_error_all <- rbind(df_error_all, df_error)
       
-      #+++++++++++++++++++++#
-      ## TREATMENT EFFECTS ##
-      #+++++++++++++++++++++#
+      
+      #+++++++++++++++++++++++++#
+      #### TREATMENT EFFECTS ####
+      #+++++++++++++++++++++++++#
 
       # calculate ATE and ATTE as well as their respective score function values
       # across the K folds
@@ -160,12 +174,28 @@ func_dml <- function(data, outcome, treatment, group, K, K_tuning, S, mlalgo, tr
       score_ATTE <- ls_treatment_effects$score_ATTE
       score_ATTE_all <- c(score_ATTE_all, score_ATTE)
       
+      APO_0 <- ls_treatment_effects$APO_0
+      APO_0_all <- c(APO_0_all, APO_0)
+      APO_1 <- ls_treatment_effects$APO_1
+      APO_1_all <- c(APO_1_all, APO_1)
+      
     } # close iteration over k folds
     
     
-    #+++++++++++++#
-    ## INFERENCE ##
-    #+++++++++++++#
+    #++++++++++++++++++++++#
+    #### COMMON SUPPORT ####
+    #++++++++++++++++++++++#
+    
+    # only save common support plot for first iteration (S_rep = 1)
+    if (S_rep == 1) {
+      plot_common_support <- func_dml_common_support(df_pred_all, min_trimming_all, max_trimming_all)
+      ggsave("Output/plot_common_support.png", plot_common_support)
+    }
+    
+    
+    #+++++++++++++++++#
+    #### INFERENCE ####
+    #+++++++++++++++++#
     
     # number of observations in complete data set 
     N <- nrow(data) 
@@ -174,11 +204,27 @@ func_dml <- function(data, outcome, treatment, group, K, K_tuning, S, mlalgo, tr
     df_result_ATE <- func_dml_inference("ATE", theta_ATE_all, score_ATE_all, N, S_rep)
     df_result_ATTE <- func_dml_inference("ATTE", theta_ATTE_all, score_ATTE_all, N, S_rep)
     
-    df_result <- rbind(df_result_ATE, df_result_ATTE) 
+    # APO
+    df_result_AP00 <- data.frame(
+      "Type" = "APO_0", "Rep" = S_rep, "Treatment_Effect" = mean(APO_0_all),
+      Variance = NA, Standard_Error = NA, T_Value = NA, P_Value = NA
+    )
+    
+    df_result_AP01 <- data.frame(
+      "Type" = "APO_1", "Rep" = S_rep, "Treatment_Effect" = mean(APO_1_all),
+      Variance = NA, Standard_Error = NA, T_Value = NA, P_Value = NA
+      )
+    
+    df_result <- rbind(df_result_ATE, df_result_ATTE, df_result_AP00, df_result_AP01) 
     df_result_all_detailed <- rbind(df_result_all_detailed, df_result)
     
   } # close iteration over S repetitions  
 
+  
+  #+++++++++++++++++++++#
+  #### FINAL RESULTS ####
+  #+++++++++++++++++++++#
+  
   # detailed output
   df_result_all_detailed <- df_result_all_detailed %>% 
     mutate(ML_algo = mlalgo) %>%
@@ -206,13 +252,24 @@ func_dml <- function(data, outcome, treatment, group, K, K_tuning, S, mlalgo, tr
     
   
   return(list("final" = df_result_all, "detail" = df_result_all_detailed,
-              "error" = df_error))
+              "error" = df_error_all, "param" = df_param_all))
+  
   
 }
 
-set.seed(12345)
+# set.seed(12345)
 data <- readRDS("Data/Prep_11/prep_11_final_data_binary_lasso_base.rds")
 data <- data %>% select(-c(ends_with("_lag")))
-ls_dml_result <- func_dml(data, "outcome_grade", "treatment_sport", "group", 5, 5, 2, "lasso", "min-max")
-# ls_dml_result$final
-# ls_dml_result$detail
+outcome <- "outcome_grade"
+treatment <- "treatment_sport"
+group <- "group"
+K <- 5
+K_tuning <- 10
+S <- 2
+mlalgo <- "lasso"
+trimming <- "min-max"
+ls_dml_result <- func_dml(data, "outcome_grade", "treatment_sport", "group", 5, 10, 2, "lasso", "min-max")
+ls_dml_result$final
+ls_dml_result$detail
+ls_dml_result$error
+ls_dml_result$param
