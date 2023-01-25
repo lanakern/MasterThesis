@@ -128,6 +128,10 @@ func_ml_lasso <- function(data_train_m, data_train_g, data_test, outcome, treatm
   lasso_best_param_g1 <- lasso_grid_search_g1 %>% select_best("rmse")
   lasso_best_param_g1 <- lasso_best_param_g1$penalty
   
+  df_best_param <- data.frame(
+    "m" = lasso_best_param_m, "g0" = lasso_best_param_g0, "g1" = lasso_best_param_g1
+  )
+  
   
   
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -211,6 +215,6 @@ func_ml_lasso <- function(data_train_m, data_train_g, data_test, outcome, treatm
     )
   
   # return data frame with predictions
-  return(df_pred)
+  return(list("pred" = df_pred, "param" = df_best_param))
   
 } # close function() 
