@@ -177,17 +177,18 @@ data_target_cati <- read.dta13("Data/Raw/SC5_pTargetCATI_D_16-0-0.dta",
 # save labels for use in file 06 (re-label aggregated variables)
   ## vector with raw variable names
 cati_label_col_name_raw <- 
-  c("t67809a", "t67810a",
-    "t66003a", "tg15001", "t31300a",
+  c("t67809a", "t67810a", "t66003a", "tg15001", "t31300a",
     "t66406a", "tg2411a", "t514001",
-    "t66201a", "t66208a", "t515052", "tg08003"
-    )
+    "t66201a", "t66208a", "t515052", "tg08003",
+    "t66800a", "t66800b", "t66800c", "t66800d", "t66800e")
   ## vector with new variable names
 cati_label_col_name_new <- 
   c("personality_assertiveness", "personality_conflicts", 
     "personality_selfesteem", "parents_opinion_degree", "opinion_educ",
     "motivation_degree", "satisfaction_study", "satisfaction_life",
-    "interest_math", "interest_german", "risk", "uni_offers_helpful")
+    "interest_math", "interest_german", "risk", "uni_offers_helpful",
+    "bigfive_extraversion", "bigfive_agreeableness", "bigfive_conscientiousness",
+    "bigfive_neuroticism", "bigfive_openness")
   ## generate empty list (where results will be stored)
 list_cati_labels <- list()
   ## iterate over variable names
@@ -228,7 +229,8 @@ vars_label_cati <- data_target_cati %>%
             t724403, t70000y, t70000m, t741001, t510010, t731301_g3, t731351_g3,
             t531260, t531261, tg09002, t525015, t521050, t521051, t521052,
             t520002, t520003, t34001h, t34001j, t34009j, t34009h,
-            t525008_v1, t525008, tg08003, tg08006, tg08009, tg08012, tg08015
+            t525008_v1, t525008, tg08003, tg08006, tg08009, tg08012, tg08015,
+            t66800a, t66800b, t66800c, t66800d, t66800e
             )
          ) %>% colnames()
   ## iterate over labels to label
