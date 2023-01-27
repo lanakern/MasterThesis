@@ -2,6 +2,8 @@
 #### DoubleML ####
 #%%%%%%%%%%%%%%%%#
 
+# set seed for reproducible results
+set.seed(1234)
 
 # load
 data <- readRDS("Data/Prep_11/prep_11_final_data_binary_lasso_base.rds")
@@ -16,23 +18,70 @@ data <- data %>% select(-c(ends_with("_lag")))
 # (unconditional) Average Predictive Effect (APE) of doing sports on grades.
 # This effect corresponds to the ATE if sport participation would be assigned to 
 # individuals in an entirely randomized way.
-# APE is biased since it does not account for endogeneity of participation.
-
+# APE is a naive estimate of the ATE and biased since it does not account for 
+# endogeneity of participation.
 ape <- data %>% filter(treatment_sport == 1) %>% pull(outcome_grade) %>% mean() -
   data %>% filter(treatment_sport == 0) %>% pull(outcome_grade) %>% mean()
 print(ape)
 
 
+#%%%%%%%%%%%#
+#### APO ####
+#%%%%%%%%%%%#
+
+# Average Potential Outcome (APO)
+# "What is the expected outcome if everybody receives treatment?"
+
+
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-#### 1.) Baseline Regressions ####
+#### 1.) No Control Variables ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-# Baseline regression is used for (post)-lasso and xgboost
-set.seed(1234)
-baseline_post_lasso <-
-  func_double_ml(data = data, outcome = "outcome_grade", treatment = "treatment_sport",
-                 group = "group", K = 5, S = 2, mlalgo = "postlasso")
+data_no_controls <- data %>% select(outcome_grade, treatment_sport, group)
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### 2.) Baseline Regressions ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+# Baseline regression: 
+# -> Small data sets (with small amount of predictors)
+# -> binary treatment setting with weekly sport definition and downward replacement
+# -> lasso (parameter tuning of lambda with 10-fold CV) 
+# -> K = 5, S = 100, 
+
+K_base <- 2
+K_tuning_base <- 2
+S_base <- 2
+mlalgo_base <- "lasso"
+trimming_base <- 0.01
+
+dml_baseline_lasso_all <- list()
+
+# iterate over the 5 MICE data sets
+for (mice_data_sel in 1:2) {
+  
+  print(paste("Data Set", mice_data_sel))
+  
+  # load data
+  data_lasso <- readRDS(paste0("Data/Prep_11/prep_11_dml_binary_base", "_mice", mice_data_sel, ".rds"))
+  data_lasso <- data_lasso %>% select(-c(ends_with("_lag")))
+  
+  # run DML
+  dml_baseline_lasso <- func_dml(
+    data = data_lasso, outcome = "outcome_grade", treatment = "treatment_sport", group = "group", 
+    K = K_base, K_tuning = K_tuning_base, S = S_base, mlalgo = mlalgo_base, trimming = trimming_base
+  )
+  
+  # append to full data frame
+  dml_baseline_lasso_all <- append(dml_baseline_lasso_all, list(dml_baseline_lasso))
+}
+
+
+# calculate pooled estimate
+func_dml_pool_mice(dml_baseline_lasso_all, nrow(data_lasso), 2)
+
 
 
 
@@ -73,3 +122,12 @@ dml_irm_atte$se
 
 
 sqrt(var(dml_irm_atte$psi)/N)
+
+
+#%%%%%%%%%%%%#
+#### CATE ####
+#%%%%%%%%%%%%#
+
+# Conditional Average Treatment Effect (CATE)
+# "What is the expected treatment effect for somebody with characteristics X = x?"
+# Heterogeneous treatment effects?
