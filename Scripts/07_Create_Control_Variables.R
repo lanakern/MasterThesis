@@ -1040,572 +1040,601 @@ pred_matrix_vars_num <- pred_matrix %>% as.data.frame() %>% select(starts_with("
 pred_matrix_vars_set_0 <- pred_matrix %>% as.data.frame() %>% select(!c(starts_with("personality"), starts_with("bigfive"))) %>% colnames()
 pred_matrix[pred_matrix_vars_num, c(pred_matrix_vars_set_0)] <- 0
 
-# apply mice
+# apply mice (using defaults: 5 data sets and 5 iterations)
+mice_num_data_sets <- 5
 mice_result <- mice(data_prep_4_wide, method = "cart", predictorMatrix = pred_matrix, 
-                    seed = 1234, m = 1, maxit = 1)
+                    seed = 1234, m = mice_num_data_sets, maxit = 5)
 
-# extract data set
-data_result_mice <- complete(mice_result)
-saveRDS(data_result_mice, "data_mice_result_wide_1.rds")
-sum(is.na(data_result_mice))
+# extract data frames in list
+data_result_mice <- complete(mice_result, "all")
 
-# convert back to long format and drop waves in which individual did not participated
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# NEXT STEPS ARE PERFORMED FOR EACH DATA SET RESULTING FROM MICE 
+
+for (mice_result_sel in 1:mice_num_data_sets) {
+  
+  # extract data set
+  data_mice_sub <- data_result_mice[[mice_result_sel]]
+  # saveRDS(data_mice_sub, "data_mice_result_wide_1.rds")
+  # sum(is.na(data_mice_sub))
+  
+  # convert back to long format and drop waves in which individual did not participated
   ## create data frame with ID_t and respective treatment periods
-data_prep_4_reshape <- data_prep_3 %>% select(ID_t, treatment_period)
+  data_prep_4_reshape <- data_prep_3 %>% select(ID_t, treatment_period)
   ## extract column names without suffixes _1, _2, _3, _4, _5
-col_reshape <- sort(unique(str_sub(colnames(data_result_mice), 1, str_length(colnames(data_result_mice)) - 2)))
-col_reshape <- col_reshape[!col_reshape %in% "ID"] # drop ID
+  col_reshape <- sort(unique(str_sub(colnames(data_mice_sub), 1, str_length(colnames(data_mice_sub)) - 2)))
+  col_reshape <- col_reshape[!col_reshape %in% "ID"] # drop ID
   ## iterate over columns to convert data frame from wide to long
-for (col_reshape_sel in col_reshape) {
-  ## generate columns
-  col_reshape_sel_all <- paste0(col_reshape_sel, "_", 1:5)
-  ## select columns
-  data_result_mice_sub <- data_result_mice %>% select(ID_t, all_of(col_reshape_sel_all))
-  ## reshape in long format
-  data_result_mice_sub <- 
-    reshape(data_result_mice_sub, idvar = "ID_t", varying = list(2:6), 
-            v.names = col_reshape_sel, direction = "long") %>% arrange(ID_t)
-  ## enumerate rows
-  rownames(data_result_mice_sub) <- 1:nrow(data_result_mice_sub)
-  ## join to treatment periods
-  data_prep_4_reshape <- left_join(
-    data_prep_4_reshape, data_result_mice_sub, by = c("ID_t", "treatment_period" = "time")
-  )
-}
-
-data_prep_4 <- data_prep_4_reshape
-
-
-# check plausibility of missing value replacement
+  for (col_reshape_sel in col_reshape) {
+    ## generate columns
+    col_reshape_sel_all <- paste0(col_reshape_sel, "_", 1:5)
+    ## select columns
+    data_result_mice_sub <- data_mice_sub %>% select(ID_t, all_of(col_reshape_sel_all))
+    ## reshape in long format
+    data_result_mice_sub <- 
+      reshape(data_result_mice_sub, idvar = "ID_t", varying = list(2:6), 
+              v.names = col_reshape_sel, direction = "long") %>% arrange(ID_t)
+    ## enumerate rows
+    rownames(data_result_mice_sub) <- 1:nrow(data_result_mice_sub)
+    ## join to treatment periods
+    data_prep_4_reshape <- left_join(
+      data_prep_4_reshape, data_result_mice_sub, by = c("ID_t", "treatment_period" = "time")
+    )
+  }
+  
+  data_prep_4 <- data_prep_4_reshape
+  
+  
+  # check plausibility of missing value replacement
   ## BMI
-summary(data_prep_3$health_bmi)
-summary(data_prep_4$health_bmi)
+  summary(data_prep_3$health_bmi)
+  summary(data_prep_4$health_bmi)
   ## motivation degree
-summary(data_prep_3$motivation_degree_1)
-unique(data_prep_3$motivation_degree_1)
-summary(data_prep_4$motivation_degree_1)
-unique(data_prep_4$motivation_degree_1)
+  summary(data_prep_3$motivation_degree_1)
+  unique(data_prep_3$motivation_degree_1)
+  summary(data_prep_4$motivation_degree_1)
+  unique(data_prep_4$motivation_degree_1)
   ## personality nervous
-table(data_prep_3$personality_nervous, useNA = "always")
-table(data_prep_4$personality_nervous, useNA = "always")
+  table(data_prep_3$personality_nervous, useNA = "always")
+  table(data_prep_4$personality_nervous, useNA = "always")
   ## big five personality conscientiousness
-table(data_prep_3$bigfive_conscientiousness, useNA = "always")
-table(data_prep_4$bigfive_conscientiousness, useNA = "always")
+  table(data_prep_3$bigfive_conscientiousness, useNA = "always")
+  table(data_prep_4$bigfive_conscientiousness, useNA = "always")
   ## competence domains
-summary(data_prep_3$comp_ict_wle)
-summary(data_prep_4$comp_ict_wle)
-summary(data_prep_3$comp_math_wle)
-summary(data_prep_4$comp_math_wle)
-# reconvert factor variables as character
-data_prep_4 <- data_prep_4 %>%
-  mutate_if(is.factor, as.character)
-
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-#### Aggregate Variables ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-
-data_prep_5 <- data_prep_4
-
-
-## REVERSE SCORE ##
-#+++++++++++++++++#
-
-
-# recode positive /negative values: some variables measure the same thing but
-# in a different direction. For instance "stress" is measured negatively 
-# "I often feel lonely" and positively "I do meaningful work". Those variables
-# need to be changed manually in one direction.
-
-# load function
-# source("Functions/func_reverse_score.R")
-
-
-# create data frame with variable name and highest variable value number
-# for those variables for which the order of the scale needs to be reversed.
-df_reverse_vars <- data.frame(
-  "vars_reverse" = c("uni_termination_4", paste0("stress_", c(1, 3, 5:7, 11)),
-                     "uni_commitment_1", "uni_commitment_4",
-                     paste0("personality_selfesteem_", c(2, 5, 6, 8, 9)),
-                     paste0("opinion_educ_", c(2,4,8,9,14,15)),
-                     paste0("satisfaction_study_", c(2,3,5,6,8,9)),
-                     "uni_prep_4", 
-                     "bigfive_conscientiousness", "bigfive_openness",
-                     "bigfive_extraversion", "bigfive_neuroticism"
-                     ),
-  "num_scores" = c(4, rep(5, 6), 5, 5, rep(5, 5), rep(5,6), rep(10, 6), 4,
-                   rep(5, 4))
-)
-
-
-# apply function and check
-data_prep_5 %>% select(uni_termination_4, stress_3, satisfaction_study_2) %>% head(5)
-data_prep_5 <- func_reverse_score(data_prep_5, df_reverse_vars)
-data_prep_5 %>% select(uni_termination_4, stress_3, satisfaction_study_2) %>% head(5)
-
-# recode manually (because number of categories do not match)
-data_prep_5 <- data_prep_5 %>%
-  mutate(uni_achievement_comp_2 = recode(
-         uni_achievement_comp_2, "1" = "5", "2" = "4", "3" = "2", "4" = "1")
-)
-
-
-
-## AGGREGATE VARIABLES ##
-#+++++++++++++++++++++++#
-
-# create vector including all variables that should be aggregated
-# in the upcoming function variables are identified using prefixes.
+  summary(data_prep_3$comp_ict_wle)
+  summary(data_prep_4$comp_ict_wle)
+  summary(data_prep_3$comp_math_wle)
+  summary(data_prep_4$comp_math_wle)
+  # reconvert factor variables as character
+  data_prep_4 <- data_prep_4 %>%
+    mutate_if(is.factor, as.character)
+  
+  
+  #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+  
+  
+  #%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+  #### Aggregate Variables ####
+  #%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+  
+  data_prep_5 <- data_prep_4
+  
+  
+  ## REVERSE SCORE ##
+  #+++++++++++++++++#
+  
+  
+  # recode positive /negative values: some variables measure the same thing but
+  # in a different direction. For instance "stress" is measured negatively 
+  # "I often feel lonely" and positively "I do meaningful work". Those variables
+  # need to be changed manually in one direction.
+  
+  # load function
+  # source("Functions/func_reverse_score.R")
+  
+  
+  # create data frame with variable name and highest variable value number
+  # for those variables for which the order of the scale needs to be reversed.
+  df_reverse_vars <- data.frame(
+    "vars_reverse" = c("uni_termination_4", paste0("stress_", c(1, 3, 5:7, 11)),
+                       "uni_commitment_1", "uni_commitment_4",
+                       paste0("personality_selfesteem_", c(2, 5, 6, 8, 9)),
+                       paste0("opinion_educ_", c(2,4,8,9,14,15)),
+                       paste0("satisfaction_study_", c(2,3,5,6,8,9)),
+                       "uni_prep_4"#, 
+                       #"bigfive_conscientiousness", "bigfive_openness",
+                       #"bigfive_extraversion", "bigfive_neuroticism"
+                       ),
+    "num_scores" = c(4, rep(5, 6), 5, 5, rep(5, 5), rep(5,6), rep(10, 6), 4#,
+                    # rep(5, 4)
+                     )
+  )
+  
+  
+  # apply function and check
+  data_prep_5 %>% select(uni_termination_4, stress_3, satisfaction_study_2) %>% head(5)
+  data_prep_5 <- func_reverse_score(data_prep_5, df_reverse_vars)
+  data_prep_5 %>% select(uni_termination_4, stress_3, satisfaction_study_2) %>% head(5)
+  
+  # recode manually (because number of categories do not match)
+  data_prep_5 <- data_prep_5 %>%
+    mutate(uni_achievement_comp_2 = recode(
+      uni_achievement_comp_2, "1" = "5", "2" = "4", "3" = "2", "4" = "1")
+    )
+  
+  
+  
+  ## AGGREGATE VARIABLES ##
+  #+++++++++++++++++++++++#
+  
+  # create vector including all variables that should be aggregated
+  # in the upcoming function variables are identified using prefixes.
   ## vector with variables aggregated as mean
-vars_aggregated_mean <- c(
-  ## CAWI
-  "personality_goal_pers", "personality_goal_flex", "parents_importance_success",
-  "uni_counsel_.*_quality", "uni_quality", "uni_best_student", "uni_fear",
-  "uni_anxiety", "uni_termination", "uni_commitment", "uni_prep",
-  "academic", "helpless", "social_integr", "stress", 
-  "uni_achievement_comp", "uni_perf_satisfied", "uni_offers",  
-  "personality_assertiveness", "personality_conflicts", 
-  "personality_selfesteem", "parents_opinion_degree", "opinion_educ",
-  "motivation_degree", "satisfaction_study", "satisfaction_life",
-  "interest_math", "interest_german", "risk", "uni_offers_.*_helpful",
-  "friends_opinion_degree"
-)
-# ensure that variables exist (are not dropped above in missing value selection)
-colnames_exist <- unique(sub("_[^_]+$", "", 
-                             data_prep_5 %>% 
-                               select(matches(paste0(vars_aggregated_mean, collapse = "|"))) %>% 
-                               colnames()))
-vars_aggregated_mean <- vars_aggregated_mean[vars_aggregated_mean %in% colnames_exist]
-
+  vars_aggregated_mean <- c(
+    ## CAWI
+    "personality_goal_pers", "personality_goal_flex", "parents_importance_success",
+    "uni_counsel_.*_quality", "uni_quality", "uni_best_student", "uni_fear",
+    "uni_anxiety", "uni_termination", "uni_commitment", "uni_prep",
+    "academic", "helpless", "social_integr", "stress", 
+    "uni_achievement_comp", "uni_perf_satisfied", "uni_offers",  
+    "personality_assertiveness", "personality_conflicts", 
+    "personality_selfesteem", "parents_opinion_degree", "opinion_educ",
+    "motivation_degree", "satisfaction_study", "satisfaction_life",
+    "interest_math", "interest_german", "risk", "uni_offers_.*_helpful",
+    "friends_opinion_degree"
+  )
+  # ensure that variables exist (are not dropped above in missing value selection)
+  colnames_exist <- unique(sub("_[^_]+$", "", 
+                               data_prep_5 %>% 
+                                 select(matches(paste0(vars_aggregated_mean, collapse = "|"))) %>% 
+                                 colnames()))
+  vars_aggregated_mean <- vars_aggregated_mean[vars_aggregated_mean %in% colnames_exist]
+  
   ## vector with variables aggregated as sum
-vars_aggregated_sum <- c(
-  "uni_counsel_.*_offer", "uni_counsel_.*_use", "uni_offers_.*_partic"
-)
-
-
-
-# load function 
-# source("Functions/func_aggregate_vars.R")
-
-# ungroup data frame
-data_prep_5 <- data_prep_5 %>% ungroup()
-
-# show example
-data_prep_5 %>% select(ID_t, matches("uni_counsel_.*_offer")) %>% head(5)
-data_prep_5 %>% select(ID_t, starts_with("personality_goal_pers")) %>% head(5)
-data_prep_5 %>% select(ID_t, starts_with("friends_opinion_degree")) %>% head(5)
-data_prep_5 %>% select(ID_t, starts_with("satisfaction_study")) %>% head(5)
-data_prep_5 %>% select(ID_t, starts_with("uni_achievement_comp")) %>% head(5)
-
-# apply aggregation
+  vars_aggregated_sum <- c(
+    "uni_counsel_.*_offer", "uni_counsel_.*_use", "uni_offers_.*_partic"
+  )
+  
+  
+  
+  # load function 
+  # source("Functions/func_aggregate_vars.R")
+  
+  # ungroup data frame
+  data_prep_5 <- data_prep_5 %>% ungroup()
+  
+  # show example
+  data_prep_5 %>% select(ID_t, matches("uni_counsel_.*_offer")) %>% head(5)
+  data_prep_5 %>% select(ID_t, starts_with("personality_goal_pers")) %>% head(5)
+  data_prep_5 %>% select(ID_t, starts_with("friends_opinion_degree")) %>% head(5)
+  data_prep_5 %>% select(ID_t, starts_with("satisfaction_study")) %>% head(5)
+  data_prep_5 %>% select(ID_t, starts_with("uni_achievement_comp")) %>% head(5)
+  
+  # apply aggregation
   ## pca / mean
-vars_not_aggr_all <- c()
-for (vars_aggr in vars_aggregated_mean) {
-  # ensure that all variables are numeric
-  data_prep_5 <- data_prep_5 %>% mutate(across(starts_with(vars_aggr), as.numeric))
-  # then apply aggregation
-  result_agrregate_vars_ls <- 
-    func_aggregate_vars(data_prep_5, vars_aggr, cronbach_a, aggr_vars)
+  vars_not_aggr_all <- c()
+  for (vars_aggr in vars_aggregated_mean) {
+    # ensure that all variables are numeric
+    data_prep_5 <- data_prep_5 %>% mutate(across(starts_with(vars_aggr), as.numeric))
+    # then apply aggregation
+    result_agrregate_vars_ls <- 
+      func_aggregate_vars(data_prep_5, vars_aggr, cronbach_a, aggr_vars)
     ## extract data set with aggregated variables
-  data_prep_5 <- result_agrregate_vars_ls[[1]]
+    data_prep_5 <- result_agrregate_vars_ls[[1]]
     ## extract vector with variable prefix that could not be aggregated and append it
-  vars_not_aggr <- result_agrregate_vars_ls[[2]]
-  vars_not_aggr_all <- c(vars_not_aggr_all, vars_not_aggr)
-}
+    vars_not_aggr <- result_agrregate_vars_ls[[2]]
+    vars_not_aggr_all <- c(vars_not_aggr_all, vars_not_aggr)
+  }
   ## sum
-for (vars_aggr in vars_aggregated_sum) {
-  # ensure that all variables are numeric
-  data_prep_5 <- data_prep_5 %>% mutate(across(starts_with(vars_aggr), as.numeric))
-  # then apply aggregation
-  result_agrregate_vars_ls <- func_aggregate_vars(data_prep_5, vars_aggr, "no", "sum")
-  data_prep_5 <- result_agrregate_vars_ls[[1]]
-}
-
-
-data_prep_5 %>% select(ID_t, matches("uni_counsel_offer")) %>% head(5)
-data_prep_5 %>% select(ID_t, starts_with("personality_goal_pers"))  %>% head(5)
-data_prep_5 %>% select(ID_t, starts_with("friends_opinion_degree"))  %>% head(5)
-data_prep_5 %>% select(ID_t, starts_with("satisfaction_study")) %>% head(5)
-data_prep_5 %>% select(ID_t, starts_with("uni_achievement_comp")) %>% head(5)
-
-vars_not_aggr_all
-
-# aggregate uni_offers as sum (not possible above because of uni_offers_*_helpful)
-data_prep_5 <- data_prep_5 %>% select(-uni_offers_no)
-cols_offers <- data_prep_5 %>% select(starts_with("uni_offers")) %>% colnames()
-cols_offers_help <- data_prep_5 %>% select(starts_with("uni_offers") & ends_with("helpful")) %>% colnames()
-cols_offers <- cols_offers[!cols_offers %in% cols_offers_help]
-
-data_prep_5 <- data_prep_5 %>% 
-  mutate("uni_offers" = round(rowSums(select(
-    data_prep_5, all_of(cols_offers)), na.rm = TRUE))) %>%
-  select(-(all_of(cols_offers)))
-
-
-
-## Re-label Variables ##
-#++++++++++++++++++++++#
-
-# only if as aggregation method mean is chosen, the labels are re-labeled,
-# e.g. to 1 = "does not apply at all"
-
-if (aggr_vars == "mean") {
-  table(data_prep_5$personality_goal_pers)
-  table(data_prep_5$academic)
+  for (vars_aggr in vars_aggregated_sum) {
+    # ensure that all variables are numeric
+    data_prep_5 <- data_prep_5 %>% mutate(across(starts_with(vars_aggr), as.numeric))
+    # then apply aggregation
+    result_agrregate_vars_ls <- func_aggregate_vars(data_prep_5, vars_aggr, "no", "sum")
+    data_prep_5 <- result_agrregate_vars_ls[[1]]
+  }
   
-  # load lists with labels
-  list_cawi_labels <- readRDS("Data/Prep_1/prep_1_target_cawi_list.rds")
-  list_cati_labels <- readRDS("Data/Prep_1/prep_1_target_cati_list.rds")
-  list_labels <- append(list_cawi_labels, list_cati_labels)
   
-  for (i in 1:length(list_labels)) {
+  data_prep_5 %>% select(ID_t, matches("uni_counsel_offer")) %>% head(5)
+  data_prep_5 %>% select(ID_t, starts_with("personality_goal_pers"))  %>% head(5)
+  data_prep_5 %>% select(ID_t, starts_with("friends_opinion_degree"))  %>% head(5)
+  data_prep_5 %>% select(ID_t, starts_with("satisfaction_study")) %>% head(5)
+  data_prep_5 %>% select(ID_t, starts_with("uni_achievement_comp")) %>% head(5)
+  
+  
+  # aggregate uni_offers as sum (not possible above because of uni_offers_*_helpful)
+  data_prep_5 <- data_prep_5 %>% select(-uni_offers_no)
+  cols_offers <- data_prep_5 %>% select(starts_with("uni_offers")) %>% colnames()
+  cols_offers_help <- data_prep_5 %>% select(starts_with("uni_offers") & ends_with("helpful")) %>% colnames()
+  cols_offers <- cols_offers[!cols_offers %in% cols_offers_help]
+  
+  data_prep_5 <- data_prep_5 %>% 
+    mutate("uni_offers" = round(rowSums(select(
+      data_prep_5, all_of(cols_offers)), na.rm = TRUE))) %>%
+    select(-(all_of(cols_offers)))
+  
+  
+  
+  ## Re-label Variables ##
+  #++++++++++++++++++++++#
+  
+  # only if as aggregation method mean is chosen, the labels are re-labeled,
+  # e.g. to 1 = "does not apply at all"
+  
+  if (aggr_vars == "mean") {
+    table(data_prep_5$personality_goal_pers)
+    table(data_prep_5$academic)
     
-    # extract column name
-    col_name_cawi_sel <- names(list_labels)[i]
+    # load lists with labels
+    list_cawi_labels <- readRDS("Data/Prep_1/prep_1_target_cawi_list.rds")
+    list_cati_labels <- readRDS("Data/Prep_1/prep_1_target_cati_list.rds")
+    list_labels <- append(list_cawi_labels, list_cati_labels)
     
-    # extract values according to column name
-    label_cawi_sel <- list_labels[[col_name_cawi_sel]]
+    for (i in 1:length(list_labels)) {
+      
+      # extract column name
+      col_name_cawi_sel <- names(list_labels)[i]
+      
+      # extract values according to column name
+      label_cawi_sel <- list_labels[[col_name_cawi_sel]]
+      
+      # swap names and values
+      label_cawi_sel <- setNames(names(label_cawi_sel), label_cawi_sel)
+      
+      # label variable
+      data_prep_5 <- data_prep_5 %>%
+        mutate(
+          {{col_name_cawi_sel}} := recode(!!!rlang::syms(col_name_cawi_sel), !!!label_cawi_sel)
+        )
+      
+      
+    }
+    table(data_prep_5$personality_goal_pers)
+    table(data_prep_5$academic)
     
-    # swap names and values
-    label_cawi_sel <- setNames(names(label_cawi_sel), label_cawi_sel)
     
-    # label variable
+  } else {
+    list_cawi_labels <- readRDS("Data/Prep_1/prep_1_target_cawi_list.rds")
+    list_cati_labels <- readRDS("Data/Prep_1/prep_1_target_cati_list.rds")
+    list_labels <- append(list_cawi_labels, list_cati_labels)
+    
+    for (vars_relabel in vars_not_aggr_all) {
+      
+      # column names
+      colnames_relabel <- data_prep_5 %>% select(starts_with(vars_relabel)) %>% colnames()
+      
+      # extract values according to column name
+      label_cawi_sel <- list_labels[[vars_relabel]]
+      label_cawi_sel <- setNames(names(label_cawi_sel), label_cawi_sel)
+      
+      if (length(label_cawi_sel) == 0) {
+        data_prep_5 <- data_prep_5
+      } else {
+        for (colnames_relabel_sel in colnames_relabel) {
+          # label variable
+          data_prep_5 <- data_prep_5 %>%
+            mutate(
+              {{colnames_relabel_sel}} := recode(!!!rlang::syms(colnames_relabel_sel), !!!label_cawi_sel)
+            )
+        }
+      }
+      
+    }
+  }
+  
+  # relabel big five personality trait variables
+  colnames_bigfive <- data_prep_5 %>% select(starts_with("bigfive")) %>% colnames()
+  
+  for (cols_bigfive_sel in colnames_bigfive) {
+    # extract label
+    label_bigfive_sel <- list_labels[[cols_bigfive_sel]]
+    label_bigfive_sel <- setNames(names(label_bigfive_sel), label_bigfive_sel)
+    
+    # rename
     data_prep_5 <- data_prep_5 %>%
       mutate(
-        {{col_name_cawi_sel}} := recode(!!!rlang::syms(col_name_cawi_sel), !!!label_cawi_sel)
+        {{cols_bigfive_sel}} := recode(!!!rlang::syms(cols_bigfive_sel), !!!label_bigfive_sel)
       )
-    
-    
   }
-  table(data_prep_5$personality_goal_pers)
-  table(data_prep_5$academic)
-  
- 
-} else {
-  list_cawi_labels <- readRDS("Data/Prep_1/prep_1_target_cawi_list.rds")
-  list_cati_labels <- readRDS("Data/Prep_1/prep_1_target_cati_list.rds")
-  list_labels <- append(list_cawi_labels, list_cati_labels)
-  
-  for (vars_relabel in vars_not_aggr_all) {
-    
-    # column names
-    colnames_relabel <- data_prep_5 %>% select(starts_with(vars_relabel)) %>% colnames()
-    
-    # extract values according to column name
-    label_cawi_sel <- list_labels[[vars_relabel]]
-    label_cawi_sel <- setNames(names(label_cawi_sel), label_cawi_sel)
-    
-    if (length(label_cawi_sel) == 0) {
-      data_prep_5 <- data_prep_5
-    } else {
-      for (colnames_relabel_sel in colnames_relabel) {
-        # label variable
-        data_prep_5 <- data_prep_5 %>%
-          mutate(
-            {{colnames_relabel_sel}} := recode(!!!rlang::syms(colnames_relabel_sel), !!!label_cawi_sel)
-          )
-      }
-    }
 
+  
+  # relabel uni_offers_.*_helpful variables
+  label_cawi_sel <- list_labels[["uni_offers_helpful"]]
+  label_cawi_sel <- setNames(names(label_cawi_sel), label_cawi_sel)
+  
+  for (cols_offers_help_sel in cols_offers_help) {
+    data_prep_5 <- data_prep_5 %>%
+      mutate(
+        {{cols_offers_help_sel}} := recode(!!!rlang::syms(cols_offers_help_sel), !!!label_cawi_sel)
+      )
   }
-}
-
-# relabel uni_offers_.*_helpful variables
-label_cawi_sel <- list_labels[["uni_offers_helpful"]]
-label_cawi_sel <- setNames(names(label_cawi_sel), label_cawi_sel)
-
-for (cols_offers_help_sel in cols_offers_help) {
-  data_prep_5 <- data_prep_5 %>%
-    mutate(
-      {{cols_offers_help_sel}} := recode(!!!rlang::syms(cols_offers_help_sel), !!!label_cawi_sel)
-    )
-}
-
-# relabel helpless
-label_cawi_sel <- list_labels[["helpless"]]
-label_cawi_sel <- setNames(names(label_cawi_sel), label_cawi_sel)
-
-cols_helpless <- data_prep_5 %>% select(starts_with("helpless")) %>% colnames()
-
-for (cols_helpless_sel in cols_helpless) {
-  data_prep_5 <- data_prep_5 %>%
-    mutate(
-      {{cols_helpless_sel}} := recode(!!!rlang::syms(cols_helpless_sel), !!!label_cawi_sel)
-    )
-}
-
-
-
-# "apply" variables
-## extract variables
-vars_recode_apply <- data_prep_5 %>%
-  select_if(~ is.character(.)) %>%
-  select_if(~ any(. == "does completely apply")) %>%
-  colnames()
-## recode variables
-data_prep_5 <- data_prep_5 %>% 
-  mutate_at(
-    all_of(vars_recode_apply), 
-    list(
-      ~recode(., `does completely apply` = "completely", `does rather apply` = "rather",
-              `does partly apply` = "partly", `does rather not apply` = "rather_not",
-              `does not apply at all`= "not", .default = as.character(NA)) 
+  
+  # relabel helpless
+  label_cawi_sel <- list_labels[["helpless"]]
+  label_cawi_sel <- setNames(names(label_cawi_sel), label_cawi_sel)
+  
+  cols_helpless <- data_prep_5 %>% select(starts_with("helpless")) %>% colnames()
+  
+  for (cols_helpless_sel in cols_helpless) {
+    data_prep_5 <- data_prep_5 %>%
+      mutate(
+        {{cols_helpless_sel}} := recode(!!!rlang::syms(cols_helpless_sel), !!!label_cawi_sel)
+      )
+  }
+  
+  
+  
+  # "apply" variables
+  ## extract variables
+  vars_recode_apply <- data_prep_5 %>%
+    select_if(~ is.character(.)) %>%
+    select_if(~ any(. == "does completely apply")) %>%
+    colnames()
+  ## recode variables
+  data_prep_5 <- data_prep_5 %>% 
+    mutate_at(
+      all_of(vars_recode_apply), 
+      list(
+        ~recode(., `does completely apply` = "completely", `does rather apply` = "rather",
+                `does partly apply` = "partly", `does rather not apply` = "rather_not",
+                `does not apply at all`= "not", .default = as.character(NA)) 
+      ) 
     ) 
-  ) 
-
-
-# variables not occuring often
-## extract variables
-vars_recode_good <- data_prep_5 %>%
-  select_if(~ is.character(.)) %>%
-  select_if(~ any(. == "very bad") | any(. == "very high") | any(. == "very important") | any(. == "slightly less")) %>%
-  colnames()
-## only put "_" in between
-data_prep_5 <- data_prep_5 %>% 
-  mutate_at(all_of(vars_recode_good), list(~ str_replace(., " ", "_")))
-
-
-data_prep_5 %>% select(starts_with("uni_quality")) %>% head(5)
-data_prep_5 %>% select(starts_with("friends_opinion_degree")) %>% head(5)
-data_prep_5 %>% select(starts_with("uni_offers")) %>% head(5)
-data_prep_5 %>% select(starts_with("uni_achievement_comp")) %>% head(5)
-
-
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-#### Numeric in Categorical Variables ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-
-data_prep_6 <- data_prep_5
-
-
-## BMI ##
-#+++++++#
-
-# generate categories
-# https://www.cdc.gov/obesity/basics/adult-defining.html and Flegal et al.
-# normal weight: BMI of 18.5-25
-# underweight: BMI < 18.5
-# overweight: 25-30
-# obesity: > 30
-summary(data_prep_6$health_bmi)
-data_prep_6 <- data_prep_6 %>%
-  mutate(
-    health_bmi_cat_over_under = case_when(health_bmi > 25 ~ 1, health_bmi < 18.5 ~ 1, TRUE ~ 0),
+  
+  
+  # variables not occuring often
+  ## extract variables
+  vars_recode_good <- data_prep_5 %>%
+    select_if(~ is.character(.)) %>%
+    select_if(~ any(. == "very bad") | any(. == "very high") | any(. == "very important") | any(. == "slightly less")) %>%
+    colnames()
+  ## only put "_" in between
+  data_prep_5 <- data_prep_5 %>% 
+    mutate_at(all_of(vars_recode_good), list(~ str_replace(., " ", "_")))
+  
+  
+  data_prep_5 %>% select(starts_with("uni_quality")) %>% head(5)
+  data_prep_5 %>% select(starts_with("friends_opinion_degree")) %>% head(5)
+  data_prep_5 %>% select(starts_with("uni_offers")) %>% head(5)
+  data_prep_5 %>% select(starts_with("uni_achievement_comp")) %>% head(5)
+  
+  
+  
+  #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+  #### Numeric in Categorical Variables ####
+  #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+  
+  data_prep_6 <- data_prep_5
+  
+  
+  ## BMI ##
+  #+++++++#
+  
+  # generate categories
+  # https://www.cdc.gov/obesity/basics/adult-defining.html and Flegal et al.
+  # normal weight: BMI of 18.5-25
+  # underweight: BMI < 18.5
+  # overweight: 25-30
+  # obesity: > 30
+  summary(data_prep_6$health_bmi)
+  data_prep_6 <- data_prep_6 %>%
+    mutate(
+      health_bmi_cat_over_under = case_when(health_bmi > 25 ~ 1, health_bmi < 18.5 ~ 1, TRUE ~ 0),
+    )
+  table(data_prep_6$health_bmi_cat_over_under, useNA = "always")
+  
+  
+  
+  ## OTHER VARIABLES ##
+  #+++++++++++++++++++#
+  
+  ## ADJUSTMENTS ##
+  
+  # educ_years_total
+  summary(data_prep_6$educ_years_total)
+  table(round(data_prep_6$age), round(data_prep_6$educ_years_total))
+  
+  data_prep_6 <- data_prep_6 %>%
+    # unreaöistic high values are adjusted
+    mutate(educ_years_total = case_when(age - educ_years_total < 5 ~ age - 5, TRUE ~ educ_years_total)) %>%
+    # unrealistic low values are adjusted
+    mutate(educ_years_total = case_when(educ_years_total < 10 ~ age - 7, TRUE ~ educ_years_total))
+  
+  summary(data_prep_6$educ_years_total)
+  table(round(data_prep_6$age), round(data_prep_6$educ_years_total))
+  
+  
+  # working hours
+  data_prep_6 <- data_prep_6 %>% mutate(
+    emp_current_act_work_hours = case_when(
+      emp_current == 1 & emp_current_act_work_hours == 0 ~ 1, TRUE ~ emp_current_act_work_hours 
+    )
   )
-table(data_prep_6$health_bmi_cat_over_under, useNA = "always")
-
-
-
-## OTHER VARIABLES ##
-#+++++++++++++++++++#
-
-## ADJUSTMENTS ##
-
-# educ_years_total
-summary(data_prep_6$educ_years_total)
-table(round(data_prep_6$age), round(data_prep_6$educ_years_total))
-
-data_prep_6 <- data_prep_6 %>%
-  # unreaöistic high values are adjusted
-  mutate(educ_years_total = case_when(age - educ_years_total < 5 ~ age - 5, TRUE ~ educ_years_total)) %>%
-  # unrealistic low values are adjusted
-  mutate(educ_years_total = case_when(educ_years_total < 10 ~ age - 7, TRUE ~ educ_years_total))
-
-summary(data_prep_6$educ_years_total)
-table(round(data_prep_6$age), round(data_prep_6$educ_years_total))
-
-
-# working hours
-data_prep_6 <- data_prep_6 %>% mutate(
-  emp_current_act_work_hours = case_when(
-    emp_current == 1 & emp_current_act_work_hours == 0 ~ 1, TRUE ~ emp_current_act_work_hours 
-  )
-)
-
-
-## CATEGORIZE USING QUANTILES ##
-
-for (vars_categorized in c("age", "educ_years_total", "extracurricular_num",
-                           "uni_offers", "uni_counsel_offer", "uni_counsel_use",
-                           "emp_current_act_work_hours", "uni_time_courses",
-                           "uni_time_studyact", "uni_time_household", "uni_time_childcare",
-                           "uni_time_study")) {
   
-  # generate splitting values
-  split_one <- unname(quantile(data_prep_6 %>% pull(vars_categorized), 0.25))
-  split_two <- unname(quantile(data_prep_6 %>% pull(vars_categorized), 0.75))
-  split_max <- max(data_prep_6 %>% pull(vars_categorized))
   
-  # new variable name
-  vars_categorized_name <- paste0(vars_categorized, "_cat")
+  ## CATEGORIZE USING QUANTILES ##
   
-  if (split_one != split_two) {
-    # generate new variable
-    data_prep_6 <- data_prep_6 %>%
-      mutate({{vars_categorized_name}} := as.character(
-        cut(!!!syms(vars_categorized), breaks = c(-Inf, split_one, split_two, Inf),
-            labels = c(as.character(round(split_one)), as.character(round(split_two)), 
-                       as.character(ceiling(split_max))))
-      ))
-  } else {
-    data_prep_6 <- data_prep_6 %>%
-      mutate({{vars_categorized_name}} := as.character(
-        cut(!!!syms(vars_categorized), breaks = c(-Inf, split_one, Inf),
-            labels = c(as.character(round(split_one)),  as.character(ceiling(split_max))))
-      ))
+  for (vars_categorized in c("age", "educ_years_total", "extracurricular_num",
+                             "uni_offers", "uni_counsel_offer", "uni_counsel_use",
+                             "emp_current_act_work_hours", "uni_time_courses",
+                             "uni_time_studyact", "uni_time_household", "uni_time_childcare",
+                             "uni_time_study")) {
+    
+    # generate splitting values
+    split_one <- unname(quantile(data_prep_6 %>% pull(vars_categorized), 0.25))
+    split_two <- unname(quantile(data_prep_6 %>% pull(vars_categorized), 0.75))
+    split_max <- max(data_prep_6 %>% pull(vars_categorized))
+    
+    # new variable name
+    vars_categorized_name <- paste0(vars_categorized, "_cat")
+    
+    if (split_one != split_two) {
+      # generate new variable
+      data_prep_6 <- data_prep_6 %>%
+        mutate({{vars_categorized_name}} := as.character(
+          cut(!!!syms(vars_categorized), breaks = c(-Inf, split_one, split_two, Inf),
+              labels = c(as.character(round(split_one)), as.character(round(split_two)), 
+                         as.character(ceiling(split_max))))
+        ))
+    } else {
+      data_prep_6 <- data_prep_6 %>%
+        mutate({{vars_categorized_name}} := as.character(
+          cut(!!!syms(vars_categorized), breaks = c(-Inf, split_one, Inf),
+              labels = c(as.character(round(split_one)),  as.character(ceiling(split_max))))
+        ))
+    }
+    
+    
   }
-
   
-}
-
-table(data_prep_6$age_cat, useNA = "always")
-table(data_prep_6$educ_years_total_cat, useNA = "always")
-table(data_prep_6$extracurricular_num_cat, useNA = "always")
-table(data_prep_6$uni_counsel_offer_cat, useNA = "always")
-table(data_prep_6$uni_counsel_use_cat, useNA = "always")
-table(data_prep_6$emp_current_act_work_hours_cat, useNA = "always")
-table(data_prep_6$uni_time_courses_cat, useNA = "always")
-table(data_prep_6$uni_time_studyact_cat, useNA = "always")
-table(data_prep_6$uni_time_household_cat, useNA = "always")
-table(data_prep_6$uni_time_childcare_cat, useNA = "always")
-table(data_prep_6$uni_time_study_cat, useNA = "always")
-
-
-
-#%%%%%%%%%%%%%%%%%%%%%%%#
-#### Dummy Variables ####
-#%%%%%%%%%%%%%%%%%%%%%%%#
-
-data_prep_7 <- data_prep_6
-
-
-## Recategorize to avoid too many categories ##
-#+++++++++++++++++++++++++++++++++++++++++++++#
-
-# opinion_educ_* 
-table(data_prep_7$opinion_educ_1, useNA = "always")
-if (data_prep_7 %>% select(starts_with("opinion_educ")) %>% colnames() %>% length() > 1) {
+  table(data_prep_6$age_cat, useNA = "always")
+  table(data_prep_6$educ_years_total_cat, useNA = "always")
+  table(data_prep_6$extracurricular_num_cat, useNA = "always")
+  table(data_prep_6$uni_counsel_offer_cat, useNA = "always")
+  table(data_prep_6$uni_counsel_use_cat, useNA = "always")
+  table(data_prep_6$emp_current_act_work_hours_cat, useNA = "always")
+  table(data_prep_6$uni_time_courses_cat, useNA = "always")
+  table(data_prep_6$uni_time_studyact_cat, useNA = "always")
+  table(data_prep_6$uni_time_household_cat, useNA = "always")
+  table(data_prep_6$uni_time_childcare_cat, useNA = "always")
+  table(data_prep_6$uni_time_study_cat, useNA = "always")
+  
+  
+  
+  #%%%%%%%%%%%%%%%%%%%%%%%#
+  #### Dummy Variables ####
+  #%%%%%%%%%%%%%%%%%%%%%%%#
+  
+  data_prep_7 <- data_prep_6
+  
+  
+  ## Recategorize to avoid too many categories ##
+  #+++++++++++++++++++++++++++++++++++++++++++++#
+  
+  # opinion_educ_* 
+  table(data_prep_7$opinion_educ_1, useNA = "always")
+  if (data_prep_7 %>% select(starts_with("opinion_educ")) %>% colnames() %>% length() > 1) {
+    data_prep_7 <- data_prep_7 %>%
+      mutate(across(starts_with("opinion_educ"), 
+                    ~ case_when(. %in% c("completely disagree", "rather agree") ~ "agree",
+                                TRUE ~ "not_agree")))
+  }
+  table(data_prep_7$opinion_educ_1, useNA = "always")
+  
+  # parents_importance_*
+  table(data_prep_7$parents_importance_success_1, useNA = "always")
+  if (data_prep_7 %>% select(starts_with("parents_importance")) %>% colnames() %>% length() > 1) {
+    data_prep_7 <- data_prep_7 %>%
+      mutate(across(starts_with("parents_importance"), 
+                    ~ case_when(. %in% c("very_important", "rather_important") ~ "important",
+                                TRUE ~ "not_important")))
+  }
+  table(data_prep_7$parents_importance_success_1, useNA = "always")
+  
+  # parents_opinion_degree_*
+  table(data_prep_7$parents_opinion_degree_1, useNA = "always")
+  if (data_prep_7 %>% select(starts_with("parents_opinion_degree")) %>% colnames() %>% length() > 1) {
+    data_prep_7 <- data_prep_7 %>%
+      mutate(across(starts_with("parents_opinion_degree"), 
+                    ~ case_when(. %in% c("completely", "rather") ~ "agree",
+                                TRUE ~ "not_agree")))
+  }
+  table(data_prep_7$parents_opinion_degree_1, useNA = "always")
+  
+  # stress
+  table(data_prep_7$stress_1, useNA = "always")
+  if (data_prep_7 %>% select(starts_with("stress")) %>% colnames() %>% length() > 1) {
+    data_prep_7 <- data_prep_7 %>%
+      mutate(across(starts_with("stress"), 
+                    ~ case_when(. %in% c("completely", "rather") ~ "agree",
+                                TRUE ~ "not_agree")))
+  }
+  table(data_prep_7$stress_1, useNA = "always")
+  
+  # uni_offers_*_heloful
+  table(data_prep_7$uni_offers_central_facilities_helpful, useNA = "always")
+  if (data_prep_7 %>% select(starts_with("uni_offers") & ends_with("helpful")) %>% colnames() %>% length() > 1) {
+    data_prep_7 <- data_prep_7 %>%
+      mutate(across(starts_with("uni_offers") & ends_with("helpful"), 
+                    ~ case_when(. %in% c("very helpful", "rather helpful") ~ "helpful",
+                                TRUE ~ "not_helpful")))
+  }
+  table(data_prep_7$uni_offers_central_facilities_helpful, useNA = "always")
+  
+  
+  
+  ## Generate dummies ##
+  #++++++++++++++++++++#
+  
+  # automatically generate dummy variables for categorical variables
+  # LASSO will select which are important
+  ## identify all categorical columns
+  vars_categoric <- data_prep_7 %>% ungroup() %>% select_if(~ is.character(.)) %>% colnames()
+  vars_categoric <- vars_categoric[!str_detect(vars_categoric, "date")]
+  data_prep_7 <- fastDummies::dummy_cols(
+    # selected column cannot be removed due to descriptives (hence saved and removed later)
+    # base category is omitted 
+    data_prep_7, remove_selected_columns = FALSE, remove_first_dummy = TRUE, 
+    select_columns = vars_categoric
+  )
+  
+  saveRDS(vars_categoric, "Data/Prep_7/prep_7_variables_drop_cat.rds")
+  
+  
+  # birth month and birth year as additional dummys
+  data_prep_7$birth_month_name <- as.character(month(data_prep_7$birth_month, label = TRUE, abbr = TRUE))
+  data_prep_7 <- dummy_cols(
+    # selected column is removed, and base category is omitted 
+    data_prep_7, remove_selected_columns = FALSE, remove_first_dummy = TRUE, 
+    select_columns = c("birth_month_name", "birth_year", "interview_start_year", "interview_end_year")
+  ) %>% select(-c("birth_month_name", "birth_year", "interview_start_year", "interview_end_year"))
+  
+  # drop "name" in "birth_month_name"
   data_prep_7 <- data_prep_7 %>%
-    mutate(across(starts_with("opinion_educ"), 
-                  ~ case_when(. %in% c("completely disagree", "rather agree") ~ "agree",
-                              TRUE ~ "not_agree")))
-}
-table(data_prep_7$opinion_educ_1, useNA = "always")
-
-# parents_importance_*
-table(data_prep_7$parents_importance_success_1, useNA = "always")
-if (data_prep_7 %>% select(starts_with("parents_importance")) %>% colnames() %>% length() > 1) {
+    rename_all(funs(stringr::str_replace_all(., 'birth_month_name_', 'birth_month_')))
+  
+  # change educ_uni to uni
   data_prep_7 <- data_prep_7 %>%
-    mutate(across(starts_with("parents_importance"), 
-                  ~ case_when(. %in% c("very_important", "rather_important") ~ "important",
-                              TRUE ~ "not_important")))
-}
-table(data_prep_7$parents_importance_success_1, useNA = "always")
+    rename_all(list(~ stringr::str_replace_all(., 'educ_uni_', 'uni_'))) %>%
+    rename(uni_study_num = educ_study_num)
+  
+  
+  #%%%%%%%%%%%%%%%%%%%#
+  #### Final Steps ####
+  #%%%%%%%%%%%%%%%%%%%#
+  
+  data_final <- data_prep_7
+  
+  # all variable names as lower case; whitespace are replace with "_"
+  data_final <- data_final %>%
+    rename_all(list(~ stringr::str_to_lower(.))) %>%
+    rename_all(list(~ stringr::str_replace_all(., ' ', '_')))
+  
+  # ungroup
+  data_final <- data_final %>% ungroup()
+  
+  # check for missing values
+  sum(is.na(data_final))
+  
+  # check for duplicates
+  sum(duplicated(data_final))
+  
+  # number of respondents, rows, and columns
+  print(paste("Number of respondents:", length(unique(data_final$id_t))))
+  print(paste("Number of rows", nrow(data_final)))
+  print(paste("Number of columns", ncol(data_final)))
+  
+  # save data frame
+  if (cohort_prep == "controls_same_outcome") {
+    data_save <- paste0("Data/Prep_7/prep_7_control_vars_", treatment_def, 
+                        "_", treatment_repl, "_mice", mice_result_sel, ".rds")
+  } else {
+    data_save <- paste0("Data/Prep_7/prep_7_control_vars_", treatment_def, 
+                        "_", treatment_repl, "_mice", mice_result_sel, "_robustcheck.rds")
+  }
+  
+  saveRDS(data_final, data_save)
+  
+} # close iteration over mice result data frames
 
-# parents_opinion_degree_*
-table(data_prep_7$parents_opinion_degree_1, useNA = "always")
-if (data_prep_7 %>% select(starts_with("parents_opinion_degree")) %>% colnames() %>% length() > 1) {
-  data_prep_7 <- data_prep_7 %>%
-    mutate(across(starts_with("parents_opinion_degree"), 
-                  ~ case_when(. %in% c("completely", "rather") ~ "agree",
-                              TRUE ~ "not_agree")))
-}
-table(data_prep_7$parents_opinion_degree_1, useNA = "always")
-
-# stress
-table(data_prep_7$stress_1, useNA = "always")
-if (data_prep_7 %>% select(starts_with("stress")) %>% colnames() %>% length() > 1) {
-  data_prep_7 <- data_prep_7 %>%
-    mutate(across(starts_with("stress"), 
-                  ~ case_when(. %in% c("completely", "rather") ~ "agree",
-                              TRUE ~ "not_agree")))
-}
-table(data_prep_7$stress_1, useNA = "always")
-
-# uni_offers_*_heloful
-table(data_prep_7$uni_offers_central_facilities_helpful, useNA = "always")
-if (data_prep_7 %>% select(starts_with("uni_offers") & ends_with("helpful")) %>% colnames() %>% length() > 1) {
-  data_prep_7 <- data_prep_7 %>%
-    mutate(across(starts_with("uni_offers") & ends_with("helpful"), 
-                  ~ case_when(. %in% c("very helpful", "rather helpful") ~ "helpful",
-                              TRUE ~ "not_helpful")))
-}
-table(data_prep_7$uni_offers_central_facilities_helpful, useNA = "always")
-
-
-
-## Generate dummies ##
-#++++++++++++++++++++#
-
-# automatically generate dummy variables for categorical variables
-# LASSO will select which are important
-## identify all categorical columns
-vars_categoric <- data_prep_7 %>% ungroup() %>% select_if(~ is.character(.)) %>% colnames()
-vars_categoric <- vars_categoric[!str_detect(vars_categoric, "date")]
-data_prep_7 <- fastDummies::dummy_cols(
-  # selected column cannot be removed due to descriptives (hence saved and removed later)
-  # base category is omitted 
-  data_prep_7, remove_selected_columns = FALSE, remove_first_dummy = TRUE, 
-  select_columns = vars_categoric
-)
-
-saveRDS(vars_categoric, "Data/Prep_7/prep_7_variables_drop_cat.rds")
-
-
-# birth month and birth year as additional dummys
-data_prep_7$birth_month_name <- as.character(month(data_prep_7$birth_month, label = TRUE, abbr = TRUE))
-data_prep_7 <- dummy_cols(
-  # selected column is removed, and base category is omitted 
-  data_prep_7, remove_selected_columns = FALSE, remove_first_dummy = TRUE, 
-  select_columns = c("birth_month_name", "birth_year", "interview_start_year", "interview_end_year")
-) %>% select(-c("birth_month_name", "birth_year", "interview_start_year", "interview_end_year"))
-
-# drop "name" in "birth_month_name"
-data_prep_7 <- data_prep_7 %>%
-  rename_all(funs(stringr::str_replace_all(., 'birth_month_name_', 'birth_month_')))
-
-# change educ_uni to uni
-data_prep_7 <- data_prep_7 %>%
-  rename_all(list(~ stringr::str_replace_all(., 'educ_uni_', 'uni_'))) %>%
-  rename(uni_study_num = educ_study_num)
-
-
-#%%%%%%%%%%%%%%%%%%%#
-#### Final Steps ####
-#%%%%%%%%%%%%%%%%%%%#
-
-data_final <- data_prep_7
-
-# all variable names as lower case; whitespace are replace with "_"
-data_final <- data_final %>%
-  rename_all(list(~ stringr::str_to_lower(.))) %>%
-  rename_all(list(~ stringr::str_replace_all(., ' ', '_')))
-
-# ungroup
-data_final <- data_final %>% ungroup()
-
-# check for missing values
-sum(is.na(data_final))
-
-# check for duplicates
-sum(duplicated(data_final))
-
-# number of respondents, rows, and columns
-print(paste("Number of respondents:", length(unique(data_final$id_t))))
-print(paste("Number of rows", nrow(data_final)))
-print(paste("Number of columns", ncol(data_final)))
-
-# save data frame
-if (cohort_prep == "controls_same_outcome") {
-  data_save <- paste0("Data/Prep_7/prep_7_control_vars_", treatment_def, 
-                      "_", treatment_repl, ".rds")
-} else {
-  data_save <- paste0("Data/Prep_7/prep_7_control_vars_", treatment_def, 
-                      "_", treatment_repl, "_robustcheck.rds")
-}
-
-saveRDS(data_final, data_save)
