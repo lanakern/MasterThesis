@@ -46,8 +46,9 @@ func_dml <- function(data, outcome, treatment, group, K, K_tuning, S, mlalgo, tr
     # balance = "observations": assigns roughly the same number of observations to each fold
     # https://rsample.tidymodels.org/reference/group_vfold_cv.html
     # https://scikit-learn.org/stable/modules/cross_validation.html#group-k-fold
-    K_folds <- group_vfold_cv(
-      data = data,  v = K, group = "group", strata = c(outcome, treatment), balance = "observations"
+    K_folds <- rsample::group_vfold_cv(
+      data = data,  v = K, group = group, 
+      strata = c(all_of(outcome), all_of(treatment)), balance = "observations"
     )
     
     
@@ -258,18 +259,18 @@ func_dml <- function(data, outcome, treatment, group, K, K_tuning, S, mlalgo, tr
 }
 
 # set.seed(12345)
-data <- readRDS("Data/Prep_11/prep_11_final_data_binary_lasso_base.rds")
-data <- data %>% select(-c(ends_with("_lag")))
-outcome <- "outcome_grade"
-treatment <- "treatment_sport"
-group <- "group"
-K <- 5
-K_tuning <- 10
-S <- 2
-mlalgo <- "lasso"
-trimming <- "min-max"
-ls_dml_result <- func_dml(data, "outcome_grade", "treatment_sport", "group", 5, 10, 2, "lasso", "min-max")
-ls_dml_result$final
-ls_dml_result$detail
-ls_dml_result$error
-ls_dml_result$param
+# data <- readRDS("Data/Prep_11/prep_11_final_data_binary_lasso_base.rds")
+# data <- data %>% select(-c(ends_with("_lag")))
+# outcome <- "outcome_grade"
+# treatment <- "treatment_sport"
+# group <- "group"
+# K <- 5
+# K_tuning <- 10
+# S <- 2
+# mlalgo <- "lasso"
+# trimming <- "min-max"
+# ls_dml_result <- func_dml(data, "outcome_grade", "treatment_sport", "group", 5, 10, 2, "lasso", "min-max")
+# ls_dml_result$final
+# ls_dml_result$detail
+# ls_dml_result$error
+# ls_dml_result$param
