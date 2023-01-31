@@ -1,7 +1,27 @@
-func_ml_error_metrics <- function(data_pred, S_rep, fold_sel) {
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### FUNCTION: CALCULATE ERROR METRICS ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-  ## create error metrics ##
-  #++++++++++++++++++++++++#
+#+++
+# by Lana Kern
+#+++
+# This function calculates the error metrics for the prediction results of
+# the nuisance parameters. For the prediction of the treatment, the accuracy (ACC)
+# and balanced accuracy (BACC) is reported while for the prediction of the
+# outcome the RMSE.
+#+++
+# INPUT: 
+# -> "data_pred": data frame containing the predictions of the treatment and outcome
+# as well as the true values.
+# -> "S_rep": number of repetition
+# -> "fold_sel": number of fold
+#+++
+# OUTPUT:
+# -> Data frame containing the error metrics across each fold and each
+# repetition.
+#+++
+
+func_ml_error_metrics <- function(data_pred, S_rep, fold_sel) {
 
   # Classification: treatment prediction
   data_pred <- data_pred %>%
