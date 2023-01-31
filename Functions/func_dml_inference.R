@@ -9,11 +9,15 @@
 # of the treatment effect estimate.
 #+++
 # INPUT:
-# ->
-# ->
+# -> "effect": "ATE" or "ATTE"
+# -> "theta": treatment effect estimate
+# -> "score": values of score function
+# -> "N": number of observations
+# -> "S_rep": current number of repetition
 #+++
 # OUTPUT:
-# -> Data frame with 
+# -> Data frame with variance, asymptotic standard error, t-value and
+# p-value of estimated treatment effect
 #+++
 
 
