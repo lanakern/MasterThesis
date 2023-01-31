@@ -8,23 +8,25 @@
 # This function uses lasso to predict the nuisance parameters. 
 #++++
 # INPUT:
-# -> data: data frame which is used to train the model and make predictions
-# -> outcome: name of outcome variable
-# -> treatment: name of treatment variable
-# -> K_folds: partition
-# -> S_rep: number of total repetitions
-# -> trimming: trimming threshold for propensity score
-#     -> "no": no trimming
-#     -> 0.01; 0.001; 
-#     -> "min-max": drop observations with PS below largest min PS and smalles max PS
+# -> "data_train": training data
+# -> "data_test": test data
+# -> "outcome": name of outcome variable included in data_train and data_test
+# -> "treatment": name of treatment variable included in data_train and data_test
+# -> "K": number of folds generated for parameter tuning
+# -> "lambda_val": number of lambda values used in tuning process
 #++++
 # OUTPUT:
-# -> error_metrics: data frame with accuracy and rmse across folds
-# -> pred: data frame with nuisance parameter predictions across folds
+# -> "pred": data frame with nuisance parameter predictions and true values
+# -> "param": data frame including the value of lambda that is used for
+# final model training
 #++++
 
 
-func_ml_lasso <- function(data_train_m, data_train_g, data_test, outcome, treatment, K, lambda_val) {
+func_ml_lasso <- function(data_train, data_test, outcome, treatment, K, lambda_val) {
+  
+  # ensure that treatment variable is factor
+  data_train <- data_train %>% mutate({{treatment}} := as.factor(!!sym(treatment))) 
+  data_test <- data_test %>% mutate({{treatment}} := as.factor(!!sym(treatment))) 
   
   # specify the model
     ## logistic regression with lasso for treatment; linear regression with lasso for outcome
@@ -42,22 +44,24 @@ func_ml_lasso <- function(data_train_m, data_train_g, data_test, outcome, treatm
     set_mode("regression")  
   
   # generate recipe: define outcome and predictors
+    ## confounding factors / predictors: all variables except treatment, outcome, and group
+  X_controls <- data_train %>% select(-c(all_of(outcome), all_of(treatment), all_of(group))) %>% colnames()
     ## m(x)
   lasso_recipe_m <- 
-    data_train_m %>%  
+    data_train %>%
     recipe(.) %>%
     # price variable is outcome
     update_role({{treatment}}, new_role = "outcome") %>%
-    # all other variables are predictors
-    update_role(all_of(data_train_m %>% select(-all_of(treatment)) %>% colnames()), new_role = "predictor")
+    # all other variables are predictors (drop outcome treatment)
+    update_role(all_of(X_controls), new_role = "predictor")
     ## g(D, X)
   lasso_recipe_g <- 
-    data_train_g %>%  
+    data_train %>%  
     recipe(.) %>%
     # price variable is outcome
     update_role({{outcome}}, new_role = "outcome") %>%
-    # all other variables are predictors
-    update_role(all_of(data_train_g %>% select(-outcome) %>% colnames()), new_role = "predictor")
+    # all other variables are predictors (drop outcome and treatment)
+    update_role(all_of(X_controls), new_role = "predictor")
   
   # generate workflow
   lasso_workflow_m <- 
@@ -81,15 +85,15 @@ func_ml_lasso <- function(data_train_m, data_train_g, data_test, outcome, treatm
   # parameter tuning via 5-fold CV
   # this means that training data is again partitioned into 5 folds
   K_folds_inner_m <- group_vfold_cv(
-    data = data_train_m, 
+    data = data_train, 
     v = K, group = "group", strata = "treatment_sport", balance = "observations"
   )
   K_folds_inner_g0 <- group_vfold_cv(
-    data = data_train_g %>% filter(!!sym(treatment) == 0),  
+    data = data_train %>% filter(!!sym(treatment) == 0),  
     v = K, group = "group", strata = "outcome_grade", balance = "observations"
   )
   K_folds_inner_g1 <- group_vfold_cv(
-    data = data_train_g %>% filter(!!sym(treatment) == 1),  
+    data = data_train %>% filter(!!sym(treatment) == 1),  
     v = K, group = "group", strata = "outcome_grade", balance = "observations"
   )
   
@@ -175,15 +179,15 @@ func_ml_lasso <- function(data_train_m, data_train_g, data_test, outcome, treatm
     ## m(X)
   lasso_fit_final_m <- 
     lasso_workflow_final_m %>%
-    fit(data_train_m)
+    fit(data_train)
     ## g(0, X)
   lasso_fit_final_g0 <- 
     lasso_workflow_final_g0 %>%
-    fit(data_train_g)
+    fit(data_train)
     ## g(1, X)
   lasso_fit_final_g1 <- 
     lasso_workflow_final_g1 %>%
-    fit(data_train_g)
+    fit(data_train)
   
   # # extract coefficients
   # lasso_coef <- tidy(lasso_fit_final_treatment)
