@@ -2,12 +2,47 @@
 #### FUNCTION DOUBLE ML ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-
-library(rsample) # for group_vfold_cv()
-library(glmnet) # for glmnet() (-> lasso)
-library(hdm) # for rlasso() (-> post-lasso)
-library(xgboost) # for xgboost()
-library(dplyr)
+#+++
+# by Lana Kern
+#+++
+# This function performs the DML estimator.
+# INPUTS:
+# -> data: data set containing outcome, treatment, and all confounding variables
+# -> outcome: string containing the name of the outcome variable in data
+# -> treatment: string containing the name of the treatment variable in data
+# -> group: string containing the variable of the grouping variable in data;
+# this is the same individual has the same number (user for k-fold cross-fitting)
+# -> K: Number of data partitions used for K-fold cross-fitting
+# -> K_tuning: Number of data partitions for parameter tuning
+# -> S: Number of repetitions
+# -> mlalgo: Machine learning algorithm used for the prediction of the nuisance
+# parameters.
+# -> trimming: Trimming threshold to drop observations with an extreme propensity
+# score estimate. Possible selections: 0.01, 0.1, and min-max.
+# OUTPUT: List containing the following elements
+# -> "df_result_all": data frame with aggregated mean and median treatment effect,
+# corresponding standard error, t- and p-value as well as confidence interval,
+# across K folds and S repetitions
+# -> "df_result_all_detailed": same as df_result_all however not aggregated but
+# for each K and S
+# -> "df_error_all": error metrics across all K and S
+# -> "df_param_all": selected hyperparameters during K_tuning-CV for each K and S
+# -> "df_trimming_all": number of treatment periods after conducting trimming
+#+++
+# In this file, the following subfunctions are used:
+# -> Functions for predicting the nuisance parameters: func_ml_lasso
+# -> Function for trimming: func_dml_trimming
+# -> Function to plot common support: func_dml_common_support
+# -> Function for error metrics: func_dml_error_metrics
+# -> Function for calculating treatment effect and corresponding score: func_dml_theta_score
+# -> Function for inference (se, p-value etc.): func_dml_inference
+#+++
+# Further notes:
+# - If (post-)lasso is selected, all features (except the outcome and treatment)
+# are standardized, i.e., to have mean zero and unit variance.
+# Note: depending on the specification the outcome variable may already be
+# standardized in the original data set.
+#+++
 
 
 func_dml <- function(data, outcome, treatment, group, K, K_tuning, S, mlalgo, trimming) {
@@ -20,6 +55,7 @@ func_dml <- function(data, outcome, treatment, group, K, K_tuning, S, mlalgo, tr
   df_param_all <- data.frame()
   df_error_all <- data.frame()
   df_result_all_detailed <- data.frame()
+  df_trimming_all <- data.frame()
   
   # generate empty vectors
   min_trimming_all <- c()
@@ -30,7 +66,7 @@ func_dml <- function(data, outcome, treatment, group, K, K_tuning, S, mlalgo, tr
   score_ATTE_all <- c()
   APO_0_all <- c()
   APO_1_all <- c()
-  
+
   
   # Accounting for uncertainty by repeating the process S times #
   #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
@@ -80,25 +116,8 @@ func_dml <- function(data, outcome, treatment, group, K, K_tuning, S, mlalgo, tr
 
       # extract training and test data
       indices_fold_sel <- K_folds$splits[[fold_sel]]$in_id
-      data_train <- data[indices_fold_sel, ] 
+      data_train <- data[indices_fold_sel, ]
       data_test <- data[-indices_fold_sel, ]
-      
-      
-      # NICHT SICHER - NOCHMAL ÜBERLEGEN
-      # training and test data is different for m(X) and g(D, X) prediction
-        ## for m(X) drop all columns referring to the treatment + outcome
-      cols_treatment_drop <- data_train %>% select(starts_with("treatment")) %>% colnames()
-      cols_treatment_drop <- cols_treatment_drop[!str_detect(
-        cols_treatment_drop, paste0("^", treatment, "$"))]
-      
-      data_train_m <- data_train %>% 
-        select(-c(starts_with("outcome"), all_of(cols_treatment_drop))) %>%
-        mutate({{treatment}} := as.factor(!!sym(treatment))) # treatment variable as factor
-        ## for g(D, X) drop all outcome variables
-      cols_outcome_drop <- data_train %>% select(starts_with("outcome")) %>% colnames()
-      cols_outcome_drop <- cols_outcome_drop[!str_detect(cols_outcome_drop, paste0("^", outcome, "$"))]
-      
-      data_train_g <- data_train %>% select(-c(all_of(cols_treatment_drop), all_of(cols_outcome_drop)))
       
       
       #++++++++++++++++++++++++++++++++++++++++++++#
@@ -109,7 +128,7 @@ func_dml <- function(data, outcome, treatment, group, K, K_tuning, S, mlalgo, tr
       if (mlalgo == "postlasso") {
         model_func <- rlasso
       } else if (mlalgo == "lasso") {
-        ls_ml <- func_ml_lasso(data_train_m, data_train_g, data_test, outcome, treatment, K_tuning, lambda_val)
+        ls_ml <- func_ml_lasso(data_train, data_test, outcome, treatment, K_tuning, lambda_val)
       } else if (mlalgo == "xgboost") {
         model_func <- xgboost
       } else {
@@ -146,6 +165,12 @@ func_dml <- function(data, outcome, treatment, group, K, K_tuning, S, mlalgo, tr
       min_trimming_all <- c(min_trimming_all, min_trimming)
       max_trimming <- ls_trimming$max_trimming
       max_trimming_all <- c(max_trimming_all, max_trimming)
+      
+      # generate data frame with number of treatment periods kept
+      df_trimming <- data.frame("Repetition" = S_rep, "Fold" = fold_sel, 
+                                "n_treats" = nrow(data_pred))
+      df_trimming_all <- rbind(df_trimming_all, df_trimming)
+      
       
       #+++++++++++++++++++++#
       #### ERROR METRICS ####
@@ -252,20 +277,30 @@ func_dml <- function(data, outcome, treatment, group, K, K_tuning, S, mlalgo, tr
     select(-c(Treatment_Effect, Standard_Error)) %>% distinct()
     
   
+  # trimming: sum over folds
+  df_trimming_all <- df_trimming_all %>%
+    group_by(Repetition) %>%
+    summarize(n_treats = sum(n_treats))
+  
   return(list("final" = df_result_all, "detail" = df_result_all_detailed,
-              "error" = df_error_all, "param" = df_param_all))
+              "error" = df_error_all, "param" = df_param_all,
+              "trimming" = df_trimming_all))
   
   
 }
 
+
+## EXAMPLE ##
+#+++++++++++#
+
 # set.seed(12345)
-# data <- readRDS("Data/Prep_11/prep_11_final_data_binary_lasso_base.rds")
+# data <- readRDS("Data/Prep_11/prep_11_dml_binary_base_weekly_down_mice1.rds")
 # data <- data %>% select(-c(ends_with("_lag")))
 # outcome <- "outcome_grade"
 # treatment <- "treatment_sport"
 # group <- "group"
-# K <- 5
-# K_tuning <- 10
+# K <- 2
+# K_tuning <- 2
 # S <- 2
 # mlalgo <- "lasso"
 # trimming <- "min-max"
@@ -274,3 +309,4 @@ func_dml <- function(data, outcome, treatment, group, K, K_tuning, S, mlalgo, tr
 # ls_dml_result$detail
 # ls_dml_result$error
 # ls_dml_result$param
+# ls_dml_result$trimming
