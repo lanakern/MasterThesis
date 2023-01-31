@@ -9,21 +9,21 @@
 # the treatment parameter across the folds.
 #++++
 # INPUT
-# -> "data": Data set used for making the predictions
-# -> "outcome": outcome variable included in data
-# -> "treatment": treatment variable included in data
 # -> "data_pred": Predictions for the nuisance functions
-# -> "K-folds": data partition indices
+# -> "data_test": Test data set used to estimate the treatment effect and score
+# -> "outcome": outcome variable included in data test
+# -> "treatment": treatment variable included in data test
 #++++
 # OUTPUT
 # -> theta_ATE_all: vector containing K estimates for the ATE
 # -> theta_ATTE_all: vector containing K estimates for the ATTE
-# -> score_ATTE_all: values for the score function of the ATE
+# -> score_ATE_all: values for the score function of the ATE
 # -> score_ATTE_all: values for the score function of the ATTE
+# -> APO_0: APO for individuals not receiving the treatment
+# -> APO_1: APO for individuals receiving the treatment
 #++++
 
 func_dml_theta_score <- function(data_pred, data_test, outcome, treatment) {
-
   
   # extract outcome, treatment, etc.
   Y <- data_test[, outcome]  # outcome
