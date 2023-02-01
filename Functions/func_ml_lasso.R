@@ -12,6 +12,7 @@
 # -> "data_test": test data
 # -> "outcome": name of outcome variable included in data_train and data_test
 # -> "treatment": name of treatment variable included in data_train and data_test
+# -> "group": group variable included in data_train and data_test
 # -> "K": number of folds generated for parameter tuning
 # -> "lambda_val": number of lambda values used in tuning process
 #++++
@@ -22,7 +23,7 @@
 #++++
 
 
-func_ml_lasso <- function(data_train, data_test, outcome, treatment, K, lambda_val) {
+func_ml_lasso <- function(data_train, data_test, outcome, treatment, group, K, lambda_val) {
   
   # ensure that treatment variable is factor
   data_train <- data_train %>% mutate({{treatment}} := as.factor(!!sym(treatment))) 
@@ -84,17 +85,17 @@ func_ml_lasso <- function(data_train, data_test, outcome, treatment, K, lambda_v
   
   # parameter tuning via 5-fold CV
   # this means that training data is again partitioned into 5 folds
-  K_folds_inner_m <- group_vfold_cv(
+  K_folds_inner_m <- rsample::group_vfold_cv(
     data = data_train, 
-    v = K, group = "group", strata = "treatment_sport", balance = "observations"
+    v = K, group = group, strata = all_of(treatment), balance = "observations"
   )
-  K_folds_inner_g0 <- group_vfold_cv(
+  K_folds_inner_g0 <- rsample::group_vfold_cv(
     data = data_train %>% filter(!!sym(treatment) == 0),  
-    v = K, group = "group", strata = "outcome_grade", balance = "observations"
+    v = K, group = group, strata = all_of(outcome), balance = "observations"
   )
-  K_folds_inner_g1 <- group_vfold_cv(
+  K_folds_inner_g1 <- rsample::group_vfold_cv(
     data = data_train %>% filter(!!sym(treatment) == 1),  
-    v = K, group = "group", strata = "outcome_grade", balance = "observations"
+    v = K, group = group, strata = all_of(outcome), balance = "observations"
   )
   
   
