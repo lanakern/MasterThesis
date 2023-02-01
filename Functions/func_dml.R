@@ -20,14 +20,13 @@
 # -> trimming: Trimming threshold to drop observations with an extreme propensity
 # score estimate. Possible selections: 0.01, 0.1, and min-max.
 # OUTPUT: List containing the following elements
-# -> "df_result_all": data frame with aggregated mean and median treatment effect,
+# -> "final": data frame with aggregated mean and median treatment effect,
 # corresponding standard error, t- and p-value as well as confidence interval,
-# across K folds and S repetitions
-# -> "df_result_all_detailed": same as df_result_all however not aggregated but
-# for each K and S
-# -> "df_error_all": error metrics across all K and S
-# -> "df_param_all": selected hyperparameters during K_tuning-CV for each K and S
-# -> "df_trimming_all": number of treatment periods after conducting trimming
+# Aggregations are made across the K folds and S repetitions
+# -> "detail": same as final however not aggregated but for each repetition S
+# -> "error": error metrics across all K and S
+# -> "param": selected hyperparameters during K_tuning-CV for each K and S
+# -> "trimming": number of treatment periods after conducting trimming for each S
 #+++
 # In this file, the following subfunctions are used:
 # -> Functions for predicting the nuisance parameters: func_ml_lasso
@@ -128,7 +127,7 @@ func_dml <- function(data, outcome, treatment, group, K, K_tuning, S, mlalgo, tr
       if (mlalgo == "postlasso") {
         model_func <- rlasso
       } else if (mlalgo == "lasso") {
-        ls_ml <- func_ml_lasso(data_train, data_test, outcome, treatment, K_tuning, lambda_val)
+        ls_ml <- func_ml_lasso(data_train, data_test, outcome, treatment, group, K_tuning, lambda_val)
       } else if (mlalgo == "xgboost") {
         model_func <- xgboost
       } else {
