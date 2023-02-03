@@ -412,6 +412,11 @@ colSums(is.na(data_4 %>% select(starts_with("treatment_s"), starts_with("outcome
 # check for duplicates
 sum(duplicated(data_4))
 
+# print sample reduction
+print(paste("Number of respondents before data preparation:", num_id))
+print(paste("Number of respondents after dropping respondents with missing value in treatment:", num_id_adj_1))
+print(paste("Number of respondents after dropping respondents with missing value in outcome:", num_id_adj_2))
+
 
 # save
 if (cohort_prep == "controls_same_outcome") {
