@@ -8,8 +8,9 @@
 # 1.) Extracurricular Activity
 # Only respondents are kept who take part in at least one extracurricular activity
 # (definition see in respective section below).
+# -> ONLY done if selected!
 #++++
-# 2.) Subset on age: 17-30 at start of study
+# 2.) Subset on age: 18-29 (emerging adulthood) at start of study
 #++++
 # -> Panel data set includes the final sample size.
 #++++
@@ -129,10 +130,17 @@ summary(data_count$extracurricular_num)
 
 # add information about number of extracurricular activities and subset data frame
 # individuals either take part in extracurricular activity or do sports
-data_sub_2 <- left_join(
-  data_sub_1, data_count, by = c("ID_t", "treatment_period")
-) %>%
-  filter(extracurricular_num > 0 | treatment_sport == 1)
+if (extra_act == "yes") {
+  data_sub_2 <- left_join(
+    data_sub_1, data_count, by = c("ID_t", "treatment_period")
+  ) %>%
+    filter(extracurricular_num > 0 | treatment_sport == 1)
+} else {
+  data_sub_2 <- left_join(
+    data_sub_1, data_count, by = c("ID_t", "treatment_period")
+  )
+}
+
 
 id_num_adj_1 <- length(unique(data_sub_2$ID_t)) 
 id_treatment_periods_1 <- nrow(data_sub_2)
@@ -315,11 +323,11 @@ data_sub_3 <- data_sub_3 %>%
   mutate(age = as.numeric(difftime(interview_date_spell, birth_date, units = "weeks") / 52.5))
 summary(data_sub_3$age)
 
-# Subset on age between 17 and 30 at start of study
+# Subset on age between 18 and 29 at start of study
 id_keep <-
   data_sub_3 %>% 
   group_by(ID_t) %>% 
-  filter(interview_date_spell == min(interview_date_spell) & between(age, 17, 30)) %>% 
+  filter(interview_date_spell == min(interview_date_spell) & between(age, 18, 29)) %>% 
   pull(ID_t) %>% 
   unique()
 
@@ -365,12 +373,18 @@ print(paste("Number of columns:", ncol(data_sub_3)))
 
 
 # save data frame
+if (extra_act == "yes") {
+  extra_act_save <- "_extradrop"
+} else {
+  extra_act_save <- ""
+}
+
 if (cohort_prep == "controls_same_outcome") {
   data_save <- paste0("Data/Prep_6/prep_6_sample_selection_", treatment_def, 
-                      "_", treatment_repl, ".rds")
+                      "_", treatment_repl, extra_act_save, ".rds")
 } else {
   data_save <- paste0("Data/Prep_6/prep_6_sample_selection_", treatment_def, 
-                      "_", treatment_repl, "_robustcheck.rds")
+                      "_", treatment_repl, extra_act_save, "_robustcheck.rds")
 }
 
 saveRDS(data_sub_3, data_save)
@@ -382,6 +396,7 @@ df_excel_save <- data.frame(
   "data_prep_choice_cohort" = cohort_prep,
   "data_prep_treatment_repl" = treatment_repl,
   "data_prep_treatment_def" = treatment_def,
+  "data_prep_extraact" = extra_act, 
   "num_id" = length(unique(data_sub_3$ID_t)), 
   "num_rows" = nrow(data_sub_3),
   "num_cols" = ncol(data_sub_3),
