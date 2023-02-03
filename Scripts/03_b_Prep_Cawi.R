@@ -97,7 +97,7 @@ data_target_cawi <- data_target_cawi %>%
 # contain all waves anymore
 # depending on selection missing values in treatment variable may also be
 # replaced upwards
-if (treatment_repl == "downup") {
+if (treatment_repl == "downup") { # NOT USED ANYMORE BECAUSE UNREALISTIC
   data_target_cawi <- data_target_cawi %>%
     arrange(ID_t, wave) %>%
     group_by(ID_t) %>%
@@ -109,16 +109,36 @@ if (treatment_repl == "downup") {
     fill(c(sport_uni, sport_uni_freq), .direction = "downup") %>% ungroup()
 
 } else if (treatment_repl == "down") {
+  # replace missing values of controls, treatment and outcome variables downward
   data_target_cawi <- data_target_cawi %>%
     arrange(ID_t, wave) %>%
     group_by(ID_t) %>%
     fill(names(data_target_cawi), .direction = "down")
-} else {
+} else if (treatment_repl == "no") {
+  # only replace missing values for control variables downward
   repl_controls <- names(data_target_cawi)[!names(data_target_cawi) %in% c("sport_uni", "sport_uni_freq", "grade_current")]
   data_target_cawi <- data_target_cawi %>%
     arrange(ID_t, wave) %>%
     group_by(ID_t) %>%
     fill(all_of(repl_controls), .direction = "down")
+} else if (treatment_repl == "onelag") {
+  # control variables
+  repl_controls <- names(data_target_cawi)[!names(data_target_cawi) %in% c("sport_uni", "sport_uni_freq", "grade_current")]
+  data_target_cawi <- data_target_cawi %>%
+    arrange(ID_t, wave) %>%
+    group_by(ID_t) %>%
+    fill(all_of(repl_controls), .direction = "down")
+  # one lag for treatment and outcome
+  data_target_cawi <- data_target_cawi %>% 
+    arrange(ID_t, wave) %>% 
+    group_by(ID_t) %>% 
+    mutate(
+      sport_uni = ifelse(is.na(sport_uni), lag(sport_uni), sport_uni),
+      sport_uni_freq = ifelse(is.na(sport_uni_freq), lag(sport_uni_freq), sport_uni_freq),
+      grade_current = ifelse(is.na(grade_current), lag(grade_current), grade_current)
+    )
+} else {
+  stop("Please select treatment and outcome replacement strategy.")
 }
 
 
@@ -274,7 +294,7 @@ saveRDS(data_cawi, data_cohort_profile_save)
 df_excel_save <- data.frame(
   "data_prep_step" = "cawi",
   "data_prep_choice_cohort" = cohort_prep,
-  "data_prep_treatment_repl" = treatment_repl, 
+  "data_prep_treatment_repl" = NA, 
   "num_id" = length(unique(data_cawi$ID_t)), 
   "num_rows" = nrow(data_cawi),
   "num_cols" = ncol(data_cawi),

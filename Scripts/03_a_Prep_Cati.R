@@ -94,7 +94,7 @@ data_target_cati <- data_target_cati %>%
 # value is copied downwards, i.e., to later waves. 
 # depending on selection missing values in treatment variable may also be
 # replaced upwards
-if (treatment_repl == "downup") {
+if (treatment_repl == "downup") { # NOT USED ANYMORE BECAUSE UNREALISTIC
   # downward replacement for all
   data_target_cati <- data_target_cati %>%
     arrange(ID_t, wave) %>%
@@ -106,16 +106,35 @@ if (treatment_repl == "downup") {
     group_by(ID_t) %>%
     fill(sport_leisure_freq, .direction = "downup") %>% ungroup()
 } else if (treatment_repl == "down") {
+  # replace missing values of controls, treatment and outcome variables downward
   data_target_cati <- data_target_cati %>%
     arrange(ID_t, wave) %>%
     group_by(ID_t) %>%
     fill(names(data_target_cati), .direction = "down")
-} else {
+} else if (treatment_repl == "no") {
+  # only replace missing values for control variables downward
   repl_controls <- names(data_target_cati)[!names(data_target_cati) %in% c("sport_leisure_freq", "grade_final")]
   data_target_cati <- data_target_cati %>%
     arrange(ID_t, wave) %>%
     group_by(ID_t) %>%
     fill(all_of(repl_controls), .direction = "down")
+} else if (treatment_repl == "onelag") {
+  # control variables
+  repl_controls <- names(data_target_cati)[!names(data_target_cati) %in% c("sport_leisure_freq", "grade_final")]
+  data_target_cati <- data_target_cati %>%
+    arrange(ID_t, wave) %>%
+    group_by(ID_t) %>%
+    fill(all_of(repl_controls), .direction = "down")
+  # one lag for treatment and outcome
+  data_target_cati <- data_target_cati %>% 
+    arrange(ID_t, wave) %>% 
+    group_by(ID_t) %>% 
+    mutate(
+      sport_leisure_freq = ifelse(is.na(sport_leisure_freq), lag(sport_leisure_freq), sport_leisure_freq),
+      grade_final = ifelse(is.na(grade_final), lag(grade_final), grade_final)
+      )
+} else {
+  stop("Please select treatment and outcome replacement strategy.")
 }
 
 # merge cati data to cohort date -> only respondents which are 
@@ -205,7 +224,7 @@ saveRDS(data_cati, data_cohort_profile_save)
 df_excel_save <- data.frame(
   "data_prep_step" = "cati",
   "data_prep_choice_cohort" = cohort_prep,
-  "data_prep_treatment_repl" = treatment_repl, 
+  "data_prep_treatment_repl" = NA, 
   "num_id" = length(unique(data_cati$ID_t)), 
   "num_rows" = nrow(data_cati),
   "num_cols" = ncol(data_cati),
