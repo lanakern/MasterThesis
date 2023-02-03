@@ -553,4 +553,10 @@ paste("Number of rows:", nrow(data_sibling_final_2))
 paste("Number of columns:", ncol(data_sibling_final_2))
 
 # save data frame
-saveRDS(data_sibling_final_2, "Data/Prep_3/prep_3_sibling.rds")
+if (cohort_prep == "controls_same_outcome") {
+  data_sibling_save <- "Data/Prep_3/prep_3_sibling.rds"
+} else if (cohort_prep == "controls_bef_outcome") {
+  data_sibling_save <- "Data/Prep_3/prep_3_sibling_robustcheck.rds"
+}
+
+saveRDS(data_sibling_final_2, data_sibling_save)
