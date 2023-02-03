@@ -169,7 +169,7 @@ saveRDS(data_cati_cawi, data_cati_cawi_save)
 df_excel_save <- data.frame(
   "data_prep_step" = "merge_cati_cawi",
   "data_prep_choice_cohort" = cohort_prep,
-  "data_prep_treatment_repl" = treatment_repl, 
+  "data_prep_treatment_repl" = NA, 
   "num_id" = length(unique(data_cati_cawi$ID_t)), 
   "num_rows" = nrow(data_cati_cawi),
   "num_cols" = ncol(data_cati_cawi),

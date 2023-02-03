@@ -477,7 +477,7 @@ saveRDS(data_merge_4, data_merge_all_save)
 df_excel_save <- data.frame(
   "data_prep_step" = "merge_all",
   "data_prep_choice_cohort" = cohort_prep,
-  "data_prep_treatment_repl" = treatment_repl, 
+  "data_prep_treatment_repl" = NA, 
   "num_id" = length(unique(data_merge_4$ID_t)), 
   "num_rows" = nrow(data_merge_4),
   "num_cols" = ncol(data_merge_4),
