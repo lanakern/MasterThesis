@@ -13,8 +13,15 @@
 #++++
 
 
+# extract extracurricular activity ending
+if (extra_act == "yes") {
+  extra_act_save <- "_extradrop"
+} else {
+  extra_act_save <- ""
+}
+
 # ITERATE OVER MICE DATA SETS
-for (mice_data_sel in 1:2) {
+for (mice_data_sel in 1:5) {
   
   #%%%%%%%%%%%%%%%%%#
   #### LOAD DATA ####
@@ -23,10 +30,10 @@ for (mice_data_sel in 1:2) {
   # extract path for loading data based on user selection
   if (cohort_prep == "controls_same_outcome") {
     data_load <- paste0("Data/Prep_7/prep_7_control_vars_", treatment_def, 
-                        "_", treatment_repl, "_mice", mice_data_sel, ".rds")
+                        "_", treatment_repl, extra_act_save, "_mice", mice_data_sel, ".rds")
   } else {
     data_load <- paste0("Data/Prep_7/prep_7_control_vars_", treatment_def, 
-                        "_", treatment_repl, "_robustcheck.rds")
+                        "_", treatment_repl, extra_act_save, "_robustcheck",  "_mice", mice_data_sel, ".rds")
   }
   
   # load data
@@ -41,6 +48,7 @@ for (mice_data_sel in 1:2) {
   print(paste("Number of respondents:", num_id))
   print(paste("Number of rows:", num_row))
   print(paste("Number of columns:", num_col))
+  print(paste("Number of missing values:", sum(is.na(df_plausi)))) # MUST BE 0!
   
   
   #%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -328,11 +336,11 @@ for (mice_data_sel in 1:2) {
   
   # save data frame
   if (cohort_prep == "controls_same_outcome") {
-    data_save <- paste0("Data/Prep_8/prep_8_plausi_", treatment_def, 
-                        "_", treatment_repl, "_mice", mice_data_sel, ".rds")
+    data_save <- paste0("Data/Prep_8/prep_8_plausi_", treatment_def, "_", treatment_repl,
+                         extra_act_save, "_mice", mice_data_sel, ".rds")
   } else {
-    data_save <- paste0("Data/Prep_8/prep_8_plausi_", treatment_def, 
-                        "_", treatment_repl, "_mice", mice_data_sel, "_robustcheck.rds")
+    data_save <- paste0("Data/Prep_8/prep_8_plausi_", treatment_def, "_", treatment_repl, 
+                         extra_act_save, "_robustcheck", "_mice", mice_data_sel, ".rds")
   }
   
   saveRDS(df_plausi, data_save)
