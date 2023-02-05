@@ -50,7 +50,19 @@ func_dml_pool_mice <- function(dml_result, N, mice_num) {
           select(MICE, everything())
       )
     }
-  } 
+  }
+  
+  # do the same for the predictors
+  if (!is.null(dml_result[[1]]$predictors)) {
+    dml_pred <- data.frame()
+    for (mice_data_sel in 1:mice_num) {
+      dml_pred <- rbind(
+        dml_pred,
+        dml_result[[mice_data_sel]]$predictors %>% mutate(MICE = mice_data_sel) %>%
+          select(MICE, everything())
+      )
+    }
+  }
   
   # aggregate results across MICE data sets: simply take mean / median of
   # estimates and se
@@ -68,17 +80,26 @@ func_dml_pool_mice <- function(dml_result, N, mice_num) {
       pvalue_mean = mean(pvalue_mean), pvalue_median = median(pvalue_median)
     ) %>%
     mutate(
+      # confidence interval
       CI_lower_mean_95 = theta_mean - qt(0.95, df = N - 1)^-1 * (1 - 0.95 / 2) * se_mean / sqrt(N),
       CI_upper_mean_95 = theta_mean + qt(0.95, df = N - 1)^-1 * (1 - 0.95 / 2) * se_mean / sqrt(N),
       CI_lower_median_95 = theta_median - qt(0.95, df = N - 1)^-1 * (1 - 0.95 / 2) * se_median / sqrt(N),
-      CI_upper_median_95 = theta_median + qt(0.95, df = N - 1)^-1 * (1 - 0.95 / 2) * se_median / sqrt(N)
+      CI_upper_median_95 = theta_median + qt(0.95, df = N - 1)^-1 * (1 - 0.95 / 2) * se_median / sqrt(N),
+      # number of predictors
+      num_predictors_m = max(dml_pred$num_pred_m), num_predictors_g0 = max(dml_pred$num_pred_g0), 
+      num_predictors_g1 = max(dml_pred$num_pred_g1)
     )
   
   
   # aggregate errors
   if (exists("dml_error")) {
     dml_final_error <- dml_error %>%
-      summarize(ACC = mean(ACC), BACC = mean(BACC), RMSE_g0 = mean(RMSE_g0), RMSE_g1 = mean(RMSE_g1))
+      summarize(ACC = mean(ACC), BACC = mean(BACC), AUC = mean(AUC),
+                MAE_g0 = mean(MAE_g0), MAE_g1 = mean(MAE_g1),
+                MAPE_g0 = mean(MAPE_g0), MAPE_g1 = mean(MAPE_g1),
+                MSE_g0 = mean(MSE_g0), MSE_g1 = mean(MSE_g1),
+                RMSE_g0 = mean(RMSE_g0), RMSE_g1 = mean(RMSE_g1),
+                )
     
     return(list("estimates" = dml_final_estimation, "errors" = dml_final_error))
   } else {
