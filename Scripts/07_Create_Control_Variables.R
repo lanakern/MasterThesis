@@ -51,13 +51,20 @@
 
 
 # load data
-if (cohort_prep == "controls_bef_outcome" ) {
+if (extra_act == "yes") {
+  extra_act_save <- "_extradrop"
+} else {
+  extra_act_save <- ""
+}
+
+if (cohort_prep == "controls_same_outcome") {
   load_data <- paste0("Data/Prep_6/prep_6_sample_selection_", treatment_def, 
-                      "_", treatment_repl, "_robustcheck.rds")
+                      "_", treatment_repl, extra_act_save, ".rds")
 } else {
   load_data <- paste0("Data/Prep_6/prep_6_sample_selection_", treatment_def, 
-                      "_", treatment_repl, ".rds")
+                      "_", treatment_repl, extra_act_save, "_robustcheck.rds")
 }
+
 
 data_raw <- readRDS(load_data)
 
@@ -819,7 +826,6 @@ table(data_prep_1$health_general, useNA = "always")
 
 # Variables that measure the same thing but are in both, CATI & CAWI, are combined in one variable.
 # Mean is taken across CATI and CAWI
-
 data_prep_1 <- data_prep_1 %>% ungroup()
 
 # define variables which are in CATI and CAWI
@@ -858,6 +864,21 @@ for (vars_both_sel in vars_both) {
 #%%%%%%%%%%%%%%%%%%%%%%#
 
 data_prep_2 <- data_prep_1 %>% ungroup()
+
+## Statistics ##
+#++++++++++++++#
+
+# percent of columns containing missing values
+n_col <- ncol(data_prep_2)
+n_col_miss <- length(colnames(data_prep_2)[colSums(is.na(data_prep_2)) > 0])
+n_col_miss / n_col # percent containing missing values
+
+# percentage of missing values
+col_miss <- colnames(data_prep_2)[colSums(is.na(data_prep_2)) > 0]
+summary(unname((colSums(is.na(data_prep_2 %>% select(all_of(col_miss)))) / nrow(data_prep_2))*100))
+
+# number of complete observations
+data_prep_2 %>% na.omit() %>% nrow()
 
 
 ## Replace Missing Values in "Non-Existence" Variables ##
@@ -1041,14 +1062,18 @@ pred_matrix_vars_set_0 <- pred_matrix %>% as.data.frame() %>% select(!c(starts_w
 pred_matrix[pred_matrix_vars_num, c(pred_matrix_vars_set_0)] <- 0
 
 # apply mice (using defaults: 5 data sets and 5 iterations)
+gc()
 mice_num_data_sets <- 5
 mice_result <- mice(data_prep_4_wide, method = "cart", predictorMatrix = pred_matrix, 
-                    seed = 1234, m = mice_num_data_sets, maxit = 5)
+                    seed = 1234, m = mice_num_data_sets, maxit = 1)
 
 # extract data frames in list
 data_result_mice <- complete(mice_result, "all")
+gc()
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#### ITERATE OVER MICE DATA FRAMES ####
 
 # NEXT STEPS ARE PERFORMED FOR EACH DATA SET RESULTING FROM MICE 
 
@@ -1626,15 +1651,38 @@ for (mice_result_sel in 1:mice_num_data_sets) {
   print(paste("Number of columns", ncol(data_final)))
   
   # save data frame
-  if (cohort_prep == "controls_same_outcome") {
-    data_save <- paste0("Data/Prep_7/prep_7_control_vars_", treatment_def, 
-                        "_", treatment_repl, "_mice", mice_result_sel, ".rds")
+  if (extra_act == "yes") {
+    extra_act_save <- "_extradrop"
   } else {
-    data_save <- paste0("Data/Prep_7/prep_7_control_vars_", treatment_def, 
-                        "_", treatment_repl, "_mice", mice_result_sel, "_robustcheck.rds")
+    extra_act_save <- ""
+  }
+  
+  if (cohort_prep == "controls_same_outcome") {
+    data_save <- paste0("Data/Prep_7/prep_7_control_vars_", treatment_def, "_", 
+                        treatment_repl, extra_act_save, "_mice", mice_result_sel, ".rds")
+  } else {
+    data_save <- paste0("Data/Prep_7/prep_7_control_vars_", treatment_def, "_", 
+                        treatment_repl, extra_act_save, "_robustcheck", "_mice", 
+                        mice_result_sel, ".rds")
   }
   
   saveRDS(data_final, data_save)
+  
+  # save number of rows, columns, and respondents in excel file
+  df_excel_save <- data.frame(
+    "data_prep_step" = "create_controls",
+    "data_prep_choice_cohort" = cohort_prep,
+    "data_prep_treatment_repl" = treatment_repl,
+    "data_prep_treatment_def" = treatment_def,
+    "data_prep_extraact" = extra_act, 
+    "num_id" = length(unique(data_final$id_t)), 
+    "num_rows" = nrow(data_final),
+    "num_cols" = ncol(data_final),
+    "time_stamp" = Sys.time()
+  )
+  ## load function
+  source("Functions/func_save_sample_reduction.R")
+  func_save_sample_reduction(df_excel_save)
   
 } # close iteration over mice result data frames
 
