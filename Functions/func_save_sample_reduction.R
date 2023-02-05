@@ -16,13 +16,21 @@ func_save_sample_reduction <- function(data) {
   if (!"data_prep_treatment_def" %in% colnames(data)) {
     data <- data %>% mutate(data_prep_treatment_def = NA)
   }
+  if (!"data_prep_extraact" %in% colnames(data)) {
+    data <- data %>% mutate(data_prep_extraact = NA)
+  }
+  if (!"data_prep_step_2" %in% colnames(data)) {
+    data <- data %>% mutate(data_prep_step_2 = NA)
+  }
   
-  data <- data %>% select(data_prep_step, data_prep_choice_cohort, data_prep_treatment_repl,
-                          data_prep_treatment_def, num_id, num_rows, num_cols, time_stamp)
+  data <- data %>% select(
+    data_prep_step, data_prep_step_2, data_prep_choice_cohort, data_prep_treatment_repl,
+    data_prep_treatment_def, data_prep_extraact, num_id, num_rows, num_cols, time_stamp
+    )
   
   
   # load history
-  df_excel_save_hist <- read.xlsx("Data/SAMPLE_REDUCTION_STEPS.xlsx", sheetName = "Sheet1")
+  df_excel_save_hist <- read.xlsx("Output/SAMPLE_REDUCTION_STEPS.xlsx", sheetName = "Sheet1")
     ## add columns which may be missing
   if (!"data_prep_treatment_repl" %in% colnames(df_excel_save_hist)) {
     df_excel_save_hist <- df_excel_save_hist %>% mutate(data_prep_treatment_repl = NA)
@@ -32,23 +40,23 @@ func_save_sample_reduction <- function(data) {
   }
   
   df_excel_save_hist <- df_excel_save_hist %>% 
-    select(data_prep_step, data_prep_choice_cohort, data_prep_treatment_repl,
-           data_prep_treatment_def, num_id, num_rows, num_cols, time_stamp)
+    select(data_prep_step, data_prep_step_2, data_prep_choice_cohort, data_prep_treatment_repl,
+           data_prep_treatment_def, data_prep_extraact, num_id, num_rows, num_cols, time_stamp)
   
   
   # append current data frame
   df_excel_save <- rbind(df_excel_save_hist, data)
   # in case of duplicate, keep the most recent observation
   df_excel_save <- df_excel_save %>%
-    group_by(data_prep_step, data_prep_choice_cohort, 
-             data_prep_treatment_repl, data_prep_treatment_def) %>%
+    group_by(data_prep_step, data_prep_step_2, data_prep_choice_cohort, data_prep_treatment_repl, 
+             data_prep_treatment_def, data_prep_extraact) %>%
     filter(time_stamp == max(time_stamp)) %>%
     ungroup() %>% data.frame()
   
   df_excel_save <- df_excel_save %>% distinct()
 
   # save
-  write.xlsx(df_excel_save, "Data/SAMPLE_REDUCTION_STEPS.xlsx", sheetName = "Sheet1",
+  write.xlsx(df_excel_save, "Output/SAMPLE_REDUCTION_STEPS.xlsx", sheetName = "Sheet1",
              row.names = FALSE, append = FALSE, showNA = FALSE)
   # output
   return(df_excel_save)
