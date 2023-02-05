@@ -20,6 +20,7 @@
 # -> "pred": data frame with nuisance parameter predictions and true values
 # -> "param": data frame including the value of lambda that is used for
 # final model training
+# -> "coef": number of non-zero coefficients
 #++++
 
 
@@ -190,12 +191,27 @@ func_ml_lasso <- function(data_train, data_test, outcome, treatment, group, K, l
     lasso_workflow_final_g1 %>%
     fit(data_train)
   
-  # # extract coefficients
-  # lasso_coef <- tidy(lasso_fit_final_treatment)
-  #   ## add fold 
-  # lasso_coef$fold <- fold_sel
-  # ## append extracted coefficients to final data frame
-  # df_coef_logreg_final <- rbind(df_coef_logreg_final, logreg_coef)
+  
+  #%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+  #### EXTRACT COEFFICIENTS ####
+  #%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+  
+  # extract coefficients for treatment prediction
+  lasso_coef_m <- tidy(lasso_fit_final_m) %>% as.data.frame()
+  lasso_coef_m <- lasso_coef_m %>% filter(estimate > 0) %>% mutate(model = "m") %>% select(-penalty)
+
+  # extract coefficients for outcome prediction
+  lasso_coef_g0 <- tidy(lasso_fit_final_g0) %>% as.data.frame()
+  lasso_coef_g0 <- lasso_coef_g0 %>% filter(estimate > 0) %>% mutate(model = "g0") %>% select(-penalty)
+  
+  lasso_coef_g1 <- tidy(lasso_fit_final_g1) %>% as.data.frame()
+  lasso_coef_g1 <- lasso_coef_g1 %>% filter(estimate > 0) %>% mutate(model = "g1") %>% select(-penalty)
+  
+  
+  # append extracted coefficients to final data frame
+  lasso_coef_all <- lasso_coef_m
+  lasso_coef_all <- rbind(lasso_coef_all, lasso_coef_g0)
+  lasso_coef_all <- rbind(lasso_coef_all, lasso_coef_g1)
   
   
   #%%%%%%%%%%%%%%%%%%%#
@@ -214,12 +230,18 @@ func_ml_lasso <- function(data_train, data_test, outcome, treatment, group, K, l
   
   # create prediction data frame
   df_pred <- data.frame(
+    # predictions
     "m" = lasso_pred_m, "g0" = lasso_pred_g0, "g1" = lasso_pred_g1,
-    "treatment" = data_test %>% pull(treatment),
-    "outcome" = data_test %>% pull(outcome)
+    # true values
+    "treatment" = data_test %>% pull(treatment), 
+    "outcome" = data_test %>% pull(outcome),
+    # number of predictors
+    "num_pred_m" = ncol(lasso_fit_final_m$pre$mold$predictors),
+    "num_pred_g0" = ncol(lasso_fit_final_g0$pre$mold$predictors),
+    "num_pred_g1" = ncol(lasso_fit_final_g1$pre$mold$predictors)
     )
   
   # return data frame with predictions
-  return(list("pred" = df_pred, "param" = df_best_param))
+  return(list("pred" = df_pred, "param" = df_best_param, "coef" = lasso_coef_all))
   
 } # close function() 
