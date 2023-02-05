@@ -27,6 +27,8 @@
 # -> "error": error metrics across all K and S
 # -> "param": selected hyperparameters during K_tuning-CV for each K and S
 # -> "trimming": number of treatment periods after conducting trimming for each S
+# -> "predictors": number of predictors (X)
+# -> "coef": if lasso algorithm is selected, all non-zero coefficients are returned
 #+++
 # In this file, the following subfunctions are used:
 # -> Functions for predicting the nuisance parameters: func_ml_lasso
@@ -46,12 +48,30 @@
 
 func_dml <- function(data, outcome, treatment, group, K, K_tuning, S, mlalgo, trimming) {
   
-  # define inputs
+  # define hyperparameters
+  num_X <- ncol(data) - 3
+    ## lasso
   lambda_val <- 1000
+    ## xgboost
+  xgb_grid <- expand.grid(
+    tree_depth = c(3, 6, 9), # default: 6
+    trees = c(5, 15, 100), # default: 15
+    learn_rate = c(0.01, 0.1, 0.3), # default: 0.3
+    mtry = c(10, round(sqrt(ncol(data) - 3)), round(ncol(data) - 3)), # default: p; minus 3 due to outcome, treatment, and group
+    min_n = c(1, 5) # default: 1
+  )
+    ## random forests
+  rf_grid <- expand.grid(
+    trees = c(1000), # default: 500
+    mtry = c(5, 10, floor(sqrt(num_X)), floor(num_X/3), round(num_X)), # default: floor(sqrt(num_X)) for classification and floor(num_X/3) for regression
+    min_n = c(1, 5, 10, 15) # default: 5 for regression and 10 for classification
+  )
+  
   
   # generate empty data frames
   df_pred_all <- data.frame()
   df_param_all <- data.frame()
+  df_coef_all <- data.frame()
   df_error_all <- data.frame()
   df_result_all_detailed <- data.frame()
   df_trimming_all <- data.frame()
@@ -127,24 +147,73 @@ func_dml <- function(data, outcome, treatment, group, K, K_tuning, S, mlalgo, tr
       if (mlalgo == "postlasso") {
         model_func <- rlasso
       } else if (mlalgo == "lasso") {
+        
+        ## LASSO ##
+        #+++++++++#
+        
+        # predict nuisance functions via lasso
         ls_ml <- func_ml_lasso(data_train, data_test, outcome, treatment, group, K_tuning, lambda_val)
+        
+        # append predictions to data frame
+        data_pred <- ls_ml$pred
+        data_pred <- data_pred %>% mutate(Repetition = S_rep, Fold = fold_sel)
+        df_pred_all <- rbind(df_pred_all, data_pred)
+        
+        # append tuning parameters to data frame
+        data_param <- ls_ml$param
+        data_param <- data_param %>% mutate(Fold = fold_sel, Repetition = S_rep) %>%
+          select(Repetition, Fold, everything())
+        df_param_all <- rbind(df_param_all, data_param)
+        
+        # append non-zero coefficients to data frame
+        data_coef <- ls_ml$coef
+        data_coef <- data_coef %>% mutate(Fold = fold_sel, Repetition = S_rep) %>%
+          select(Repetition, Fold, everything())
+        df_coef_all <- rbind(df_coef_all, data_coef)
+        
       } else if (mlalgo == "xgboost") {
-        model_func <- xgboost
+        
+        ## XGBoost ##
+        #+++++++++++#
+        
+        xgb_ml <- func_ml_xgboost(data_train, data_test, outcome, treatment, group, K_tuning, xgb_grid)
+        
+        # append predictions to data frame
+        data_pred <- xgb_ml$pred
+        data_pred <- data_pred %>% mutate(Repetition = S_rep, Fold = fold_sel)
+        df_pred_all <- rbind(df_pred_all, data_pred)
+        
+        # append tuning parameters to data frame
+        data_param <- xgb_ml$param
+        data_param <- data_param %>% mutate(Fold = fold_sel, Repetition = S_rep) %>%
+          select(Repetition, Fold, everything())
+        df_param_all <- rbind(df_param_all, data_param)
+        
+        
+      } else if (mlalgo == "randomforests") {
+        
+        ## RANDOM FORESTS ##
+        #++++++++++++++++++#
+        
+        rf_ml <- func_ml_rf(data_train, data_test, outcome, treatment, group, K_tuning, rf_grid)
+        
+        # append predictions to data frame
+        data_pred <- rf_ml$pred
+        data_pred <- data_pred %>% mutate(Repetition = S_rep, Fold = fold_sel)
+        df_pred_all <- rbind(df_pred_all, data_pred)
+        
+        # append tuning parameters to data frame
+        data_param <- rf_ml$param
+        data_param <- data_param %>% mutate(Fold = fold_sel, Repetition = S_rep) %>%
+          select(Repetition, Fold, everything())
+        df_param_all <- rbind(df_param_all, data_param)
+        
+        
       } else {
         stop("Please select a Machine Learning Algorithm to predict the nuisance parameters.")
       }
       
-      # append predictions to data frame
-      data_pred <- ls_ml$pred
-      data_pred <- data_pred %>% mutate(fold = fold_sel)
-      df_pred_all <- rbind(df_pred_all, data_pred)
-      
-      # append tuning parameters to data frame
-      data_param <- ls_ml$param
-      data_param <- data_param %>% mutate(Fold = fold_sel, Repetition = S_rep) %>%
-        select(Repetition, Fold, everything())
-      df_param_all <- rbind(df_param_all, data_param)
-      
+
       
       #++++++++++++++++#
       #### TRIMMING ####
@@ -281,9 +350,23 @@ func_dml <- function(data, outcome, treatment, group, K, K_tuning, S, mlalgo, tr
     group_by(Repetition) %>%
     summarize(n_treats = sum(n_treats))
   
-  return(list("final" = df_result_all, "detail" = df_result_all_detailed,
-              "error" = df_error_all, "param" = df_param_all,
-              "trimming" = df_trimming_all))
+  
+  # number of predictors
+  df_pred_all <- df_pred_all %>% select(Repetition, Fold, starts_with("num_pred")) %>% distinct()
+  
+  
+  # coefficients are only returned for lasso
+  if (str_detect(model_algo, "lasso")) {
+    return(list("final" = df_result_all, "detail" = df_result_all_detailed,
+                "error" = df_error_all, "param" = df_param_all,
+                "trimming" = df_trimming_all, "predictors" = df_pred_all,
+                "coef" = df_coef_all))
+  } else {
+    return(list("final" = df_result_all, "detail" = df_result_all_detailed,
+                "error" = df_error_all, "param" = df_param_all,
+                "trimming" = df_trimming_all, "predictors" = df_pred_all))
+  }
+
   
   
 }
