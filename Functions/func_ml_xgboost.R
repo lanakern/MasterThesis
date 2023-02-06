@@ -38,6 +38,10 @@ func_ml_xgboost <- function(data_train, data_test, outcome, treatment, group, K,
   data_train <- data_train %>% mutate({{treatment}} := as.factor(!!sym(treatment))) 
   data_test <- data_test %>% mutate({{treatment}} := as.factor(!!sym(treatment))) 
   
+  # separate training data for g0 and g1 prediction
+  data_train_g1 <- data_train %>% filter(treatment_sport == 1)
+  data_train_g0 <- data_train %>% filter(treatment_sport == 0)
+  
   # specify the model
   ## treatment is predicted via binary classification and outcome via regression
   # specify the model
@@ -56,9 +60,9 @@ func_ml_xgboost <- function(data_train, data_test, outcome, treatment, group, K,
 
   
   # generate recipe: define outcome and predictors
-  ## confounding factors / predictors: all variables except treatment, outcome, and group
+    ## confounding factors / predictors: all variables except treatment, outcome, and group
   X_controls <- data_train %>% select(-c(all_of(outcome), all_of(treatment), all_of(group))) %>% colnames()
-  ## m(x)
+    ## m(x)
   xgb_recipe_m <- 
     data_train %>%
     recipe(.) %>%
@@ -66,13 +70,19 @@ func_ml_xgboost <- function(data_train, data_test, outcome, treatment, group, K,
     update_role({{treatment}}, new_role = "outcome") %>%
     # all other variables are predictors (drop outcome treatment)
     update_role(all_of(X_controls), new_role = "predictor")
-  ## g(D, X)
-  xgb_recipe_g <- 
-    data_train %>%  
+    ## g(1, X)
+  xgb_recipe_g1 <- 
+    data_train_g1 %>%  
     recipe(.) %>%
     # price variable is outcome
     update_role({{outcome}}, new_role = "outcome") %>%
     # all other variables are predictors (drop outcome and treatment)
+    update_role(all_of(X_controls), new_role = "predictor")
+    ## g(0, X)
+  xgb_recipe_g0 <- 
+    data_train_g0 %>%  
+    recipe(.) %>%
+    update_role({{outcome}}, new_role = "outcome") %>%
     update_role(all_of(X_controls), new_role = "predictor")
   
   # generate workflow
@@ -81,10 +91,15 @@ func_ml_xgboost <- function(data_train, data_test, outcome, treatment, group, K,
     add_model(xgb_spec_m) %>%
     add_recipe(xgb_recipe_m)
   
-  xgb_workflow_g <- 
+  xgb_workflow_g1 <- 
     workflow() %>%
     add_model(xgb_spec_g) %>%
-    add_recipe(xgb_recipe_g)
+    add_recipe(xgb_recipe_g1)
+  
+  xgb_workflow_g0 <- 
+    workflow() %>%
+    add_model(xgb_spec_g) %>%
+    add_recipe(xgb_recipe_g0)
   
   
   #%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -99,11 +114,11 @@ func_ml_xgboost <- function(data_train, data_test, outcome, treatment, group, K,
     v = K, group = group, strata = all_of(treatment), balance = "observations"
   )
   K_folds_inner_g0 <- rsample::group_vfold_cv(
-    data = data_train %>% filter(!!sym(treatment) == 0),  
+    data = data_train_g0,  
     v = K, group = group, strata = all_of(outcome), balance = "observations"
   )
   K_folds_inner_g1 <- rsample::group_vfold_cv(
-    data = data_train %>% filter(!!sym(treatment) == 1),  
+    data = data_train_g1,  
     v = K, group = group, strata = all_of(outcome), balance = "observations"
   )
   
@@ -122,12 +137,12 @@ func_ml_xgboost <- function(data_train, data_test, outcome, treatment, group, K,
     )
   ## g(0, X)
   xgb_grid_search_g0 <- 
-    xgb_workflow_g %>%
+    xgb_workflow_g0 %>%
     tune_grid(resamples = K_folds_inner_g0, grid = xgb_grid, 
               metrics = metric_set(rmse))
   ## g(1, X)
   xgb_grid_search_g1 <- 
-    xgb_workflow_g %>%
+    xgb_workflow_g1 %>%
     tune_grid(resamples = K_folds_inner_g1, grid = xgb_grid, 
               metrics = metric_set(rmse))
   
@@ -157,25 +172,46 @@ func_ml_xgboost <- function(data_train, data_test, outcome, treatment, group, K,
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
   
   # specify the models
-  ## model for m(X) = E(D|X): prediction of treatment
+    ## model for m(X) = E(D|X): prediction of treatment
+  tree_depth_m <- df_best_param$m_tree_depth
+  trees_m <- df_best_param$m_trees
+  learn_rate_m <- df_best_param$m_learn_rate
+  mtry_m <- df_best_param$m_mtry
+  min_n_m <- df_best_param$m_min_n
+  
   xgb_spec_final_m <- 
-    boost_tree(tree_depth = df_best_param$m_tree_depth, trees = df_best_param$m_trees, 
-               learn_rate = df_best_param$m_learn_rate, mtry = df_best_param$m_mtry,
-               min_n = df_best_param$m_min_n) %>%
+    boost_tree(tree_depth = {{tree_depth_m}}, trees = {{trees_m}}, 
+               learn_rate = {{learn_rate_m}}, mtry = {{mtry_m}}, min_n = {{min_n_m}}
+               ) %>%
     set_engine("xgboost", objective = "binary:logistic") %>% 
     set_mode("classification")
-  ## model for g(0,X) = E(Y | D = 0, X): prediction of outcome for untreated individuals
+  
+    ## model for g(0,X) = E(Y | D = 0, X): prediction of outcome for untreated individuals
+  tree_depth_g0 <- df_best_param$g0_tree_depth
+  trees_g0 <- df_best_param$g0_trees
+  learn_rate_g0 <- df_best_param$g0_learn_rate
+  mtry_g0 <- df_best_param$g0_mtry
+  min_n_g0 <- df_best_param$g0_min_n
+  
+  
   xgb_spec_final_g0 <- 
-    boost_tree(tree_depth = df_best_param$g0_tree_depth, trees = df_best_param$g0_trees, 
-               learn_rate = df_best_param$g0_learn_rate, mtry = df_best_param$g0_mtry,
-               min_n = df_best_param$g0_min_n) %>%
+    boost_tree(tree_depth = {{tree_depth_g0}}, trees = {{trees_g0}}, 
+               learn_rate = {{learn_rate_g0}}, mtry = {{mtry_g0}},min_n = {{min_n_g0}}
+               ) %>%
     set_engine("xgboost") %>% 
     set_mode("regression")
-  ## model for g(1, X) = E(Y | D = 1, X): prediction of outcome for treated individuals
+  
+    ## model for g(1, X) = E(Y | D = 1, X): prediction of outcome for treated individuals
+  tree_depth_g1 <- df_best_param$g1_tree_depth
+  trees_g1 <- df_best_param$g1_trees
+  learn_rate_g1 <- df_best_param$g1_learn_rate
+  mtry_g1 <- df_best_param$g1_mtry
+  min_n_g1 <- df_best_param$g1_min_n
+  
   xgb_spec_final_g1 <- 
-    boost_tree(tree_depth = df_best_param$g1_tree_depth, trees = df_best_param$g1_trees, 
-               learn_rate = df_best_param$g1_learn_rate, mtry = df_best_param$g1_mtry,
-               min_n = df_best_param$g1_min_n) %>%
+    boost_tree(tree_depth = {{tree_depth_g1}}, trees = {{trees_g1}}, 
+               learn_rate = {{learn_rate_g1}}, mtry = {{mtry_g1}}, min_n = {{min_n_g1}}
+    ) %>%
     set_engine("xgboost") %>% 
     set_mode("regression")
   
@@ -188,12 +224,12 @@ func_ml_xgboost <- function(data_train, data_test, outcome, treatment, group, K,
   xgb_workflow_final_g0 <- 
     workflow() %>%
     add_model(xgb_spec_final_g0) %>%
-    add_recipe(xgb_recipe_g)
+    add_recipe(xgb_recipe_g0)
   
   xgb_workflow_final_g1 <- 
     workflow() %>%
     add_model(xgb_spec_final_g1) %>%
-    add_recipe(xgb_recipe_g)
+    add_recipe(xgb_recipe_g1)
   
   # fit the model
   ## m(X)
@@ -203,11 +239,11 @@ func_ml_xgboost <- function(data_train, data_test, outcome, treatment, group, K,
   ## g(0, X)
   xgb_fit_final_g0 <- 
     xgb_workflow_final_g0 %>%
-    fit(data_train)
+    fit(data_train_g0)
   ## g(1, X)
   xgb_fit_final_g1 <- 
     xgb_workflow_final_g1 %>%
-    fit(data_train)
+    fit(data_train_g1)
   
 
   #%%%%%%%%%%%%%%%%%%%#
@@ -238,6 +274,6 @@ func_ml_xgboost <- function(data_train, data_test, outcome, treatment, group, K,
   )
   
   # return data frame with predictions
-  return(list("pred" = df_pred, "param" = df_best_param, "coef" = lasso_coef_all))
+  return(list("pred" = df_pred, "param" = df_best_param))
   
 } # close function() 
