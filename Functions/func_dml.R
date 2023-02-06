@@ -49,7 +49,7 @@
 func_dml <- function(data, outcome, treatment, group, K, K_tuning, S, mlalgo, trimming) {
   
   # define hyperparameters
-  num_X <- ncol(data) - 3
+  num_X <- ncol(data) - 3 # number of controls (minus outcome, treatment, and group)
     ## lasso
   lambda_val <- 1000
     ## xgboost
@@ -145,7 +145,30 @@ func_dml <- function(data, outcome, treatment, group, K, K_tuning, S, mlalgo, tr
       
       # select machine learning algorithm based on user selection and make predictions
       if (mlalgo == "postlasso") {
-        model_func <- rlasso
+        
+        ## POST-LASSO ##
+        #++++++++++++++#
+        
+        # predict nuisance functions via lasso
+        pls_ml <- func_ml_postlasso(data_train, data_test, outcome, treatment, group, K_tuning, lambda_val)
+        
+        # append predictions to data frame
+        data_pred <- pls_ml$pred
+        data_pred <- data_pred %>% mutate(Repetition = S_rep, Fold = fold_sel)
+        df_pred_all <- rbind(df_pred_all, data_pred)
+        
+        # append tuning parameters to data frame
+        data_param <- pls_ml$param
+        data_param <- data_param %>% mutate(Fold = fold_sel, Repetition = S_rep) %>%
+          select(Repetition, Fold, everything())
+        df_param_all <- rbind(df_param_all, data_param)
+        
+        # append non-zero coefficients to data frame
+        data_coef <- pls_ml$coef
+        data_coef <- data_coef %>% mutate(Fold = fold_sel, Repetition = S_rep) %>%
+          select(Repetition, Fold, everything())
+        df_coef_all <- rbind(df_coef_all, data_coef)
+        
       } else if (mlalgo == "lasso") {
         
         ## LASSO ##
@@ -356,7 +379,7 @@ func_dml <- function(data, outcome, treatment, group, K, K_tuning, S, mlalgo, tr
   
   
   # coefficients are only returned for lasso
-  if (str_detect(model_algo, "lasso")) {
+  if (str_detect(mlalgo, "lasso")) {
     return(list("final" = df_result_all, "detail" = df_result_all_detailed,
                 "error" = df_error_all, "param" = df_param_all,
                 "trimming" = df_trimming_all, "predictors" = df_pred_all,
