@@ -28,6 +28,9 @@ func_ml_lasso <- function(data_train, data_test, outcome, treatment, group, K, l
   
   # ensure that treatment variable is factor
   data_train <- data_train %>% mutate({{treatment}} := as.factor(!!sym(treatment))) 
+  data_train_g1 <- data_train %>% filter(treatment_sport == 1)
+  data_train_g0 <- data_train %>% filter(treatment_sport == 0)
+  
   data_test <- data_test %>% mutate({{treatment}} := as.factor(!!sym(treatment))) 
   
   # specify the model
@@ -56,9 +59,17 @@ func_ml_lasso <- function(data_train, data_test, outcome, treatment, group, K, l
     update_role({{treatment}}, new_role = "outcome") %>%
     # all other variables are predictors (drop outcome treatment)
     update_role(all_of(X_controls), new_role = "predictor")
-    ## g(D, X)
-  lasso_recipe_g <- 
-    data_train %>%  
+    ## g(1, X)
+  lasso_recipe_g1 <- 
+    data_train_g1 %>%  
+    recipe(.) %>%
+    # price variable is outcome
+    update_role({{outcome}}, new_role = "outcome") %>%
+    # all other variables are predictors (drop outcome and treatment)
+    update_role(all_of(X_controls), new_role = "predictor")
+    ## g(0, X)
+  lasso_recipe_g0 <- 
+    data_train_g0 %>%  
     recipe(.) %>%
     # price variable is outcome
     update_role({{outcome}}, new_role = "outcome") %>%
@@ -71,10 +82,15 @@ func_ml_lasso <- function(data_train, data_test, outcome, treatment, group, K, l
     add_model(lasso_spec_m) %>%
     add_recipe(lasso_recipe_m)
   
-  lasso_workflow_g <- 
+  lasso_workflow_g1 <- 
     workflow() %>%
     add_model(lasso_spec_g) %>%
-    add_recipe(lasso_recipe_g)
+    add_recipe(lasso_recipe_g1)
+  
+  lasso_workflow_g0 <- 
+    workflow() %>%
+    add_model(lasso_spec_g) %>%
+    add_recipe(lasso_recipe_g0)
   
   
   #%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -91,11 +107,11 @@ func_ml_lasso <- function(data_train, data_test, outcome, treatment, group, K, l
     v = K, group = group, strata = all_of(treatment), balance = "observations"
   )
   K_folds_inner_g0 <- rsample::group_vfold_cv(
-    data = data_train %>% filter(!!sym(treatment) == 0),  
+    data = data_train_g0,  
     v = K, group = group, strata = all_of(outcome), balance = "observations"
   )
   K_folds_inner_g1 <- rsample::group_vfold_cv(
-    data = data_train %>% filter(!!sym(treatment) == 1),  
+    data = data_train_g1,  
     v = K, group = group, strata = all_of(outcome), balance = "observations"
   )
   
@@ -114,12 +130,12 @@ func_ml_lasso <- function(data_train, data_test, outcome, treatment, group, K, l
     )
     ## g(0, X)
   lasso_grid_search_g0 <- 
-    lasso_workflow_g %>%
+    lasso_workflow_g0 %>%
     tune_grid(resamples = K_folds_inner_g0, grid = lasso_grid, 
               metrics = metric_set(rmse))
     ## g(1, X)
   lasso_grid_search_g1 <- 
-    lasso_workflow_g %>%
+    lasso_workflow_g1 %>%
     tune_grid(resamples = K_folds_inner_g1, grid = lasso_grid, 
               metrics = metric_set(rmse))
   
@@ -147,17 +163,17 @@ func_ml_lasso <- function(data_train, data_test, outcome, treatment, group, K, l
   # specify the models
     ## model for m(X) = E(D|X): prediction of treatment
   lasso_spec_final_m <- 
-    logistic_reg(penalty = lasso_best_param_m, mixture = 1) %>%  
+    logistic_reg(penalty = {{lasso_best_param_m}}, mixture = 1) %>%  
     set_engine("glmnet") %>%  
     set_mode("classification") 
     ## model for g(0,X) = E(Y | D = 0, X): prediction of outcome for untreated individuals
   lasso_spec_final_g0 <- 
-    linear_reg(penalty = lasso_best_param_g0, mixture = 1) %>%  
+    linear_reg(penalty = {{lasso_best_param_g0}}, mixture = 1) %>%  
     set_engine("glmnet") %>%  
     set_mode("regression") 
     ## model for g(1, X) = E(Y | D = 1, X): prediction of outcome for treated individuals
   lasso_spec_final_g1 <- 
-    linear_reg(penalty = lasso_best_param_g1, mixture = 1) %>%  
+    linear_reg(penalty = {{lasso_best_param_g1}}, mixture = 1) %>%  
     set_engine("glmnet") %>%  
     set_mode("regression")
   
@@ -170,12 +186,12 @@ func_ml_lasso <- function(data_train, data_test, outcome, treatment, group, K, l
   lasso_workflow_final_g0 <- 
     workflow() %>%
     add_model(lasso_spec_final_g0) %>%
-    add_recipe(lasso_recipe_g)
+    add_recipe(lasso_recipe_g0)
   
   lasso_workflow_final_g1 <- 
     workflow() %>%
     add_model(lasso_spec_final_g1) %>%
-    add_recipe(lasso_recipe_g)
+    add_recipe(lasso_recipe_g1)
   
   # fit the model
     ## m(X)
@@ -185,11 +201,11 @@ func_ml_lasso <- function(data_train, data_test, outcome, treatment, group, K, l
     ## g(0, X)
   lasso_fit_final_g0 <- 
     lasso_workflow_final_g0 %>%
-    fit(data_train)
+    fit(data_train_g0)
     ## g(1, X)
   lasso_fit_final_g1 <- 
     lasso_workflow_final_g1 %>%
-    fit(data_train)
+    fit(data_train_g1)
   
   
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
