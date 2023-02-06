@@ -34,25 +34,28 @@ func_ml_rf <- function(data_train, data_test, outcome, treatment, group, K, rf_g
   data_train <- data_train %>% mutate({{treatment}} := as.factor(!!sym(treatment))) 
   data_test <- data_test %>% mutate({{treatment}} := as.factor(!!sym(treatment))) 
   
+  # separate training data for g0 and g1 prediction
+  data_train_g1 <- data_train %>% filter(treatment_sport == 1)
+  data_train_g0 <- data_train %>% filter(treatment_sport == 0)
+  
   # specify the model
   ## treatment is predicted via binary classification and outcome via regression
   # specify the model
-  trees <- unique(rf_grid$trees)[1]
+  trees_sel <- unique(rf_grid$trees)[1]
   rf_spec_m <- 
-    rand_forest(trees = {{trees}}, mtry = tune(), min_n = tune()) %>% 
+    rand_forest(trees = {{trees_sel}}, mtry = tune(), min_n = tune()) %>% 
     set_engine("randomForest") %>% 
     set_mode("classification")
   
   rf_spec_g <- 
-    rand_forest(trees = {{trees}}, mtry = tune(), min_n = tune()) %>% 
+    rand_forest(trees = {{trees_sel}}, mtry = tune(), min_n = tune()) %>% 
     set_engine("randomForest") %>% 
     set_mode("regression")
   
-  
   # generate recipe: define outcome and predictors
-  ## confounding factors / predictors: all variables except treatment, outcome, and group
+    ## confounding factors / predictors: all variables except treatment, outcome, and group
   X_controls <- data_train %>% select(-c(all_of(outcome), all_of(treatment), all_of(group))) %>% colnames()
-  ## m(x)
+    ## m(x)
   rf_recipe_m <- 
     data_train %>%
     recipe(.) %>%
@@ -60,9 +63,17 @@ func_ml_rf <- function(data_train, data_test, outcome, treatment, group, K, rf_g
     update_role({{treatment}}, new_role = "outcome") %>%
     # all other variables are predictors (drop outcome treatment)
     update_role(all_of(X_controls), new_role = "predictor")
-  ## g(D, X)
-  rf_recipe_g <- 
-    data_train %>%  
+   ## g(0, X)
+  rf_recipe_g0 <- 
+    data_train_g0 %>%  
+    recipe(.) %>%
+    # price variable is outcome
+    update_role({{outcome}}, new_role = "outcome") %>%
+    # all other variables are predictors (drop outcome and treatment)
+    update_role(all_of(X_controls), new_role = "predictor")
+    ## g(1, X)
+  rf_recipe_g1 <- 
+    data_train_g1 %>%  
     recipe(.) %>%
     # price variable is outcome
     update_role({{outcome}}, new_role = "outcome") %>%
@@ -75,10 +86,15 @@ func_ml_rf <- function(data_train, data_test, outcome, treatment, group, K, rf_g
     add_model(rf_spec_m) %>%
     add_recipe(rf_recipe_m)
   
-  rf_workflow_g <- 
+  rf_workflow_g1 <- 
     workflow() %>%
     add_model(rf_spec_g) %>%
-    add_recipe(rf_recipe_g)
+    add_recipe(rf_recipe_g1)
+  
+  rf_workflow_g0 <- 
+    workflow() %>%
+    add_model(rf_spec_g) %>%
+    add_recipe(rf_recipe_g0)
   
   
   #%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -96,11 +112,11 @@ func_ml_rf <- function(data_train, data_test, outcome, treatment, group, K, rf_g
     v = K, group = group, strata = all_of(treatment), balance = "observations"
   )
   K_folds_inner_g0 <- rsample::group_vfold_cv(
-    data = data_train %>% filter(!!sym(treatment) == 0),  
+    data = data_train_g0,  
     v = K, group = group, strata = all_of(outcome), balance = "observations"
   )
   K_folds_inner_g1 <- rsample::group_vfold_cv(
-    data = data_train %>% filter(!!sym(treatment) == 1),  
+    data = data_train_g1,  
     v = K, group = group, strata = all_of(outcome), balance = "observations"
   )
   
@@ -119,12 +135,12 @@ func_ml_rf <- function(data_train, data_test, outcome, treatment, group, K, rf_g
     )
   ## g(0, X)
   rf_grid_search_g0 <- 
-    rf_workflow_g %>%
+    rf_workflow_g0 %>%
     tune_grid(resamples = K_folds_inner_g0, grid = rf_grid, 
               metrics = metric_set(rmse))
   ## g(1, X)
   rf_grid_search_g1 <- 
-    rf_workflow_g %>%
+    rf_workflow_g1 %>%
     tune_grid(resamples = K_folds_inner_g1, grid = rf_grid, 
               metrics = metric_set(rmse))
   
@@ -136,11 +152,11 @@ func_ml_rf <- function(data_train, data_test, outcome, treatment, group, K, rf_g
   
   
   df_best_param <- data.frame(
-    "m_trees" = trees, "m_mtry" = rf_best_param_m$mtry,
+    "m_trees" = trees_sel, "m_mtry" = rf_best_param_m$mtry,
     "m_min_n" = rf_best_param_m$min_n,
-    "g0_trees" = trees, "g0_mtry" = rf_best_param_g0$mtry,
+    "g0_trees" = trees_sel, "g0_mtry" = rf_best_param_g0$mtry,
     "g0_min_n" = rf_best_param_g0$min_n,
-    "g1_trees" = trees, "g1_mtry" = rf_best_param_g1$mtry,
+    "g1_trees" = trees_sel, "g1_mtry" = rf_best_param_g1$mtry,
     "g1_min_n" = rf_best_param_g1$min_n
   )
   
@@ -151,19 +167,34 @@ func_ml_rf <- function(data_train, data_test, outcome, treatment, group, K, rf_g
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
   
   # specify the models
-  ## model for m(X) = E(D|X): prediction of treatment
+    ## model for m(X) = E(D|X): prediction of treatment
+  trees_m <- df_best_param$m_trees
+  mtry_m <- df_best_param$m_mtry
+  min_n_m <- df_best_param$m_min_n
+  
   rf_spec_final_m <- 
-    rand_forest(trees = df_best_param$m_trees, mtry = df_best_param$m_mtry, min_n = df_best_param$m_min_n) %>%
+    rand_forest(trees = {{trees_m}}, mtry = {{mtry_m}}, min_n = {{min_n_m}}) %>%
     set_engine("randomForest") %>% 
     set_mode("classification")
-  ## model for g(0,X) = E(Y | D = 0, X): prediction of outcome for untreated individuals
+    ## model for g(0,X) = E(Y | D = 0, X): prediction of outcome for untreated individuals
+  trees_g0 <- df_best_param$g0_trees
+  mtry_g0 <- df_best_param$g0_mtry
+  min_n_g0 <- df_best_param$g0_min_n
+  
   rf_spec_final_g0 <- 
-    rand_forest(trees = df_best_param$g0_trees, mtry = df_best_param$g0_mtry, min_n = df_best_param$g0_min_n) %>%
+    rand_forest(trees = {{trees_g0}}, mtry = {{mtry_g0}}, min_n = {{min_n_g0}}) %>%
     set_engine("randomForest") %>% 
     set_mode("regression")
-  ## model for g(1, X) = E(Y | D = 1, X): prediction of outcome for treated individuals
+      ## model for g(1, X) = E(Y | D = 1, X): prediction of outcome for treated individuals
+  trees_g1 <- df_best_param$g1_trees
+  mtry_g1 <- df_best_param$g1_mtry
+  min_n_g1 <- df_best_param$g1_min_n
+  
   rf_spec_final_g1 <- 
-    rand_forest(trees = df_best_param$g1_trees, mtry = df_best_param$g1_mtry, min_n = df_best_param$g1_min_n) %>%
+    rand_forest(trees = {{trees_g1}}, 
+                mtry = {{mtry_g1}}, 
+                min_n = {{min_n_g1}}
+                ) %>%
     set_engine("randomForest") %>% 
     set_mode("regression")
   
@@ -176,26 +207,26 @@ func_ml_rf <- function(data_train, data_test, outcome, treatment, group, K, rf_g
   rf_workflow_final_g0 <- 
     workflow() %>%
     add_model(rf_spec_final_g0) %>%
-    add_recipe(rf_recipe_g)
+    add_recipe(rf_recipe_g0)
   
   rf_workflow_final_g1 <- 
     workflow() %>%
     add_model(rf_spec_final_g1) %>%
-    add_recipe(rf_recipe_g)
+    add_recipe(rf_recipe_g1)
   
   # fit the model
-  ## m(X)
+    ## m(X)
   rf_fit_final_m <- 
     rf_workflow_final_m %>%
     fit(data_train)
-  ## g(0, X)
+    ## g(0, X)
   rf_fit_final_g0 <- 
     rf_workflow_final_g0 %>%
-    fit(data_train)
-  ## g(1, X)
+    fit(data_train_g0)
+    ## g(1, X)
   rf_fit_final_g1 <- 
     rf_workflow_final_g1 %>%
-    fit(data_train)
+    fit(data_train_g1)
   
   
   #%%%%%%%%%%%%%%%%%%%#
@@ -226,6 +257,6 @@ func_ml_rf <- function(data_train, data_test, outcome, treatment, group, K, rf_g
   )
   
   # return data frame with predictions
-  return(list("pred" = df_pred, "param" = df_best_param, "coef" = lasso_coef_all))
+  return(list("pred" = df_pred, "param" = df_best_param))
   
 } # close function() 
