@@ -308,9 +308,9 @@ func_ml_postlasso <- function(data_train, data_test, outcome, treatment, group, 
   } # close iteration over lambda
 
   # select lambda that yields highest AUC
-  lasso_best_param_m <- df_tuning_all %>% filter(AUC == max(AUC)) %>% pull(lambda)
-  lasso_best_param_g0 <- df_tuning_all %>% filter(RMSE_0 == min(RMSE_0)) %>% pull(lambda)
-  lasso_best_param_g1 <- df_tuning_all %>% filter(RMSE_1 == min(RMSE_1)) %>% pull(lambda)
+  lasso_best_param_m <- df_tuning_all %>% filter(AUC == max(AUC)) %>% tail(1) %>% pull(lambda)
+  lasso_best_param_g0 <- df_tuning_all %>% filter(RMSE_0 == min(RMSE_0)) %>% tail(1) %>% pull(lambda)
+  lasso_best_param_g1 <- df_tuning_all %>% filter(RMSE_1 == min(RMSE_1)) %>% tail(1) %>% pull(lambda)
 
   # SAME RESULT
   # lasso_grid_search_m <- 
@@ -372,17 +372,23 @@ func_ml_postlasso <- function(data_train, data_test, outcome, treatment, group, 
   
   # extract coefficients for treatment prediction
   lasso_coef_m <- tidy(lasso_fit_final_m) %>% as.data.frame()
-  lasso_coef_m <- lasso_coef_m %>% filter(estimate > 0) %>% mutate(model = "m") %>% pull(term)
+  lasso_coef_m <- lasso_coef_m %>% filter(estimate > 0) %>% mutate(model = "m") %>% select(-penalty)
   
   # extract coefficients for outcome prediction
   lasso_coef_g0 <- tidy(lasso_fit_final_g0) %>% as.data.frame()
-  lasso_coef_g0 <- lasso_coef_g0 %>% filter(estimate > 0) %>% mutate(model = "g0") %>% pull(term)
+  lasso_coef_g0 <- lasso_coef_g0 %>% filter(estimate > 0) %>% mutate(model = "g0") %>% select(-penalty)
   
   lasso_coef_g1 <- tidy(lasso_fit_final_g1) %>% as.data.frame()
-  lasso_coef_g1 <- lasso_coef_g1 %>% filter(estimate > 0) %>% mutate(model = "g1") %>% pull(term)
+  lasso_coef_g1 <- lasso_coef_g1 %>% filter(estimate > 0) %>% mutate(model = "g1") %>% select(-penalty)
   
-  lasso_coef_all <- union(union(lasso_coef_g0, lasso_coef_g1), lasso_coef_m)
+  
+  lasso_coef_all <- union(union(lasso_coef_g0$term, lasso_coef_g1$term), lasso_coef_m$term)
   lasso_coef_all <- lasso_coef_all[!str_detect("(Intercept)", lasso_coef_all)]
+  
+  # append extracted coefficients to final data frame
+  lasso_coef_save <- lasso_coef_m
+  lasso_coef_save <- rbind(lasso_coef_save, lasso_coef_g0)
+  lasso_coef_save <- rbind(lasso_coef_save, lasso_coef_g1)
   
   
   #%%%%%%%%%%%%%%%%%%%%%%#
@@ -423,6 +429,6 @@ func_ml_postlasso <- function(data_train, data_test, outcome, treatment, group, 
   )
   
   # return data frame with predictions
-  return(list("pred" = df_pred, "param" = df_best_param, "coef" = lasso_coef_all))
+  return(list("pred" = df_pred, "param" = df_best_param, "coef" = lasso_coef_save))
   
 } # close function() 
