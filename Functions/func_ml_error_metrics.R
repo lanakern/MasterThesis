@@ -34,7 +34,9 @@ func_ml_error_metrics <- function(data_pred, S_rep, fold_sel) {
   m_bacc <- yardstick::bal_accuracy(data_pred, truth = treatment, estimate = m_class) %>%
     select(.estimate) %>% pull()
     ## area under the curve
-  m_auc <- yardstick::roc_auc(data_pred, truth = treatment, estimate = m) %>% 
+  m_auc <- yardstick::roc_auc(data_pred, truth = treatment, 
+                              # 1-m to get probability for class 0 (first class is taken as positive class in roc_auc)
+                              estimate = 1 - m) %>% 
     select(.estimate) %>% pull()
   
   # Regression: outcome prediction
