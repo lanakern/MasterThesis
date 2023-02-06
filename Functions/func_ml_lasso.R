@@ -20,7 +20,7 @@
 # -> "pred": data frame with nuisance parameter predictions and true values
 # -> "param": data frame including the value of lambda that is used for
 # final model training
-# -> "coef": number of non-zero coefficients
+# -> "coef":  non-zero coefficients
 #++++
 
 
@@ -28,10 +28,11 @@ func_ml_lasso <- function(data_train, data_test, outcome, treatment, group, K, l
   
   # ensure that treatment variable is factor
   data_train <- data_train %>% mutate({{treatment}} := as.factor(!!sym(treatment))) 
+  data_test <- data_test %>% mutate({{treatment}} := as.factor(!!sym(treatment))) 
+  
+  # separate training data for g0 and g1 prediction
   data_train_g1 <- data_train %>% filter(treatment_sport == 1)
   data_train_g0 <- data_train %>% filter(treatment_sport == 0)
-  
-  data_test <- data_test %>% mutate({{treatment}} := as.factor(!!sym(treatment))) 
   
   # specify the model
     ## logistic regression with lasso for treatment; linear regression with lasso for outcome
@@ -55,25 +56,21 @@ func_ml_lasso <- function(data_train, data_test, outcome, treatment, group, K, l
   lasso_recipe_m <- 
     data_train %>%
     recipe(.) %>%
-    # price variable is outcome
+    # define outcome
     update_role({{treatment}}, new_role = "outcome") %>%
-    # all other variables are predictors (drop outcome treatment)
+    # define predictors
     update_role(all_of(X_controls), new_role = "predictor")
     ## g(1, X)
   lasso_recipe_g1 <- 
     data_train_g1 %>%  
     recipe(.) %>%
-    # price variable is outcome
     update_role({{outcome}}, new_role = "outcome") %>%
-    # all other variables are predictors (drop outcome and treatment)
     update_role(all_of(X_controls), new_role = "predictor")
     ## g(0, X)
   lasso_recipe_g0 <- 
     data_train_g0 %>%  
     recipe(.) %>%
-    # price variable is outcome
     update_role({{outcome}}, new_role = "outcome") %>%
-    # all other variables are predictors (drop outcome and treatment)
     update_role(all_of(X_controls), new_role = "predictor")
   
   # generate workflow
