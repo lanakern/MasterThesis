@@ -9,12 +9,20 @@
 
 
 # load data 
-if (cohort_prep == "controls_same_outcome") {
-  data_load <- paste0("Data/Prep_8/prep_8_plausi_", treatment_def, 
-                      "_", treatment_repl, ".rds")
+if (extra_act == "yes") {
+  extra_act_save <- "_extradrop"
 } else {
-  data_load <- paste0("Data/Prep_8/prep_8_plausi_", treatment_def, 
-                      "_", treatment_repl, "_robustcheck.rds")
+  extra_act_save <- ""
+}
+
+mice_data_sel <- 1
+
+if (cohort_prep == "controls_same_outcome") {
+  data_load <- paste0("Data/Prep_8/prep_8_plausi_", treatment_def, "_", treatment_repl,
+                      extra_act_save, "_mice", mice_data_sel, ".rds")
+} else {
+  data_load <- paste0("Data/Prep_8/prep_8_plausi_", treatment_def, "_", treatment_repl, 
+                      extra_act_save, "_robustcheck", "_mice", mice_data_sel, ".rds")
 }
 
 data_descr <- readRDS(data_load)
@@ -26,6 +34,50 @@ obs_num <- nrow(data_descr)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 #### Treatment and Control Group ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+
+## Outcome ##
+#+++++++++++#
+
+# difference-in-means: outcome variable
+# https://sejdemyr.github.io/r-tutorials/statistics/tutorial8.html
+data_outcome_descr <-
+  data_descr %>%
+  group_by(treatment_sport) %>%
+  summarize(
+    num_obs = n(), 
+    mean_grades = mean(outcome_grade),
+    se_grades = sd(outcome_grade) / sqrt(num_obs)
+  )
+data_outcome_descr
+
+# the difference-in-means of the outcome variable is statistically significant at 
+# any conventional significance level
+outcome_treatment_ttest <- with(data_descr, t.test(outcome_grade ~ treatment_sport))
+
+# save result
+data_outcome_descr <- data_outcome_descr %>%
+  mutate(
+    cohort_prep = cohort_prep, treatment_repl = treatment_repl, 
+    treatment_def = treatment_def, extra_act_save = extra_act, 
+    t_value = unname(outcome_treatment_ttest$statistic), 
+    p_value = outcome_treatment_ttest$p.value,
+    time_stamp = Sys.time()
+  ) %>%
+  select(cohort_prep, treatment_repl, treatment_def, extra_act_save, everything()) %>%
+  as.data.frame()
+
+if (file.exists("Output/OUTCOME_TREATMENT.xlsx")) {
+  data_outcome_descr_hist <- read.xlsx("Output/OUTCOME_TREATMENT.xlsx", sheetName = "Sheet1")
+  data_outcome_descr_save <- rbind(data_outcome_descr_hist, data_outcome_descr) %>%
+    group_by(cohort_prep , treatment_repl, treatment_def, extra_act_save) %>%
+    filter(time_stamp == max(time_stamp)) %>%
+    distinct() %>% ungroup() %>% data.frame()
+  write.xlsx(data_outcome_descr_save, "Output/OUTCOME_TREATMENT.xlsx", sheetName = "Sheet1",
+             row.names = FALSE, append = FALSE, showNA = FALSE)
+} else {
+  write.xlsx(data_outcome_descr, "Output/OUTCOME_TREATMENT.xlsx", row.names = FALSE)
+}
 
 
 ## Sport-participation vs. non-participation ##
