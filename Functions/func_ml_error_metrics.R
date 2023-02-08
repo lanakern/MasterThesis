@@ -24,19 +24,26 @@
 
 func_ml_error_metrics <- function(data_pred, S_rep, fold_sel) {
 
-  # Classification: treatment prediction
+  # for classification extract class; treatment as factor
   data_pred <- data_pred %>%
-    mutate(m_class = as.factor(round(m)), treatment = as.factor(treatment))
-    ## accuracy
-  m_acc <- yardstick::accuracy(data_pred, truth = treatment, estimate = m_class) %>%
-    select(.estimate) %>% pull()
-    ## balanced accuracy
-  m_bacc <- yardstick::bal_accuracy(data_pred, truth = treatment, estimate = m_class) %>%
-    select(.estimate) %>% pull()
-    ## area under the curve
-  m_auc <- yardstick::roc_auc(data_pred, truth = treatment, 
+    mutate(m_class = ifelse(m >= 0.5, 1, 0), treatment = as.factor(treatment))
+  
+  # if all predictions are for one class, generate both factor levels
+  if (length(unique(data_pred$m_class)) == 1) {
+    data_pred$m_class <- factor(data_pred$m_class, levels = c(0, 1))
+  } else {
+    data_pred$m_class <- as.factor(data_pred$m_class)
+  }
+  
+  # generate confusion matrix to extract accuracy and balanced accuracy
+  conf_matrix <- confusionMatrix(data_pred$m_class, data_pred$treatment)
+  m_acc <- unname(conf_matrix$overall["Accuracy"])
+  m_bacc <- unname(conf_matrix$byClass["Balanced Accuracy"])
+  
+  # Area under the curve
+  m_auc <- yardstick::roc_auc(data_pred %>% mutate(m_0 = 1 - m), truth = treatment, 
                               # 1-m to get probability for class 0 (first class is taken as positive class in roc_auc)
-                              estimate = 1 - m) %>% 
+                              estimate = m_0) %>% 
     select(.estimate) %>% pull()
   
   # Regression: outcome prediction
@@ -47,18 +54,14 @@ func_ml_error_metrics <- function(data_pred, S_rep, fold_sel) {
   g0_rmse <- sqrt(g0_mse)
   g1_rmse <- sqrt(g1_mse)
     ## MAE
-  g0_mae <- yardstick::mae(data_pred, truth = data_pred %>% filter(treatment == 0) %>% pull(outcome), 
-                           estimate = data_pred %>% filter(treatment == 0) %>% pull(g0)) %>%
+  g0_mae <- yardstick::mae(data_pred %>% filter(treatment == 0), truth = outcome, estimate = g0) %>%
     select(.estimate) %>% pull()
-  g1_mae <- yardstick::mae(data_pred, truth = data_pred %>% filter(treatment == 1) %>% pull(outcome), 
-                           estimate = data_pred %>% filter(treatment == 1) %>% pull(g1)) %>%
+  g1_mae <- yardstick::mae(data_pred  %>% filter(treatment == 1), truth = outcome, estimate = g1) %>%
     select(.estimate) %>% pull()
     ## MAPE
-  g0_mape <- yardstick::mape(data_pred, truth = data_pred %>% filter(treatment == 0) %>% pull(outcome), 
-                           estimate = data_pred %>% filter(treatment == 0) %>% pull(g0)) %>%
+  g0_mape <- yardstick::mape(data_pred %>% filter(treatment == 0), truth = outcome, estimate = g0) %>%
     select(.estimate) %>% pull()
-  g1_mape <- yardstick::mape(data_pred, truth = data_pred %>% filter(treatment == 1) %>% pull(outcome), 
-                           estimate = data_pred %>% filter(treatment == 1) %>% pull(g1)) %>%
+  g1_mape <- yardstick::mape(data_pred %>% filter(treatment == 1), truth = outcome, estimate = g1) %>%
     select(.estimate) %>% pull()
   
   # Report results in one data frame
