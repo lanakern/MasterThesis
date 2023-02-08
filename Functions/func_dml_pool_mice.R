@@ -84,11 +84,20 @@ func_dml_pool_mice <- function(dml_result, N, mice_num) {
       CI_lower_mean_95 = theta_mean - qt(0.95, df = N - 1)^-1 * (1 - 0.95 / 2) * se_mean / sqrt(N),
       CI_upper_mean_95 = theta_mean + qt(0.95, df = N - 1)^-1 * (1 - 0.95 / 2) * se_mean / sqrt(N),
       CI_lower_median_95 = theta_median - qt(0.95, df = N - 1)^-1 * (1 - 0.95 / 2) * se_median / sqrt(N),
-      CI_upper_median_95 = theta_median + qt(0.95, df = N - 1)^-1 * (1 - 0.95 / 2) * se_median / sqrt(N),
-      # number of predictors
-      num_predictors_m = max(dml_pred$num_pred_m), num_predictors_g0 = max(dml_pred$num_pred_g0), 
-      num_predictors_g1 = max(dml_pred$num_pred_g1)
+      CI_upper_median_95 = theta_median + qt(0.95, df = N - 1)^-1 * (1 - 0.95 / 2) * se_median / sqrt(N)
     )
+  
+  if (!is.null(dml_result[[1]]$predictors)) {
+    dml_final_estimation <- dml_final_estimation %>%
+      mutate(
+        # number of predictors
+        num_predictors_m = max(dml_pred$num_pred_m), num_predictors_g0 = max(dml_pred$num_pred_g0), 
+        num_predictors_g1 = max(dml_pred$num_pred_g1)
+      )
+
+  } else {
+    dml_final_estimation <- dml_final_estimation
+  }
   
   
   # aggregate errors
