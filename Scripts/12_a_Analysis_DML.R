@@ -17,18 +17,34 @@ set.seed(1234)
 # model_outcome <- "level"
 # model_controls <- "all"
 
-# list to store results
+# empty data frames and lists to store results
+df_ape_all <- data.frame()
 dml_result_all <- list()
 
 # iterate over mice data sets
-for (mice_data_sel in 1:2) {
+for (mice_data_sel in 1:5) {
   
   # data set number
   print(paste("Data Set", mice_data_sel))
   
   # load data
-  load_data <- paste0("Data/Prep_11/prep_11_dml_binary_", model_type, "_", model_outcome,
-                      "_", treatment_def, "_", treatment_repl, "_mice", mice_data_sel, ".rds")
+    ## extract extracurricular activity ending
+  if (extra_act == "yes") {
+    extra_act_save <- "_extradrop"
+  } else {
+    extra_act_save <- ""
+  }
+    ## cohort prep
+  if (cohort_prep == "controls_same_outcome") {
+    load_data <- 
+      paste0("Data/Prep_11/prep_11_dml_binary_", model_type, "_", model_outcome,
+             "_", treatment_def, "_", treatment_repl, extra_act_save, "_mice", mice_data_sel, ".rds")
+  } else {
+    load_data <- 
+      paste0("Data/Prep_11/prep_11_dml_binary_", model_type, "_", model_outcome,
+             "_", treatment_def, "_", treatment_repl, extra_act_save, "robustcheck_mice", mice_data_sel, ".rds")
+  }
+  
   load_data <- str_replace(load_data, "_level", "") # drop level
   data_dml <- readRDS(load_data)
   
@@ -58,6 +74,9 @@ for (mice_data_sel in 1:2) {
   # endogeneity of participation.
   ape <- data_dml %>% filter(treatment_sport == 1) %>% pull(outcome_var) %>% mean() -
       data_dml %>% filter(treatment_sport == 0) %>% pull(outcome_var) %>% mean()
+  
+  df_ape <- data.frame("MICE" = mice_data_sel, "APE" = ape)
+  df_ape_all <- rbind(df_ape_all, df_ape)
 
 
   #%%%%%%%%%%%%%%%%%%#
@@ -78,15 +97,16 @@ for (mice_data_sel in 1:2) {
 
 
 # calculate pooled estimate over multiple mice data sets
-dml_result_pooled_all <- func_dml_pool_mice(dml_result_all, nrow(data_dml), 2)
+dml_result_pooled_all <- func_dml_pool_mice(dml_result_all, nrow(data_dml), 5)
 dml_result_pooled <- dml_result_pooled_all[[1]]
 dml_result_error <- dml_result_pooled_all[[2]]
 
 # append columns
-dml_result_pooled <- dml_result_pooled %>%
+dml_result_save <- dml_result_pooled %>%
   mutate(
     # append model selections
     cohort_prep = cohort_prep, treatment_repl = treatment_repl, treatment_def = treatment_def, 
+    extra_act = extra_act, 
     # append user selections
     model_type = model_type, model_algo = model_algo, model_k = model_k, 
     model_k_tuning = model_k_tuning, model_s_rep = model_s_rep, model_trimming = model_trimming, 
@@ -97,12 +117,13 @@ dml_result_pooled <- dml_result_pooled %>%
     time_stamp = as.character(Sys.time())) %>%
   cbind(dml_result_error) %>%
   # re-order columns
-  select(cohort_prep, treatment_repl, treatment_def, starts_with("model"), n_treats_min, everything()) %>%
+  select(cohort_prep, treatment_repl, treatment_def, extra_act, starts_with("model"), 
+         n_treats_min, starts_with("num_pred"), everything()) %>%
   relocate(time_stamp, .after = last_col()) # time-stamp is ordered last
 
 
 # save estimation results
-dml_result_save <- as.data.frame(dml_result_pooled)
+dml_result_save <- as.data.frame(dml_result_save)
 if (file.exists("Output/ESTIMATION_RESULTS.xlsx")) {
   ## replace same estimations
   dml_result_save_all <- read.xlsx("Output/ESTIMATION_RESULTS.xlsx", sheetName = "Sheet1")
