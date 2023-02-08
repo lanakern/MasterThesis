@@ -48,7 +48,7 @@ func_ml_xgboost <- function(data_train, data_test, outcome, treatment, group, K,
   xgb_spec_m <- 
     boost_tree(tree_depth = tune(), trees = tune(), learn_rate = tune(),
                mtry = tune(), min_n = tune()) %>% 
-    set_engine("xgboost", objective = "binary:logistic") %>% 
+    set_engine("xgboost", objective = "binary:logistic", eval_metric = "error") %>% 
     set_mode("classification")
   
   xgb_spec_g <- 
@@ -183,7 +183,7 @@ func_ml_xgboost <- function(data_train, data_test, outcome, treatment, group, K,
     boost_tree(tree_depth = {{tree_depth_m}}, trees = {{trees_m}}, 
                learn_rate = {{learn_rate_m}}, mtry = {{mtry_m}}, min_n = {{min_n_m}}
                ) %>%
-    set_engine("xgboost", objective = "binary:logistic") %>% 
+    set_engine("xgboost", objective = "binary:logistic", eval_metric = "error") %>% 
     set_mode("classification")
   
     ## model for g(0,X) = E(Y | D = 0, X): prediction of outcome for untreated individuals
