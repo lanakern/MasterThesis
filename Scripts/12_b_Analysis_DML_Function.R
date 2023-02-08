@@ -2,8 +2,19 @@
 #### DoubleML with R Function ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-# OHNE LAGS: NICHT STATISTISCH SIGNIFIKANT
-# MIT LAGS: STATISTISCH SIGNIFIKANT
+# ONYL WORKS FOR K >= 3
+# ONLY DONE FOR LASSO
+
+# define inputs
+model_type <- "base"
+model_algo <-  "lasso"
+model_k <- 3
+model_k_tuning <- 3
+model_s_rep <- 2
+model_trimming <- 0.01
+model_outcome <- "level"
+model_controls <- "no_lags"
+
 
 # set seed for reproducible results
 set.seed(1234)
@@ -12,14 +23,30 @@ set.seed(1234)
 df_result_function_list <- list()
 
 # iterate over mice data sets
-for (mice_data_sel in 1:2) {
+for (mice_data_sel in 1:5) {
   
   # data set number
   print(paste("Data Set", mice_data_sel))
   
   # load data
-  load_data <- paste0("Data/Prep_11/prep_11_dml_binary_", model_type, "_", model_outcome,
-                      "_", treatment_def, "_", treatment_repl, "_mice", mice_data_sel, ".rds")
+  # load data
+  ## extract extracurricular activity ending
+  if (extra_act == "yes") {
+    extra_act_save <- "_extradrop"
+  } else {
+    extra_act_save <- ""
+  }
+  ## cohort prep
+  if (cohort_prep == "controls_same_outcome") {
+    load_data <- 
+      paste0("Data/Prep_11/prep_11_dml_binary_", model_type, "_", model_outcome,
+             "_", treatment_def, "_", treatment_repl, extra_act_save, "_mice", mice_data_sel, ".rds")
+  } else {
+    load_data <- 
+      paste0("Data/Prep_11/prep_11_dml_binary_", model_type, "_", model_outcome,
+             "_", treatment_def, "_", treatment_repl, extra_act_save, "robustcheck_mice", mice_data_sel, ".rds")
+  }
+  
   load_data <- str_replace(load_data, "_level", "") # drop level
   data_dml <- readRDS(load_data)
   
@@ -108,7 +135,7 @@ for (mice_data_sel in 1:2) {
 
 # pool results from MICE
 # calculate pooled estimate over multiple mice data sets
-dml_result_function_pooled <- func_dml_pool_mice(df_result_function_list, nrow(data_dml), 2)
+dml_result_function_pooled <- func_dml_pool_mice(df_result_function_list, nrow(data_dml), 5)
 
 # append columns
 dml_result_function_pooled <- dml_result_function_pooled %>%
@@ -140,7 +167,8 @@ if (file.exists("Output/ESTIMATION_RESULTS_FUNCTION.xlsx")) {
 }
 
 
-
+# show estimation results
+read.xlsx("Output/ESTIMATION_RESULTS_FUNCTION.xlsx", sheetName = "Sheet1")
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
