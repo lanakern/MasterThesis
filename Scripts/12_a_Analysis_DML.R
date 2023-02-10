@@ -83,18 +83,34 @@ for (mice_data_sel in 1:5) {
   #### ATE & ATET ####
   #%%%%%%%%%%%%%%%%%%#
   
+  # only save common support plot for main model
+  if (cohort_prep == main_cohort_prep & treatment_def == main_treatment_def  &
+      treatment_repl == main_treatment_repl & extra_act == main_extra_act & 
+      model_type == main_model_type & model_outcome == main_model_outcome & 
+      model_controls == main_model_controls & model_treatment == main_model_treatment) {
+    save_trimming_sel <- TRUE
+  } else {
+    save_trimming_sel <- FALSE
+  }
+  
   # run DML
   dml_result <- func_dml(
     data = data_dml, 
     outcome = outcome_var, treatment = "treatment_sport", group = "group", 
     K = model_k, K_tuning = model_k_tuning, S = model_s_rep, 
-    mlalgo = model_algo, trimming = model_trimming
+    mlalgo = model_algo, trimming = model_trimming, save_trimming = save_trimming_sel
   )
   
   # append to full data frame
   dml_result_all <- append(dml_result_all, list(dml_result))
 }
 
+# save results
+save_dml <- 
+  paste0("Output/DML/", model_algo, "_", model_type, "_", model_outcome, "_", str_replace_all(cohort_prep, "_", ""),
+         "_", treatment_def, "_", treatment_repl, extra_act_save, ".rds")
+
+saveRDS(dml_result_all, save_dml)
 
 # calculate pooled estimate over multiple mice data sets
 dml_result_pooled_all <- func_dml_pool_mice(dml_result_all, nrow(data_dml), 5)
