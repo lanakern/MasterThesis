@@ -48,6 +48,16 @@ data_outcome_descr <-
     num_obs = n(), 
     mean_grades = mean(outcome_grade),
     se_grades = sd(outcome_grade) / sqrt(num_obs)
+  # add total
+  ) %>% rbind(
+    data_descr %>%
+      summarize(
+        num_obs = n(), 
+        mean_grades = mean(outcome_grade),
+        se_grades = sd(outcome_grade) / sqrt(num_obs)
+      ) %>%
+      mutate(treatment_sport = "all") %>%
+      select(treatment_sport, everything())
   )
 data_outcome_descr
 
@@ -78,6 +88,13 @@ if (file.exists("Output/OUTCOME_TREATMENT.xlsx")) {
 } else {
   write.xlsx(data_outcome_descr, "Output/OUTCOME_TREATMENT.xlsx", row.names = FALSE)
 }
+
+# histogram
+ggplot(data = data_descr, aes(x = outcome_grade)) +
+  geom_histogram(aes(y = ..density..),
+                 colour = 1, fill = "white") +
+  geom_density(binwidth = 0.1)
+
 
 
 ## Sport-participation vs. non-participation ##
@@ -253,30 +270,5 @@ data_descr_sub %>%
 
 
 
-#%%%%%%%%%%%%%%%%%%%#
-#### FINAL STEPS ####
-#%%%%%%%%%%%%%%%%%%%#
 
-# drop remaining variables not needed for estimation
-vars_categoric_drop <- readRDS("Data/Prep_7/prep_7_variables_drop_cat.rds")
-vars_categoric_drop <- vars_categoric_drop[vars_categoric_drop %in% colnames(data_descr)]
-data_descr_final <- data_descr %>%
-  select(-c(all_of(vars_categoric_drop)))
-
-
-# number of respondents, rows, and columns
-print(paste("Number of respondents:", length(unique(data_descr$id_t))))
-print(paste("Number of rows:", nrow(data_descr)))
-print(paste("Number of columns:", ncol(data_descr)))
-
-# save data frame
-if (cohort_prep == "controls_same_outcome") {
-  data_save <- paste0("Data/Prep_9/prep_9_descr_", treatment_def, 
-                      "_", treatment_repl, ".rds")
-} else {
-  data_save <- paste0("Data/Prep_9/prep_9_descr_", treatment_def, 
-                      "_", treatment_repl, "_robustcheck.rds")
-}
-
-saveRDS(data_descr_final, data_save)
 
