@@ -1604,7 +1604,7 @@ for (mice_result_sel in 1:mice_num_data_sets) {
     select_columns = vars_categoric
   )
   
-  saveRDS(vars_categoric, "Data/Prep_7/prep_7_variables_drop_cat.rds")
+  # saveRDS(vars_categoric, "Data/Prep_7/prep_7_variables_drop_cat.rds")
   
   
   # birth month and birth year as additional dummys
