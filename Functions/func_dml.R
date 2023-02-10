@@ -46,27 +46,43 @@
 #+++
 
 
-func_dml <- function(data, outcome, treatment, group, K, K_tuning, S, mlalgo, trimming) {
+func_dml <- function(data, outcome, treatment, group, K, K_tuning, S, mlalgo, trimming, save_trimming) {
   
   # define hyperparameters
   num_X <- ncol(data) - 3 # number of controls (minus outcome, treatment, and group)
     ## lasso
-  lambda_val <- 1000
-    ## xgboost
-  xgb_grid <- expand.grid(
-    tree_depth = c(3, 6, 9), # default: 6
-    trees = c(5, 15, 100), # default: 15
-    learn_rate = c(0.01, 0.1, 0.3), # default: 0.3
-    mtry = c(10, round(sqrt(ncol(data) - 3)), round(ncol(data) - 3)), # default: p; minus 3 due to outcome, treatment, and group
-    min_n = c(1, 5) # default: 1
-  )
-    ## random forests
-  rf_grid <- expand.grid(
-    trees = c(1000), # default: 500
-    mtry = c(5, 10, floor(sqrt(num_X)), floor(num_X/3), round(num_X)), # default: floor(sqrt(num_X)) for classification and floor(num_X/3) for regression
-    min_n = c(1, 5, 10, 15) # default: 5 for regression and 10 for classification
-  )
+  # lambda_val <- 1000
+  #   ## xgboost
+  # xgb_grid <- expand.grid(
+  #   tree_depth = c(3, 6, 9), # default: 6
+  #   trees = c(5, 15, 100), # default: 15
+  #   learn_rate = c(0.01, 0.1, 0.3), # default: 0.3
+  #   mtry = c(10, round(sqrt(num_X)), round(num_X)), # default: p (X)
+  #   min_n = c(1, 5) # default: 1
+  # )
+  #   ## random forests
+  # rf_grid <- expand.grid(
+  #   trees = c(1000), # default: 500
+  #   mtry = c(5, 10, floor(sqrt(num_X)), floor(num_X/3), round(num_X)), # default: floor(sqrt(num_X)) for classification and floor(num_X/3) for regression
+  #   min_n = c(1, 5, 10, 15) # default: 5 for regression and 10 for classification
+  # )
   
+  # SMALL GRIDS
+  lambda_val <- 100
+  ## xgboost
+  xgb_grid <- expand.grid(
+    tree_depth = c(3, 6), # default: 6
+    trees = c(15), # default: 15
+    learn_rate = c(0.01, 0.3), # default: 0.3
+    mtry = c(floor(sqrt(num_X)), round(num_X)), # default: p (X)
+    min_n = c(1) # default: 1
+  )
+  ## random forests
+  rf_grid <- expand.grid(
+    trees = c(500), # default: 500
+    mtry = c(floor(sqrt(num_X)), floor(num_X/3), round(num_X)), # default: floor(sqrt(num_X)) for classification and floor(num_X/3) for regression
+    min_n = c(5) # default: 5 for regression and 10 for classification
+  )
   
   # generate empty data frames
   df_pred_all <- data.frame()
@@ -303,10 +319,11 @@ func_dml <- function(data, outcome, treatment, group, K, K_tuning, S, mlalgo, tr
     #### COMMON SUPPORT ####
     #++++++++++++++++++++++#
     
-    # only save common support plot for first iteration (S_rep = 1)
-    if (S_rep == 1) {
+    # only save common support plot for first iteration (S_rep = 1) and if it
+    # is wished to save (that is only for main model)
+    if (S_rep == 1 & save_trimming == TRUE) {
       plot_common_support <- func_dml_common_support(df_pred_all, min_trimming_all, max_trimming_all)
-      ggsave("Output/plot_common_support.png", plot_common_support)
+      ggsave(paste0("Output/plot_common_support", model_algo, ".png"), plot_common_support)
     }
     
     
