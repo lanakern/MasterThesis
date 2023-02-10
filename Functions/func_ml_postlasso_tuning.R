@@ -1,3 +1,27 @@
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### FUNCTION: MACHINE LEARNING PREDICTION WITH POST-LASSO ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+#++++
+# by Lana Kern
+#++++
+# This function conducts the parameter tuning for post-lasso. This is hand-coded.
+#++++
+# INPUT:
+# -> "outcome": name of outcome variable included in data_train and data_test
+# -> "treatment": name of treatment variable included in data_train and data_test
+# -> "X_controls": vector containing control variables
+# -> "data_train, data_train_g0, data_train_g1": training data overall, training
+# data for prediction of g0 and training data for prediction of g1
+# -> "K": number of folds generated for parameter tuning
+# -> "K_folds_inner_m, K_folds_inner_g0, K_folds_inner_g1": sample splits
+# -> "lambda": value of lambda used in tuning process
+#++++
+# OUTPUT:
+# -> "df_tuning_aggr": data frame with AUC and RMSE for the nuisance parameter
+# predictions for selected lambda.
+#++++
+
 func_ml_postlasso_tuning <- function(outcome, treatment, X_controls, 
                                      data_train, data_train_g0, data_train_g1, 
                                      K,  K_folds_inner_m, K_folds_inner_g0, K_folds_inner_g1, 
