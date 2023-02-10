@@ -74,3 +74,25 @@ dml_boxplot <-
         ) 
 
 ggsave("Output/plot_dml_boxplot.png", dml_boxplot)
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%#
+#### Hyperparameters ####
+#%%%%%%%%%%%%%%%%%%%%%%%#
+
+
+df_dml_detail_all <- data.frame()
+for (model_algo_sel in c("lasso", #"postlasso", "randomforests", 
+                         "xgboost")) {
+  df_dml_load <- readRDS(paste0("Output/DML/", model_algo_sel, "_", load_results_main, ".rds"))
+  # assign(paste0("dml_result_", model_algo_sel), df_dml_load)
+  
+  df_dml_detail_sub_all <- data.frame()
+  for (i in 1:5) {
+    df_dml_detail_sub <- df_dml_load[[i]]$detail %>% filter(Type %in% c("ATE", "ATTE")) %>% mutate(MICE = i)
+    df_dml_detail_sub_all <- rbind(df_dml_detail_sub_all, df_dml_detail_sub)
+  }
+  
+  df_dml_detail_all <- rbind(df_dml_detail_all, df_dml_detail_sub_all)
+  
+}
