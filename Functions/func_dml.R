@@ -7,6 +7,7 @@
 #+++
 # This function performs the DML estimator.
 # INPUTS:
+# -> "treatment_setting": binary treatment setting ("binary") or multivalued treatment setting ("multi")
 # -> data: data set containing outcome, treatment, and all confounding variables
 # -> outcome: string containing the name of the outcome variable in data
 # -> treatment: string containing the name of the treatment variable in data
@@ -46,7 +47,7 @@
 #+++
 
 
-func_dml <- function(data, outcome, treatment, group, K, K_tuning, S, mlalgo, trimming, save_trimming) {
+func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tuning, S, mlalgo, trimming, save_trimming) {
   
   # define hyperparameters
   num_X <- ncol(data) - 3 # number of controls (minus outcome, treatment, and group)
@@ -95,12 +96,24 @@ func_dml <- function(data, outcome, treatment, group, K, K_tuning, S, mlalgo, tr
   # generate empty vectors
   min_trimming_all <- c()
   max_trimming_all <- c()
-  theta_ATE_all <- c()
-  score_ATE_all <- c()
-  theta_ATTE_all <- c()
-  score_ATTE_all <- c()
-  APO_0_all <- c()
-  APO_1_all <- c()
+  
+  if (treatment_setting == "binary") {
+    theta_ATE_all <- c()
+    score_ATE_all <- c()
+    theta_ATTE_all <- c()
+    score_ATTE_all <- c()
+    APO_0_all <- c()
+    APO_1_all <- c()
+  } else if (treatment_setting == "multi") {
+    theta_ATE_all <- data.frame()
+    score_ATE_all <- data.frame()
+    theta_ATTE_all <- data.frame()
+    score_ATTE_all <- data.frame()
+    APO_1_all <- c()
+    APO_2_all <- c()
+    APO_3_all <- c()
+  }
+
 
   
   # Accounting for uncertainty by repeating the process S times #
@@ -215,7 +228,10 @@ func_dml <- function(data, outcome, treatment, group, K, K_tuning, S, mlalgo, tr
         ## XGBoost ##
         #+++++++++++#
         
-        xgb_ml <- func_ml_xgboost(data_train, data_test, outcome, treatment, group, K_tuning, xgb_grid)
+        xgb_ml <- func_ml_xgboost(treatment_setting, data_train, data_test, outcome, treatment, group, K_tuning, xgb_grid)
+        
+        # xgb_ml_multi1 <- func_ml_xgboost("multi", data_train, data_test, outcome, treatment, group, K_tuning, xgb_grid)
+        # xgb_ml_multi2 <- func_ml_xgboost("multi", data_train, data_test, outcome, treatment, group, K_tuning, xgb_grid)
         
         # append predictions to data frame
         data_pred <- xgb_ml$pred
@@ -265,7 +281,7 @@ func_dml <- function(data, outcome, treatment, group, K, K_tuning, S, mlalgo, tr
       rownames(data_pred) <- 1:nrow(data_pred)
       rownames(data_test) <- 1:nrow(data_test)
       
-      ls_trimming <- func_dml_trimming(data_pred, data_test, trimming)
+      ls_trimming <- func_dml_trimming(treatment_setting, data_pred, data_test, trimming)
       data_pred <- ls_trimming$data_pred
       data_test <- ls_trimming$data_test
       min_trimming <- ls_trimming$min_trimming
@@ -283,7 +299,7 @@ func_dml <- function(data, outcome, treatment, group, K, K_tuning, S, mlalgo, tr
       #### ERROR METRICS ####
       #+++++++++++++++++++++#
       
-      df_error <- func_ml_error_metrics(data_pred, S_rep, fold_sel)
+      df_error <- func_ml_error_metrics(treatment_setting, data_pred, S_rep, fold_sel)
       df_error_all <- rbind(df_error_all, df_error)
       
       
@@ -293,24 +309,50 @@ func_dml <- function(data, outcome, treatment, group, K, K_tuning, S, mlalgo, tr
 
       # calculate ATE and ATTE as well as their respective score function values
       # across the K folds
-      ls_treatment_effects <- func_dml_theta_score(data_pred, data_test, outcome, treatment)
+      ls_treatment_effects <- func_dml_theta_score(treatment_setting, data_pred, data_test, outcome, treatment)
       
-      theta_ATE <- ls_treatment_effects$theta_ATE
-      theta_ATE_all <- c(theta_ATE_all, theta_ATE)
-      
-      score_ATE <- ls_treatment_effects$score_ATE
-      score_ATE_all <- c(score_ATE_all, score_ATE)
-      
-      theta_ATTE <- ls_treatment_effects$theta_ATTE
-      theta_ATTE_all <- c(theta_ATTE_all, theta_ATTE)
-      
-      score_ATTE <- ls_treatment_effects$score_ATTE
-      score_ATTE_all <- c(score_ATTE_all, score_ATTE)
-      
-      APO_0 <- ls_treatment_effects$APO_0
-      APO_0_all <- c(APO_0_all, APO_0)
-      APO_1 <- ls_treatment_effects$APO_1
-      APO_1_all <- c(APO_1_all, APO_1)
+      if (treatment_setting == "binary") {
+        
+        theta_ATE <- ls_treatment_effects$theta_ATE
+        theta_ATE_all <- c(theta_ATE_all, theta_ATE)
+        
+        score_ATE <- ls_treatment_effects$score_ATE
+        score_ATE_all <- c(score_ATE_all, score_ATE)
+        
+        theta_ATTE <- ls_treatment_effects$theta_ATTE
+        theta_ATTE_all <- c(theta_ATTE_all, theta_ATTE)
+        
+        score_ATTE <- ls_treatment_effects$score_ATTE
+        score_ATTE_all <- c(score_ATTE_all, score_ATTE)
+        
+        APO_0 <- ls_treatment_effects$APO_0
+        APO_0_all <- c(APO_0_all, APO_0)
+        APO_1 <- ls_treatment_effects$APO_1
+        APO_1_all <- c(APO_1_all, APO_1)
+        
+      } else if (treatment_setting == "multi") {
+        
+        theta_ATE <- ls_treatment_effects$theta_ATE
+        theta_ATE_all <- rbind(theta_ATE_all, theta_ATE)
+        
+        score_ATE <- ls_treatment_effects$score_ATE
+        score_ATE_all <- rbind(score_ATE_all, score_ATE)
+        
+        theta_ATTE <- ls_treatment_effects$theta_ATTE
+        theta_ATTE_all <- rbind(theta_ATTE_all, theta_ATTE)
+        
+        score_ATTE <- ls_treatment_effects$score_ATTE
+        score_ATTE_all <- rbind(score_ATTE_all, score_ATTE)
+        
+        APO_1 <- ls_treatment_effects$APO_1
+        APO_1_all <- c(APO_1_all, APO_1)
+        APO_2 <- ls_treatment_effects$APO_2
+        APO_2_all <- c(APO_2_all, APO_2)
+        APO_3 <- ls_treatment_effects$APO_3
+        APO_3_all <- c(APO_3_all, APO_3)
+        
+      }
+
       
     } # close iteration over k folds
     
@@ -322,8 +364,9 @@ func_dml <- function(data, outcome, treatment, group, K, K_tuning, S, mlalgo, tr
     # only save common support plot for first iteration (S_rep = 1) and if it
     # is wished to save (that is only for main model)
     if (S_rep == 1 & save_trimming == TRUE) {
-      plot_common_support <- func_dml_common_support(df_pred_all, min_trimming_all, max_trimming_all)
-      ggsave(paste0("Output/plot_common_support", model_algo, ".png"), plot_common_support)
+      plot_common_support <- func_dml_common_support(treatment_setting, df_pred_all, min_trimming_all, max_trimming_all)
+      ggsave(paste0("Output/plot_common_support_", treatment_setting, "_", model_algo, ".png"), plot_common_support)
+      
     }
     
     
@@ -335,22 +378,56 @@ func_dml <- function(data, outcome, treatment, group, K, K_tuning, S, mlalgo, tr
     N <- nrow(data) 
     
     # inference
-    df_result_ATE <- func_dml_inference("ATE", theta_ATE_all, score_ATE_all, N, S_rep)
-    df_result_ATTE <- func_dml_inference("ATTE", theta_ATTE_all, score_ATTE_all, N, S_rep)
+    df_result_ATE <- func_dml_inference(treatment_setting, "ATE", theta_ATE_all, score_ATE_all, N, S_rep)
+    df_result_ATTE <- func_dml_inference(treatment_setting, "ATTE", theta_ATTE_all, score_ATTE_all, N, S_rep)
     
     # APO
-    df_result_AP00 <- data.frame(
-      "Type" = "APO_0", "Rep" = S_rep, "Treatment_Effect" = mean(APO_0_all),
-      Variance = NA, Standard_Error = NA, T_Value = NA, P_Value = NA
-    )
+    if (treatment_setting == "binary") {
+      
+      # APO
+      df_result_AP00 <- data.frame("Treatment" = "no", "Type" = "APO_0", "Rep" = S_rep, "Treatment_Effect" = mean(APO_0_all)) %>%
+        mutate(
+          Variance = stats::var(APO_0_all), Standard_Error = sqrt(Variance / length(APO_0_all)), 
+          T_Value = Treatment_Effect / Standard_Error, P_Value =  2 * pt(abs(T_Value), N, lower.tail = FALSE) 
+        )
+      
+      df_result_AP01 <- data.frame("Treatment" = "yes", "Type" = "APO_1", "Rep" = S_rep, "Treatment_Effect" = mean(APO_1_all)) %>%
+        mutate(
+          Variance = stats::var(APO_1_all), Standard_Error = sqrt(Variance / length(APO_1_all)), 
+          T_Value = Treatment_Effect / Standard_Error, P_Value =  2 * pt(abs(T_Value), N, lower.tail = FALSE) 
+        )
+      
+      # all results in one data frame
+      df_result <- rbind(df_result_ATE, df_result_ATTE, df_result_AP00, df_result_AP01) 
+      df_result_all_detailed <- rbind(df_result_all_detailed, df_result)
+      
+    } else if (treatment_setting == "multi") {
+      
+      # APO
+      df_result_AP01 <- data.frame("Treatment" = "weekly", "Type" = "APO_1", "Rep" = S_rep, "Treatment_Effect" = mean(APO_1_all)) %>%
+        mutate(
+          Variance = stats::var(APO_1_all), Standard_Error = sqrt(Variance / length(APO_1_all)), 
+          T_Value = Treatment_Effect / Standard_Error, P_Value =  2 * pt(abs(T_Value), N, lower.tail = FALSE) 
+        )
+
     
-    df_result_AP01 <- data.frame(
-      "Type" = "APO_1", "Rep" = S_rep, "Treatment_Effect" = mean(APO_1_all),
-      Variance = NA, Standard_Error = NA, T_Value = NA, P_Value = NA
-      )
-    
-    df_result <- rbind(df_result_ATE, df_result_ATTE, df_result_AP00, df_result_AP01) 
-    df_result_all_detailed <- rbind(df_result_all_detailed, df_result)
+      df_result_AP02 <- data.frame("Treatment" = "monthly", "Type" = "APO_2", "Rep" = S_rep, "Treatment_Effect" = mean(APO_2_all)) %>%
+        mutate(
+          Variance = stats::var(APO_2_all), Standard_Error = sqrt(Variance / length(APO_2_all)), 
+          T_Value = Treatment_Effect / Standard_Error, P_Value =  2 * pt(abs(T_Value), N, lower.tail = FALSE) 
+        )
+      
+      df_result_AP03 <- data.frame("Treatment" = "never", "Type" = "APO_3", "Rep" = S_rep, "Treatment_Effect" = mean(APO_3_all)) %>%
+        mutate(
+          Variance = stats::var(APO_3_all), Standard_Error = sqrt(Variance / length(APO_3_all)), 
+          T_Value = Treatment_Effect / Standard_Error, P_Value =  2 * pt(abs(T_Value), N, lower.tail = FALSE) 
+        )
+      
+      # all results in one data frame
+      df_result <- rbind(df_result_ATE, df_result_ATTE, df_result_AP01, df_result_AP02, df_result_AP03) 
+      df_result_all_detailed <- rbind(df_result_all_detailed, df_result)
+    }
+
     
   } # close iteration over S repetitions  
 
@@ -366,8 +443,8 @@ func_dml <- function(data, outcome, treatment, group, K, K_tuning, S, mlalgo, tr
 
   # final output: take mean and median across folds
   df_result_all <- df_result_all_detailed %>%
-    select(Type, ML_algo, Treatment_Effect, Standard_Error) %>%
-    group_by(Type) %>% 
+    select(Treatment, Type, ML_algo, Treatment_Effect, Standard_Error) %>%
+    group_by(Treatment, Type) %>% 
     mutate(
       theta_mean = mean(Treatment_Effect),
       theta_median = median(Treatment_Effect),
