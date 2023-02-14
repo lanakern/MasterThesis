@@ -9,7 +9,8 @@
 # the nuisance parameters. For the prediction of the treatment(s), the accuracy (ACC),
 # balanced accuracy (BACC), cohen kappa score, and the Area Under the Curve (AUC)
 # is reported. For the prediction of the outcome the Mean Squared Error (MSE), 
-# Root Mean Squared Error (RMSE), and Mean Absolute Error (MAE) is reported.
+# Root Mean Squared Error (RMSE), Mean Absolute Error (MAE), and Mean Absolute 
+# Percentage Error (MAPE) is reported.
 # This function can be applied in both the binary and multivalued treatment setting.
 # For the multivalued treatment setting, the error metrics are calculated on a 
 # "one-vs-rest" basis by converting the multiclass-classifiction in a binary one.
@@ -22,9 +23,13 @@
 # -> Cohen kappa score: Similar to accuracy but taking class imbalance / occurence by chance into account.
 # -> AUC: Quantifies the models ability to distinguish between each class. To
 # calculate the AUC class probabilities are required.
-# -> MSE:
-# -> RMSE:
-# -> MAE:
+# -> MSE: expected value of the squared (quadratic) error to show large deviations due to outliers
+# -> RMSE: square root of MSE for same units as the response variable 
+# -> MAE: error between the prediction and actual value; measures the average magnitude of errors, 
+# without considering the direction or sign of that error.
+# -> MAPE: percentage equivaluen to the MAE
+# https://scikit-learn.org/stable/modules/model_evaluation.html
+# https://medium.com/analytics-vidhya/error-metrics-in-machine-learning-f9eed7b139f
 # https://towardsdatascience.com/comprehensive-guide-on-multiclass-classification-metrics-af94cfb83fbd
 # https://www.datascienceblog.net/post/machine-learning/performance-measures-multi-class-problems/#:~:text=The%20area%20under%20the%20ROC%20curve%20(AUC)%20is%20a%20useful,to%20the%20multi%2Dclass%20setting.
 #+++
