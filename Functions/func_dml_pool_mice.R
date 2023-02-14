@@ -71,8 +71,8 @@ func_dml_pool_mice <- function(dml_result, N, mice_num) {
   # confidence interval is calculated again
   dml_final_estimation <-
     dml_final %>%
-    select(Type, starts_with("theta"), starts_with("se"), matches(".*value")) %>%
-    group_by(Type) %>%
+    select(Treatment, Type, starts_with("theta"), starts_with("se"), matches(".*value")) %>%
+    group_by(Treatment, Type) %>%
     summarize(
       theta_mean = mean(theta_mean), theta_median = median(theta_median),
       se_mean = mean(se_mean), se_median = median(se_median),
@@ -87,14 +87,25 @@ func_dml_pool_mice <- function(dml_result, N, mice_num) {
       CI_upper_median_95 = theta_median + qt(0.95, df = N - 1)^-1 * (1 - 0.95 / 2) * se_median / sqrt(N)
     )
   
+  # number of predictors
   if (!is.null(dml_result[[1]]$predictors)) {
-    dml_final_estimation <- dml_final_estimation %>%
-      mutate(
-        # number of predictors
-        num_predictors_m = max(dml_pred$num_pred_m), num_predictors_g0 = max(dml_pred$num_pred_g0), 
-        num_predictors_g1 = max(dml_pred$num_pred_g1)
-      )
-
+    if (any(str_detect(colnames(dml_pred), "m2"))) {
+      # multivalued treatment setting
+      dml_final_estimation <- dml_final_estimation %>%
+        mutate(
+          num_predictors_m1 = max(dml_pred$num_pred_m1), num_predictors_m2 = max(dml_pred$num_pred_m2),
+          num_predictors_m3 = max(dml_pred$num_pred_m3), 
+          num_predictors_g1 = max(dml_pred$num_pred_g1), num_predictors_g2 = max(dml_pred$num_pred_g2), 
+          num_predictors_g3 = max(dml_pred$num_pred_g3)
+        )
+    } else {
+      # binary treatment setting
+      dml_final_estimation <- dml_final_estimation %>%
+        mutate(
+          num_predictors_m = max(dml_pred$num_pred_m), num_predictors_g0 = max(dml_pred$num_pred_g0), 
+          num_predictors_g1 = max(dml_pred$num_pred_g1)
+        )
+    }
   } else {
     dml_final_estimation <- dml_final_estimation
   }
@@ -102,14 +113,12 @@ func_dml_pool_mice <- function(dml_result, N, mice_num) {
   
   # aggregate errors
   if (exists("dml_error")) {
-    dml_final_error <- dml_error %>%
-      summarize(ACC = mean(ACC), BACC = mean(BACC), AUC = mean(AUC),
-                MAE_g0 = mean(MAE_g0), MAE_g1 = mean(MAE_g1),
-                MAPE_g0 = mean(MAPE_g0), MAPE_g1 = mean(MAPE_g1),
-                MSE_g0 = mean(MSE_g0), MSE_g1 = mean(MSE_g1),
-                RMSE_g0 = mean(RMSE_g0), RMSE_g1 = mean(RMSE_g1),
-                )
     
+    dml_final_error <- dml_error %>% 
+      select(-c(MICE, Repetition, Fold)) %>% 
+      summarise_if(is.numeric, mean) 
+
+    # return results
     return(list("estimates" = dml_final_estimation, "errors" = dml_final_error))
   } else {
     return(dml_final_estimation)
