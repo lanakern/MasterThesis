@@ -31,6 +31,10 @@
 func_dml_inference <- function(treatment_setting, effect, theta, score, N, S_rep) {
   
   
+  if (!treatment_setting %in% c("binary", "multi")) {
+    stop("Treatment setting: binary or multi")
+  }
+  
   ## BINARY TREATMENT SETTING ##
   #++++++++++++++++++++++++++++#
   

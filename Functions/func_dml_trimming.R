@@ -28,6 +28,11 @@
 
 func_dml_trimming <- function(treatment_setting, data_pred, data_test, trimming) {
   
+  
+  if (!treatment_setting %in% c("binary", "multi")) {
+    stop("Treatment setting: binary or multi")
+  }
+  
   ## NO TRIMMING ##
   #+++++++++++++++#
   

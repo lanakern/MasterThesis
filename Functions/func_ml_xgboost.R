@@ -42,6 +42,11 @@
 func_ml_xgboost <- function(treatment_setting, data_train, data_test, outcome, treatment, group, K, xgb_grid,
                             probscore_separate = TRUE, probscore_normalize = TRUE) {
   
+  
+  if (!treatment_setting %in% c("binary", "multi")) {
+    stop("Treatment setting: binary or multi")
+  }
+  
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
   #### BINARY TREATMENT SETTING ####
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
