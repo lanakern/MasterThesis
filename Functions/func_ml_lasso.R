@@ -31,8 +31,8 @@ func_ml_lasso <- function(data_train, data_test, outcome, treatment, group, K, l
   data_test <- data_test %>% mutate({{treatment}} := as.factor(!!sym(treatment))) 
   
   # separate training data for g0 and g1 prediction
-  data_train_g1 <- data_train %>% filter(treatment_sport == 1)
-  data_train_g0 <- data_train %>% filter(treatment_sport == 0)
+  data_train_g1 <- data_train %>% filter(!!sym(treatment) == 1)
+  data_train_g0 <- data_train %>% filter(!!sym(treatment) == 0)
   
   # specify the model
     ## logistic regression with lasso for treatment; linear regression with lasso for outcome
