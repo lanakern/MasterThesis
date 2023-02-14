@@ -31,8 +31,8 @@ func_ml_postlasso <- function(data_train, data_test, outcome, treatment, group, 
   data_test <- data_test %>% mutate({{treatment}} := as.factor(!!sym(treatment))) 
   
   # generate extra training data sets for outcome predictions
-  data_train_g1 <- data_train %>% filter(treatment_sport == 1)
-  data_train_g0 <- data_train %>% filter(treatment_sport == 0)
+  data_train_g1 <- data_train %>% filter(!!sym(treatment) == 1)
+  data_train_g0 <- data_train %>% filter(!!sym(treatment) == 0)
   
   # generate vector with control variable names
   X_controls <- data_train %>% 
