@@ -5,7 +5,19 @@
 #+++
 # by Lana Kern
 #+++
-# This function performs the DML estimator.
+# This function performs the DML estimator in both the binary and multivalued
+# treatment setting. It is a wrapper function including multiple smaller 
+# sub-functions which are needed to obtain the final result.
+#+++
+# In this file, the following subfunctions are used:
+# -> Functions for predicting the nuisance parameters: func_ml_lasso, func_ml_postlasso,
+# func_ml_postlasso_tuning, func_ml_xgboost, func_ml_rf
+# -> Function for trimming: func_dml_trimming
+# -> Function to plot common support: func_dml_common_support
+# -> Function for error metrics: func_dml_error_metrics
+# -> Function for calculating treatment effect and corresponding score: func_dml_theta_score
+# -> Function for inference (se, p-value etc.): func_dml_inference
+#+++
 # INPUTS:
 # -> "treatment_setting": binary treatment setting ("binary") or multivalued treatment setting ("multi")
 # -> data: data set containing outcome, treatment, and all confounding variables
@@ -20,6 +32,10 @@
 # parameters.
 # -> trimming: Trimming threshold to drop observations with an extreme propensity
 # score estimate. Possible selections: 0.01, 0.1, and min-max.
+# -> "probscore_separate": only relevant for multivalued treatment setting ->
+# if TRUE (default) multivalued treatment setting is split in binary treatment setting
+# and separate binary logistic regressions are performed. 
+#+++
 # OUTPUT: List containing the following elements
 # -> "final": data frame with aggregated mean and median treatment effect,
 # corresponding standard error, t- and p-value as well as confidence interval,
@@ -31,14 +47,6 @@
 # -> "predictors": number of predictors (X)
 # -> "coef": if lasso algorithm is selected, all non-zero coefficients are returned
 #+++
-# In this file, the following subfunctions are used:
-# -> Functions for predicting the nuisance parameters: func_ml_lasso
-# -> Function for trimming: func_dml_trimming
-# -> Function to plot common support: func_dml_common_support
-# -> Function for error metrics: func_dml_error_metrics
-# -> Function for calculating treatment effect and corresponding score: func_dml_theta_score
-# -> Function for inference (se, p-value etc.): func_dml_inference
-#+++
 # Further notes:
 # - If (post-)lasso is selected, all features (except the outcome and treatment)
 # are standardized, i.e., to have mean zero and unit variance.
@@ -47,7 +55,8 @@
 #+++
 
 
-func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tuning, S, mlalgo, trimming, save_trimming) {
+func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tuning, S, mlalgo, 
+                     trimming, save_trimming, probscore_separate = TRUE) {
   
   # define hyperparameters
   num_X <- ncol(data) - 3 # number of controls (minus outcome, treatment, and group)
@@ -228,7 +237,10 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
         ## XGBoost ##
         #+++++++++++#
         
-        xgb_ml <- func_ml_xgboost(treatment_setting, data_train, data_test, outcome, treatment, group, K_tuning, xgb_grid)
+        xgb_ml <- func_ml_xgboost(
+          treatment_setting, data_train, data_test, outcome, treatment, group, K_tuning, 
+          xgb_grid, probscore_separate = probscore_separate, probscore_normalize = TRUE
+          )
         
         # xgb_ml_multi1 <- func_ml_xgboost("multi", data_train, data_test, outcome, treatment, group, K_tuning, xgb_grid)
         # xgb_ml_multi2 <- func_ml_xgboost("multi", data_train, data_test, outcome, treatment, group, K_tuning, xgb_grid)
@@ -299,7 +311,7 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
       #### ERROR METRICS ####
       #+++++++++++++++++++++#
       
-      df_error <- func_ml_error_metrics(treatment_setting, data_pred, S_rep, fold_sel)
+      df_error <- func_ml_error_metrics(treatment_setting, data_pred, S_rep, fold_sel, probscore_separate)
       df_error_all <- rbind(df_error_all, df_error)
       
       
@@ -365,7 +377,7 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
     # is wished to save (that is only for main model)
     if (S_rep == 1 & save_trimming == TRUE) {
       plot_common_support <- func_dml_common_support(treatment_setting, df_pred_all, min_trimming_all, max_trimming_all)
-      ggsave(paste0("Output/plot_common_support_", treatment_setting, "_", model_algo, ".png"), plot_common_support)
+      ggsave(paste0("Output/plot_common_support_", treatment_setting, "_", mlalgo, ".png"), plot_common_support)
       
     }
     
@@ -487,25 +499,3 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
   
   
 }
-
-
-## EXAMPLE ##
-#+++++++++++#
-
-# set.seed(12345)
-# data <- readRDS("Data/Prep_11/prep_11_dml_binary_base_weekly_down_mice1.rds")
-# data <- data %>% select(-c(ends_with("_lag")))
-# outcome <- "outcome_grade"
-# treatment <- "treatment_sport"
-# group <- "group"
-# K <- 2
-# K_tuning <- 2
-# S <- 2
-# mlalgo <- "lasso"
-# trimming <- "min-max"
-# ls_dml_result <- func_dml(data, "outcome_grade", "treatment_sport", "group", 5, 10, 2, "lasso", "min-max")
-# ls_dml_result$final
-# ls_dml_result$detail
-# ls_dml_result$error
-# ls_dml_result$param
-# ls_dml_result$trimming
