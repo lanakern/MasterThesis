@@ -126,6 +126,11 @@ func_ml_error_metrics <- function(treatment_setting, data_pred, S_rep, fold_sel,
       ACC_m2 <- unname(m2_conf_matrix$overall["Accuracy"])
       ACC_m3 <- unname(m3_conf_matrix$overall["Accuracy"])
       
+      # balanced accuracy
+      BACC_m1 <- unname(m1_conf_matrix$byClass["Balanced Accuracy"])
+      BACC_m2 <- unname(m2_conf_matrix$byClass["Balanced Accuracy"])
+      BACC_m3 <- unname(m3_conf_matrix$byClass["Balanced Accuracy"])
+      
       # kappa
       KAPPA_m1 <- unname(m1_conf_matrix$overall["Kappa"])
       KAPPA_m2 <- unname(m1_conf_matrix$overall["Kappa"])
@@ -145,6 +150,7 @@ func_ml_error_metrics <- function(treatment_setting, data_pred, S_rep, fold_sel,
       df_error_class <- data.frame(
         "Repetition" = S_rep, "Fold" = fold_sel, 
         "ACC_m1" = ACC_m1, "ACC_m2" = ACC_m2, "ACC_m3" = ACC_m3, 
+        "BACC_m1" = BACC_m1, "BACC_m2" = BACC_m2, "BACC_m3" = BACC_m3, 
         "KAPPA_m1" = KAPPA_m1, "KAPPA_m2" = KAPPA_m2, "KAPPA_m3" = KAPPA_m3, 
         "AUC_m1" = AUC_m1, "AUC_m2" = AUC_m2, "AUC_m3" = AUC_m3
       )
