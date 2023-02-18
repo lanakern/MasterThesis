@@ -157,13 +157,20 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
       if (str_detect(mlalgo, "lasso")) {
         # select predictors that are standardized
         # -> all except outcome, treatment, and group variable
-        data_cols <- data %>% 
-          select(-c(all_of(outcome), all_of(treatment), group)) %>% 
-          colnames()
+        if (treatment_setting == "multi") {
+          data_cols <- data %>% 
+            select(-c(all_of(outcome), all_of(treatment), group, starts_with("treatment_sport_freq") & !ends_with("na"))) %>% 
+            colnames()
+        } else {
+          data_cols <- data %>% 
+            select(-c(all_of(outcome), all_of(treatment), group)) %>% 
+            colnames()
+        }
         
         # standardize features (mean zero and standard deviation of one)
         data <- data %>%
-          recipe(treatment_sport ~ .) %>%
+          recipe(.) %>%
+          update_role({{treatment}}, new_role = "outcome") %>%
           step_normalize(all_of(data_cols)) %>%
           prep() %>%
           bake(new_data = NULL)
@@ -213,7 +220,8 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
         #+++++++++#
         
         # predict nuisance functions via lasso
-        ls_ml <- func_ml_lasso(data_train, data_test, outcome, treatment, group, K_tuning, lambda_val)
+        ls_ml <- func_ml_lasso(treatment_setting, data_train, data_test, 
+                               outcome, treatment, group, K_tuning, lambda_val)
         
         # append predictions to data frame
         data_pred <- ls_ml$pred
