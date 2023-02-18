@@ -96,3 +96,36 @@ for (model_algo_sel in c("lasso", #"postlasso", "randomforests",
   df_dml_detail_all <- rbind(df_dml_detail_all, df_dml_detail_sub_all)
   
 }
+
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### TREATMENT EFFECTS ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+
+#### Multivalued Treatment Setting ####
+#+++++++++++++++++++++++++++++++++++++#
+
+##++ results for separate models for m(D) ++##
+df_treatment_multi_sep <- read.xlsx("Output/ESTIMATION_RESULTS_MULTI.xlsx", sheetName = "Sheet1")
+
+  ## treatment effects
+df_treatment_multi_sep %>% select(Treatment, Type, ends_with("median")) %>% filter(Type == "ATE")
+df_treatment_multi_sep %>% select(Treatment, Type, ends_with("median")) %>% filter(Type == "ATTE")
+
+  ## error metrics
+df_treatment_multi_sep %>%
+  select(matches("_[mg][1-9]") & !starts_with("num")) %>% distinct()
+
+
+##++ results for single model for m(D) ++##
+df_treatment_multi_one <- read.xlsx("Output/ESTIMATION_RESULTS_MULTI_ONE.xlsx", sheetName = "Sheet1")
+
+  ## treatment effects
+df_treatment_multi_one %>% select(Treatment, Type, ends_with("median")) %>% filter(Type == "ATE")
+df_treatment_multi_one %>% select(Treatment, Type, ends_with("median")) %>% filter(Type == "ATTE")
+
+  ## error metrics
+df_treatment_multi_one %>%
+  select(!starts_with("num")) %>% select(matches("_[g][1-9]"), ends_with("_m")) %>% distinct()
