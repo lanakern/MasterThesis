@@ -925,6 +925,7 @@ col_names_na_drop <- col_names_na_drop[!col_names_na_drop %in% col_keep_all]
 
 # drop those column names
 data_prep_2 <- data_prep_2 %>%
+  ungroup() %>% 
   select(-all_of(col_names_na_drop))
 
 
@@ -945,6 +946,9 @@ vars_drop <- c(
   "uni_admission_restr_other", "educ_uni_degree_achieve", "educ_uni_degree_aspire",
   "personality_sociable", "personality_thorough", "personality_imaginative"
 )
+# ensure that those variables are really in data frame
+vars_drop <- vars_drop[vars_drop  %in% colnames(data_prep_2)]
+# drop variables
 data_prep_2 <- data_prep_2 %>%
   select(-all_of(vars_drop))
 
@@ -1047,18 +1051,25 @@ pred_matrix[, c(data_prep_4_wide %>% select(starts_with("interview_date")) %>% c
 pred_matrix_vars <- rownames(pred_matrix)
 for (pred_matrix_vars_sel in pred_matrix_vars) {
   pred_matrix_vars_num <- str_sub(pred_matrix_vars_sel, -1, -1)
-  pred_matrix_vars_set_0 <- pred_matrix_vars[str_ends(pred_matrix_vars, paste0("_", pred_matrix_vars_num), negate = TRUE)]
+  pred_matrix_vars_set_0 <- pred_matrix_vars[
+    str_ends(pred_matrix_vars, paste0("_", pred_matrix_vars_num), negate = TRUE)]
   pred_matrix[pred_matrix_vars_sel, c(pred_matrix_vars_set_0)] <- 0
 }
   ## only closely related variables are used, e.g. for personality variables only personality variables.
 pred_matrix_vars <- c("educ", "interest", "uni", "comp", "child", "sibling", "partner")
 for (pred_matrix_vars_sel in pred_matrix_vars) {
-  pred_matrix_vars_num <- pred_matrix %>% as.data.frame() %>% select(starts_with(pred_matrix_vars_sel)) %>% colnames()
-  pred_matrix_vars_set_0 <- pred_matrix %>% as.data.frame() %>% select(!starts_with(pred_matrix_vars_sel)) %>% colnames()
+  pred_matrix_vars_num <- pred_matrix %>% as.data.frame() %>% 
+    select(starts_with(pred_matrix_vars_sel)) %>% colnames()
+  pred_matrix_vars_set_0 <- pred_matrix %>% as.data.frame() %>% 
+    select(!starts_with(pred_matrix_vars_sel)) %>% colnames()
   pred_matrix[pred_matrix_vars_num, c(pred_matrix_vars_set_0)] <- 0
 }
-pred_matrix_vars_num <- pred_matrix %>% as.data.frame() %>% select(starts_with("personality"), starts_with("bigfive")) %>% colnames()
-pred_matrix_vars_set_0 <- pred_matrix %>% as.data.frame() %>% select(!c(starts_with("personality"), starts_with("bigfive"))) %>% colnames()
+pred_matrix_vars_num <- pred_matrix %>% as.data.frame() %>% 
+  select(starts_with("personality"), starts_with("bigfive")) %>% 
+  colnames()
+pred_matrix_vars_set_0 <- pred_matrix %>% as.data.frame() %>% 
+  select(!c(starts_with("personality"), starts_with("bigfive"))) %>% 
+  colnames()
 pred_matrix[pred_matrix_vars_num, c(pred_matrix_vars_set_0)] <- 0
 
 # apply mice (using defaults: 5 data sets and 5 iterations)
@@ -1087,18 +1098,20 @@ for (mice_result_sel in 1:mice_num_data_sets) {
   # convert back to long format and drop waves in which individual did not participated
   ## create data frame with ID_t and respective treatment periods
   data_prep_4_reshape <- data_prep_3 %>% select(ID_t, treatment_period)
+  ## identify maximum of treatment periods
+  max_treatment_periods <- max(data_prep_4_reshape$treatment_period)
   ## extract column names without suffixes _1, _2, _3, _4, _5
   col_reshape <- sort(unique(str_sub(colnames(data_mice_sub), 1, str_length(colnames(data_mice_sub)) - 2)))
   col_reshape <- col_reshape[!col_reshape %in% "ID"] # drop ID
   ## iterate over columns to convert data frame from wide to long
   for (col_reshape_sel in col_reshape) {
-    ## generate columns
-    col_reshape_sel_all <- paste0(col_reshape_sel, "_", 1:5)
+    ## generate columns: colname_1 to colname_* where * is maximum of treatment periods
+    col_reshape_sel_all <- paste0(col_reshape_sel, "_", 1:max_treatment_periods)
     ## select columns
     data_result_mice_sub <- data_mice_sub %>% select(ID_t, all_of(col_reshape_sel_all))
     ## reshape in long format
     data_result_mice_sub <- 
-      reshape(data_result_mice_sub, idvar = "ID_t", varying = list(2:6), 
+      reshape(data_result_mice_sub, idvar = "ID_t", varying = list(2:(max_treatment_periods + 1)), 
               v.names = col_reshape_sel, direction = "long") %>% arrange(ID_t)
     ## enumerate rows
     rownames(data_result_mice_sub) <- 1:nrow(data_result_mice_sub)
