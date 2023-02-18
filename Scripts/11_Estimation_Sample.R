@@ -29,6 +29,8 @@ if (extra_act == "yes") {
 # ITERATE OVER MICE DATA SETS
 for (mice_data_sel in 1:5) {
   
+  print(paste("Data Set:", mice_data_sel))
+  
   gc()
   
   #%%%%%%%%%%%%%#
@@ -55,7 +57,7 @@ for (mice_data_sel in 1:5) {
     # group the observation belongs; this info is only used for sample splitting
     # in the cross-fitting procedure
     mutate(group = as.integer(factor(id_t,levels = unique(id_t))))  %>%
-    select(-c(id_t, starts_with("interview_date"), treatment_period))
+    select(-c(id_t, starts_with("interview_date"), treatment_period, starts_with("na_count")))
   
   # ensure all character variables are dropped
   treatment_sport_freq <- data_final$treatment_sport_freq
@@ -239,7 +241,7 @@ for (mice_data_sel in 1:5) {
   data_multi_all <- data_final %>% 
     select(-c(treatment_sport, treatment_sport_lag, treatment_sport_na, 
               all_of(data_final %>% select(starts_with("treatment_sport_freq_") & !contains("na")) %>% colnames()),
-              outcome_grade_lag, outcome_grade_stand, outcome_grade_stand_lag))
+              outcome_grade_lag, outcome_grade_stand_lag))
   
   # small groups: aggregate
   table(data_multi_all$treatment_sport_freq)
@@ -269,11 +271,19 @@ for (mice_data_sel in 1:5) {
   
   # save data frames
   if (cohort_prep == "controls_same_outcome") {
-    saveRDS(data_multi_all, paste0("Data/Prep_11/prep_11_dml_multi_all_", treatment_def, "_",
-                                   treatment_repl, extra_act_save, "_mice", mice_data_sel, ".rds"))
+    saveRDS(data_multi_all %>% select(-outcome_grade_stand), 
+            paste0("Data/Prep_11/prep_11_dml_multi_all_", treatment_def, "_",
+                   treatment_repl, extra_act_save, "_mice", mice_data_sel, ".rds"))
+    saveRDS(data_multi_all %>% select(-outcome_grade), 
+            paste0("Data/Prep_11/prep_11_dml_multi_all_stand_", treatment_def, "_",
+                   treatment_repl, extra_act_save, "_mice", mice_data_sel, ".rds"))
   } else {
-    saveRDS(data_multi_all, paste0("Data/Prep_11/prep_11_dml_multi_all_", treatment_def, "_",
-                                   treatment_repl, extra_act_save, "_robustcheck_mice", mice_data_sel, ".rds"))
+    saveRDS(data_multi_all %>% select(-outcome_grade_stand), 
+            paste0("Data/Prep_11/prep_11_dml_multi_all_", treatment_def, "_",
+                   treatment_repl, extra_act_save, "_robustcheck_mice", mice_data_sel, ".rds"))
+    saveRDS(data_multi_all %>% select(-outcome_grade), 
+            paste0("Data/Prep_11/prep_11_dml_multi_all_stand_", treatment_def, "_",
+                   treatment_repl, extra_act_save, "_robustcheck_mice", mice_data_sel, ".rds"))
   }
   
   
