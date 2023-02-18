@@ -7,6 +7,8 @@
 #++++
 # This function uses xgboost to predict the nuisance parameters m(D) and g(D, X).
 # This function can be applied in the binary and multivalued treatment setting.
+# For the multivalued treatment setting once can distinguish between separate
+# logistic regression for m(D) or one multinominal logistic regression.
 #++++
 # INPUT:
 # -> "treatment_setting": binary treatment setting ("binary") or multivalued treatment setting ("multi")
@@ -470,7 +472,7 @@ func_ml_xgboost <- function(treatment_setting, data_train, data_test, outcome, t
         tune_grid(resamples = K_folds_inner_g3, grid = xgb_grid, metrics = metric_set(rmse))
       
       
-      # select best penalty parameter: parameter with highest AUC
+      # select best tuning parameters: 
       xgb_best_param_m1 <- xgb_grid_search_m1 %>% select_best("roc_auc")
       xgb_best_param_m2 <- xgb_grid_search_m2 %>% select_best("roc_auc")
       xgb_best_param_m3 <- xgb_grid_search_m3 %>% select_best("roc_auc")
