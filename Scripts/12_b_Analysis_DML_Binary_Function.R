@@ -6,7 +6,12 @@
 # ONLY DONE FOR LASSO
 
 # define inputs
-model_type <- "base"
+cohort_prep <- main_cohort_prep
+treatment_def <- main_treatment_def
+treatment_repl <- main_treatment_repl
+extra_act <- main_extra_act
+
+model_type <- "all"
 model_algo <-  "lasso"
 model_k <- 3
 model_k_tuning <- 3
@@ -44,7 +49,7 @@ for (mice_data_sel in 1:5) {
   } else {
     load_data <- 
       paste0("Data/Prep_11/prep_11_dml_binary_", model_type, "_", model_outcome,
-             "_", treatment_def, "_", treatment_repl, extra_act_save, "robustcheck_mice", mice_data_sel, ".rds")
+             "_", treatment_def, "_", treatment_repl, extra_act_save, "_robustcheck_mice", mice_data_sel, ".rds")
   }
   
   load_data <- str_replace(load_data, "_level", "") # drop level
@@ -121,6 +126,7 @@ for (mice_data_sel in 1:5) {
   
   # generate data frame with results
   df_result_function <- data.frame(
+    "Treatment" = "no_yes",
     "Type" = c("ATE", "ATET"), "theta_mean" = c(mean(dml_irm_ate$all_coef), mean(dml_irm_atte$all_coef)),
     "theta_median" = c(median(dml_irm_ate$all_coef), median(dml_irm_atte$all_coef)),
     "se_mean" = c(se_mean_ate, se_median_ate), "se_median" = c(se_median_ate, se_median_atte),
