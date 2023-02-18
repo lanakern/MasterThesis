@@ -1,6 +1,6 @@
-#%%%%%%%%%%%%%%%%#
-#### DoubleML ####
-#%%%%%%%%%%%%%%%%#
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### DML IN THE BINARY TREATMENT SETTING ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 # LAGS müssen raus, da sonst kein common support
 
@@ -95,7 +95,7 @@ for (mice_data_sel in 1:5) {
   
   # run DML
   dml_result <- func_dml(
-    data = data_dml, 
+    treatment_setting, data = data_dml, 
     outcome = outcome_var, treatment = "treatment_sport", group = "group", 
     K = model_k, K_tuning = model_k_tuning, S = model_s_rep, 
     mlalgo = model_algo, trimming = model_trimming, save_trimming = save_trimming_sel
