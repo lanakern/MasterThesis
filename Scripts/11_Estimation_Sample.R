@@ -76,50 +76,50 @@ for (mice_data_sel in 1:5) {
   data_binary <- data_final %>% select(-starts_with("treatment_sport_freq"))
   
   
-  ## BASELINE PREDICTORS ##
-  #+++++++++++++++++++++++#
+  # ## BASELINE PREDICTORS ##
+  # #+++++++++++++++++++++++#
+  # 
+  # # use only baseline variables
+  # data_base <- eval(parse(text = paste('data_binary %>%', vars_baseline)))
+  # 
+  # # select on outcome (standardized vs. level)
+  # data_base_level <- data_base %>% select(-c(starts_with("outcome_grade_stand")))
+  # data_base_stand <- data_base %>% select(-c("outcome_grade", "outcome_grade_lag"))
+  # 
+  # # save data frame
+  # if (cohort_prep == "controls_same_outcome") {
+  #   saveRDS(data_base_level, paste0("Data/Prep_11/prep_11_dml_binary_base_", treatment_def, "_", 
+  #                                   treatment_repl, extra_act_save, "_mice", mice_data_sel, ".rds"))
+  #   saveRDS(data_base_stand, paste0("Data/Prep_11/prep_11_dml_binary_base_stand_", treatment_def, 
+  #                                   "_", treatment_repl, extra_act_save, "_mice", mice_data_sel, ".rds"))
+  # } else {
+  #   saveRDS(data_base_level, paste0("Data/Prep_11/prep_11_dml_binary_base_", treatment_def, "_", 
+  #                                   treatment_repl, extra_act_save, "_robustcheck_mice", mice_data_sel, ".rds"))
+  #   saveRDS(data_base_stand, paste0("Data/Prep_11/prep_11_dml_binary_base_stand_", treatment_def, 
+  #                                   "_", treatment_repl, extra_act_save, "_robustcheck_mice", mice_data_sel, ".rds"))
+  # }
+  # 
+  # 
+  # # SAVE NUMBER OF VARIABLES ETC.
+  # df_excel_save <- data.frame(
+  #   "data_prep_step" = "estimation_sample",
+  #   "data_prep_step_2" = "binary_base",
+  #   "data_prep_choice_cohort" = cohort_prep,
+  #   "data_prep_treatment_repl" = treatment_repl,
+  #   "data_prep_treatment_def" = treatment_def,
+  #   "data_prep_extraact" = extra_act, 
+  #   "num_id" = length(unique(data_final_raw$id_t)), 
+  #   "num_rows" = nrow(data_base_level),
+  #   "num_cols" = ncol(data_base_level),
+  #   "time_stamp" = Sys.time()
+  # )
+  # ## load function
+  # source("Functions/func_save_sample_reduction.R")
+  # func_save_sample_reduction(df_excel_save)
   
-  # use only baseline variables
-  data_base <- eval(parse(text = paste('data_binary %>%', vars_baseline)))
   
-  # select on outcome (standardized vs. level)
-  data_base_level <- data_base %>% select(-c(starts_with("outcome_grade_stand")))
-  data_base_stand <- data_base %>% select(-c("outcome_grade", "outcome_grade_lag"))
-  
-  # save data frame
-  if (cohort_prep == "controls_same_outcome") {
-    saveRDS(data_base_level, paste0("Data/Prep_11/prep_11_dml_binary_base_", treatment_def, "_", 
-                                    treatment_repl, extra_act_save, "_mice", mice_data_sel, ".rds"))
-    saveRDS(data_base_stand, paste0("Data/Prep_11/prep_11_dml_binary_base_stand_", treatment_def, 
-                                    "_", treatment_repl, extra_act_save, "_mice", mice_data_sel, ".rds"))
-  } else {
-    saveRDS(data_base_level, paste0("Data/Prep_11/prep_11_dml_binary_base_", treatment_def, "_", 
-                                    treatment_repl, extra_act_save, "_robustcheck_mice", mice_data_sel, ".rds"))
-    saveRDS(data_base_stand, paste0("Data/Prep_11/prep_11_dml_binary_base_stand_", treatment_def, 
-                                    "_", treatment_repl, extra_act_save, "_robustcheck_mice", mice_data_sel, ".rds"))
-  }
-
-  
-  # SAVE NUMBER OF VARIABLES ETC.
-  df_excel_save <- data.frame(
-    "data_prep_step" = "estimation_sample",
-    "data_prep_step_2" = "binary_base",
-    "data_prep_choice_cohort" = cohort_prep,
-    "data_prep_treatment_repl" = treatment_repl,
-    "data_prep_treatment_def" = treatment_def,
-    "data_prep_extraact" = extra_act, 
-    "num_id" = length(unique(data_final_raw$id_t)), 
-    "num_rows" = nrow(data_base_level),
-    "num_cols" = ncol(data_base_level),
-    "time_stamp" = Sys.time()
-  )
-  ## load function
-  source("Functions/func_save_sample_reduction.R")
-  func_save_sample_reduction(df_excel_save)
-  
-  
-  ## ALL PREDICTORS ##
-  #++++++++++++++++++#
+  #### ALL PREDICTORS ####
+  #++++++++++++++++++++++#
   
   data_all <- data_binary %>% select(-c(starts_with("outcome_grade_stand")))
   data_all_stand <- data_binary %>% select(-c("outcome_grade", "outcome_grade_lag"))
@@ -158,8 +158,8 @@ for (mice_data_sel in 1:5) {
   
   
   
-  ## ALL + INTERACTION + POLYNOMIALS ##
-  #+++++++++++++++++++++++++++++++++++#
+  #### ALL + INTERACTION + POLYNOMIALS ####
+  #+++++++++++++++++++++++++++++++++++++++#
 
   # create new data frame
   data_all_plus <- data_binary
@@ -177,7 +177,9 @@ for (mice_data_sel in 1:5) {
   df_interaction <- do.call(cbind, combn(colnames(df_interaction), 2, FUN = function(x)
     list(setNames(data.frame(df_interaction[,x[1]]*df_interaction[,x[2]]),
                   paste(x, collapse = "_")) )))
-  ## 3.) Add interactions to full data frame
+  ## 3.) Drop interactions containing 95% or more zero values
+  df_interaction <- df_interaction[, which(as.numeric(colSums(df_interaction == 0) / nrow(df_interaction)) < 0.99)]
+  ## 4.) Add interactions to full data frame
   data_all_plus <- cbind(data_all_plus, df_interaction)
 
 
@@ -238,10 +240,18 @@ for (mice_data_sel in 1:5) {
   #++++++++++++++++++#
   
   # multiple treatmemt setting only for all predictors and level outcome; no lags
-  data_multi_all <- data_final %>% 
-    select(-c(treatment_sport, treatment_sport_lag, treatment_sport_na, 
-              all_of(data_final %>% select(starts_with("treatment_sport_freq_") & !contains("na")) %>% colnames()),
-              outcome_grade_lag, outcome_grade_stand_lag))
+  if ("treatment_sport_na" %in% colnames(data_final)) {
+    data_multi_all <- data_final %>% 
+      select(-c(treatment_sport, treatment_sport_lag, treatment_sport_na, 
+                all_of(data_final %>% select(starts_with("treatment_sport_freq_") & !contains("na")) %>% colnames()),
+                outcome_grade_lag, outcome_grade_stand_lag))
+  } else {
+    data_multi_all <- data_final %>% 
+      select(-c(treatment_sport, treatment_sport_lag, 
+                all_of(data_final %>% select(starts_with("treatment_sport_freq_") & !contains("na")) %>% colnames()),
+                outcome_grade_lag, outcome_grade_stand_lag))
+  }
+
   
   # small groups: aggregate
   table(data_multi_all$treatment_sport_freq)
@@ -306,3 +316,23 @@ for (mice_data_sel in 1:5) {
   
 }
 
+
+
+#### COMPARE NUMBER OF VARIABLES ####
+
+data_main <- readRDS("Data/Prep_11/prep_11_dml_binary_all_weekly_down_extradrop_mice1.rds")
+colnames_main <- colnames(data_main)
+data_1 <- readRDS("Data/Prep_11/prep_11_dml_binary_all_weekly_down_extradrop_robustcheck_mice1.rds")
+colnames_1 <- colnames(data_1)
+data_2 <- readRDS("Data/Prep_11/prep_11_dml_binary_all_all_down_extradrop_mice1.rds")
+colnames_2 <- colnames(data_2)
+data_3 <- readRDS("Data/Prep_11/prep_11_dml_binary_all_weekly_no_extradrop_mice1.rds")
+colnames_3 <- colnames(data_3)
+data_4 <- readRDS("Data/Prep_11/prep_11_dml_binary_all_weekly_down_mice1.rds")
+colnames_4 <- colnames(data_4)
+
+setdiff(colnames_main, colnames_1)
+data_main %>% select(starts_with("personality_goal_pers")) %>% colnames()
+data_1 %>% select(starts_with("personality_goal_pers")) %>% colnames()
+data_main %>% select(starts_with("age_cat")) %>% colnames()
+data_1 %>% select(starts_with("age_cat")) %>% colnames()
