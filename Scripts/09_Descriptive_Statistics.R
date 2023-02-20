@@ -76,46 +76,8 @@ obs_num <- nrow(data_descr %>% filter(MICE == 1))
 ## Outcome ##
 #+++++++++++#
 
-data_descr_outcome_binary <- data_descr %>% filter(MICE == 1) 
-
-# difference-in-means: outcome variable
-# same across data frames because outcome variable is not imputed!
-# https://sejdemyr.github.io/r-tutorials/statistics/tutorial8.html
-data_outcome_descr <-
-  data_descr_outcome_binary %>%
-  group_by(treatment_sport) %>%
-  summarize(
-    num_obs = n(), 
-    mean_grades = mean(outcome_grade),
-    se_grades = sd(outcome_grade) / sqrt(num_obs)
-  # add total
-  ) %>% rbind(
-    data_descr_outcome_binary %>%
-      summarize(
-        num_obs = n(), 
-        mean_grades = mean(outcome_grade),
-        se_grades = sd(outcome_grade) / sqrt(num_obs)
-      ) %>%
-      mutate(treatment_sport = "all") %>%
-      select(treatment_sport, everything())
-  )
-data_outcome_descr
-
-# the difference-in-means of the outcome variable is statistically significant at 
-# any conventional significance level
-outcome_treatment_ttest <- with(data_descr_outcome_binary, t.test(outcome_grade ~ treatment_sport))
-
-# save result
-data_outcome_descr <- data_outcome_descr %>%
-  mutate(
-    cohort_prep = cohort_prep, treatment_repl = treatment_repl, 
-    treatment_def = treatment_def, extra_act_save = extra_act, 
-    t_value = unname(outcome_treatment_ttest$statistic), 
-    p_value = outcome_treatment_ttest$p.value,
-    time_stamp = Sys.time()
-  ) %>%
-  select(cohort_prep, treatment_repl, treatment_def, extra_act_save, everything()) %>%
-  as.data.frame()
+data_outcome_descr <- func_mean_comp(data_descr, "outcome_grade",  "binary")
+data_outcomestand_descr <- func_mean_comp(data_descr, "outcome_grade_stand",  "binary")
 
 if (file.exists("Output/Descriptives/OUTCOME_TREATMENT_BINARY.rds")) {
   data_outcome_descr_hist <- readRDS("Output/Descriptives/OUTCOME_TREATMENT_BINARY.rds")
@@ -127,6 +89,18 @@ if (file.exists("Output/Descriptives/OUTCOME_TREATMENT_BINARY.rds")) {
 } else {
   saveRDS(data_outcome_descr, "Output/Descriptives/OUTCOME_TREATMENT_BINARY.rds")
 }
+
+if (file.exists("Output/Descriptives/OUTCOME_TREATMENT_BINARY.rds")) {
+  data_outcome_descr_hist <- readRDS("Output/Descriptives/OUTCOME_TREATMENT_BINARY.rds")
+  data_outcome_descr_save <- rbind(data_outcome_descr_hist, data_outcomestand_descr) %>%
+    group_by(cohort_prep , treatment_repl, treatment_def, extra_act_save) %>%
+    filter(time_stamp == max(time_stamp)) %>%
+    distinct() %>% ungroup() %>% data.frame()
+  saveRDS(data_outcome_descr_save, "Output/Descriptives/OUTCOME_TREATMENT_BINARY.rds")
+} else {
+  saveRDS(data_outcome_descr, "Output/Descriptives/OUTCOME_TREATMENT_BINARY.rds")
+}
+
 
 # histogram
 plot_outcome_treatment_binary <- 
@@ -230,13 +204,14 @@ data_descr %>%
 #### PERSONALITY ####
 #%%%%%%%%%%%%%%%%%%%#
 
+# NEU MIT NEUEN VARIABLEN!
 vars_personality <- c(
   "bigfive_conscientiousness", "bigfive_extraversion", "bigfive_neuroticism",
   "bigfive_openness", "bigfive_agreeableness"
 )
 
-data_descr__personality <-
-  data_descr_sub %>%
+data_descr_personality <-
+  data_descr %>%
   select(treatment_sport, all_of(vars_personality)) %>%
   pivot_longer(
     cols = -treatment_sport, 
@@ -252,25 +227,60 @@ data_descr__personality <-
 data_descr_personality
 
 
-#%%%%%%%%%%%%%%%#
-#### ABILITY ####
-#%%%%%%%%%%%%%%%#
+#%%%%%%%%%%%%%%%%%%%%#
+#### COMPETENCIES ####
+#%%%%%%%%%%%%%%%%%%%%#
 
+# differs across MICE data sets as they are imputed
+
+# competence variables
 vars_ability <- data_descr %>% select(starts_with("comp_")) %>% colnames()
-data_descr %>%
-  filter(treatment_sport == 1) %>% 
-  select(all_of(vars_ability)) %>%
-  summary()
-data_descr %>%
-  filter(treatment_sport == 0) %>% 
-  select(all_of(vars_ability)) %>%
-  summary()
+
+# apply operation
+data_comp_descr <- func_mean_comp(data_descr, vars_ability,  "binary")
+
+if (file.exists("Output/Descriptives/OUTCOME_TREATMENT_BINARY.rds")) {
+  data_comp_descr_hist <- readRDS("Output/Descriptives/OUTCOME_TREATMENT_BINARY.rds")
+  data_comp_descr_save <- rbind(data_comp_descr_hist, data_comp_descr) %>%
+    group_by(variable, cohort_prep , treatment_repl, treatment_def, extra_act_save) %>%
+    filter(time_stamp == max(time_stamp)) %>%
+    distinct() %>% ungroup() %>% data.frame()
+  saveRDS(data_comp_descr_save, "Output/Descriptives/OUTCOME_TREATMENT_BINARY.rds")
+} else {
+  saveRDS(data_comp_descr, "Output/Descriptives/OUTCOME_TREATMENT_BINARY.rds")
+}
+
+
+
+
+#%%%%%%%%%%%%%%%%%%#
+#### MOTIVATION ####
+#%%%%%%%%%%%%%%%%%%#
+
+vars_motivation <- data_descr %>% select(starts_with("motivation_degree")) %>% colnames()
+data_motiv_descr <- func_mean_comp(data_descr, vars_motivation, "binary")
+
+if (file.exists("Output/Descriptives/OUTCOME_TREATMENT_BINARY.rds")) {
+  data_outcome_descr_hist <- readRDS("Output/Descriptives/OUTCOME_TREATMENT_BINARY.rds")
+  data_outcome_descr_save <- rbind(data_outcome_descr_hist, data_motiv_descr) %>%
+    group_by(variable, cohort_prep , treatment_repl, treatment_def, extra_act_save) %>%
+    filter(time_stamp == max(time_stamp)) %>%
+    distinct() %>% ungroup() %>% data.frame()
+  saveRDS(data_outcome_descr_save, "Output/Descriptives/OUTCOME_TREATMENT_BINARY.rds")
+} else {
+  saveRDS(data_outcome_descr, "Output/Descriptives/OUTCOME_TREATMENT_BINARY.rds")
+}
+
 
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 #### EXTRACURRICULAR ACTIVITIES ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+vars_motivation <- data_descr %>% select(starts_with("extracurricular_num")) %>% colnames()
+data_motiv_descr <- func_mean_comp(data_descr, "extracurricular_num", "binary")
+
 
 # do sport participants also participate in other extracurricular activities
 summary(data_descr$extracurricular_num)
