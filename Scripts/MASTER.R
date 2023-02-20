@@ -118,6 +118,20 @@ options(warn = -1)
 #%%%%%%%%%%%%%%%%%%%%%#
 
 
+# define main model
+main_cohort_prep <- "controls_same_outcome"
+main_treatment_def <- "weekly"
+main_treatment_repl <- "down"
+main_extra_act <- "yes"
+main_model_treatment <- "binary"
+main_model_type <- "all"
+main_model_k <- 4
+main_model_k_tuning <- 2
+main_model_s_rep <- 2
+main_model_trimming <- 0.01
+main_model_outcome <- "stand"
+main_model_controls <- "no_lags"
+
 # generate all possible combinations of user inputs (to iterate over it below)
 df_inputs <- data.frame(
   # for interview data preparation
@@ -176,19 +190,6 @@ df_inputs_dml <- df_inputs_dml %>%
                 model_s_rep, model_trimming, model_outcome, model_controls) %>% na.omit()
 
 
-# define main model
-main_cohort_prep <- "controls_same_outcome"
-main_treatment_def <- "weekly"
-main_treatment_repl <- "down"
-main_extra_act <- "yes"
-main_model_treatment <- "binary"
-main_model_type <- "all"
-main_model_k <- 4
-main_model_k_tuning <- 2
-main_model_s_rep <- 2
-main_model_trimming <- 0.01
-main_model_outcome <- "stand"
-main_model_controls <- "no_lags"
 
 
 # define variables for baseline model
@@ -490,7 +491,23 @@ source("Scripts/09_Descriptive_Statistics.R")
 #### Final Estimation Samples ####
 #++++++++++++++++++++++++++++++++#
 
-
+for (prep_sel_num in 1:nrow(df_inputs)) {
+  
+  print(paste0("START COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs)))
+  
+  df_inputs_sel <- df_inputs[prep_sel_num, ]
+  cohort_prep <- df_inputs_sel$cohort_prep
+  treatment_repl <- df_inputs_sel$treatment_repl
+  treatment_def <- df_inputs_sel$treatment_def
+  extra_act <- df_inputs_sel$extra_act
+  
+  # Prepare control variables
+  source("Scripts/11_Estimation_Sample.R") 
+  
+  print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs)))
+  eval(parse(text = keep_after_file_run))
+  gc()
+}
 
 
 
