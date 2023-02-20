@@ -155,7 +155,7 @@ for (mice_data_sel in 1:5) {
   ## load function
   source("Functions/func_save_sample_reduction.R")
   func_save_sample_reduction(df_excel_save)
-  
+  gc()
   
   
   #### ALL + INTERACTION + POLYNOMIALS ####
@@ -229,6 +229,7 @@ for (mice_data_sel in 1:5) {
   ## load function
   source("Functions/func_save_sample_reduction.R")
   func_save_sample_reduction(df_excel_save)
+  gc()
   
   
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -313,26 +314,27 @@ for (mice_data_sel in 1:5) {
   ## load function
   source("Functions/func_save_sample_reduction.R")
   func_save_sample_reduction(df_excel_save)
+  gc()
   
 }
 
 
 
-#### COMPARE NUMBER OF VARIABLES ####
+# COMPARE NUMBER OF VARIABLES #
 
-data_main <- readRDS("Data/Prep_11/prep_11_dml_binary_all_weekly_down_extradrop_mice1.rds")
-colnames_main <- colnames(data_main)
-data_1 <- readRDS("Data/Prep_11/prep_11_dml_binary_all_weekly_down_extradrop_robustcheck_mice1.rds")
-colnames_1 <- colnames(data_1)
-data_2 <- readRDS("Data/Prep_11/prep_11_dml_binary_all_all_down_extradrop_mice1.rds")
-colnames_2 <- colnames(data_2)
-data_3 <- readRDS("Data/Prep_11/prep_11_dml_binary_all_weekly_no_extradrop_mice1.rds")
-colnames_3 <- colnames(data_3)
-data_4 <- readRDS("Data/Prep_11/prep_11_dml_binary_all_weekly_down_mice1.rds")
-colnames_4 <- colnames(data_4)
-
-setdiff(colnames_main, colnames_1)
-data_main %>% select(starts_with("personality_goal_pers")) %>% colnames()
-data_1 %>% select(starts_with("personality_goal_pers")) %>% colnames()
-data_main %>% select(starts_with("age_cat")) %>% colnames()
-data_1 %>% select(starts_with("age_cat")) %>% colnames()
+# data_main <- readRDS("Data/Prep_11/prep_11_dml_binary_all_weekly_down_extradrop_mice1.rds")
+# colnames_main <- colnames(data_main)
+# data_1 <- readRDS("Data/Prep_11/prep_11_dml_binary_all_weekly_down_extradrop_robustcheck_mice1.rds")
+# colnames_1 <- colnames(data_1)
+# data_2 <- readRDS("Data/Prep_11/prep_11_dml_binary_all_all_down_extradrop_mice1.rds")
+# colnames_2 <- colnames(data_2)
+# data_3 <- readRDS("Data/Prep_11/prep_11_dml_binary_all_weekly_no_extradrop_mice1.rds")
+# colnames_3 <- colnames(data_3)
+# data_4 <- readRDS("Data/Prep_11/prep_11_dml_binary_all_weekly_down_mice1.rds")
+# colnames_4 <- colnames(data_4)
+# 
+# setdiff(colnames_main, colnames_1)
+# data_main %>% select(starts_with("personality_goal_pers")) %>% colnames()
+# data_1 %>% select(starts_with("personality_goal_pers")) %>% colnames()
+# data_main %>% select(starts_with("age_cat")) %>% colnames()
+# data_1 %>% select(starts_with("age_cat")) %>% colnames()
