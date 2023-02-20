@@ -452,21 +452,46 @@ df_excel_save_hist <- read.xlsx("Output/SAMPLE_REDUCTION_STEPS.xlsx", sheetName 
 df_excel_save_hist
 
 
-# Plausibility analysis
+#### Plausibility analysis ####
+#+++++++++++++++++++++++++++++#
+
+for (prep_sel_num in 1:nrow(df_inputs)) {
+  
+  print(paste0("START COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs)))
+  
+  df_inputs_sel <- df_inputs[prep_sel_num, ]
+  cohort_prep <- df_inputs_sel$cohort_prep
+  treatment_repl <- df_inputs_sel$treatment_repl
+  treatment_def <- df_inputs_sel$treatment_def
+  extra_act <- df_inputs_sel$extra_act
+  
+  # Prepare control variables
+  source("Scripts/08_Plausibility_Checks.R") 
+  
+  print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs)))
+  eval(parse(text = keep_after_file_run))
+  gc()
+}
 
 
-# FINAL ESTIMATION SAMPLES (depends on model and treatment setting)
+#### Descriptive Statistics ####
+#++++++++++++++++++++++++++++++#
+
+# only for main model
+cohort_prep <- main_cohort_prep
+treatment_repl <- main_treatment_repl
+treatment_def <- main_treatment_def
+extra_act <- main_extra_act
+source("Scripts/09_Descriptive_Statistics.R") 
 
 
 
-#### RUN DATA ANALYSIS ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+#### Final Estimation Samples ####
+#++++++++++++++++++++++++++++++++#
 
 
-# Descriptive statistics
 
-
-# Main drivers for selection
 
 
 
