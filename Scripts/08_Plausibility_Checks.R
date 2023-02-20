@@ -23,6 +23,8 @@ if (extra_act == "yes") {
 # ITERATE OVER MICE DATA SETS
 for (mice_data_sel in 1:5) {
   
+  print(paste("DATA SET:", mice_data_sel))
+  
   #%%%%%%%%%%%%%%%%%#
   #### LOAD DATA ####
   #%%%%%%%%%%%%%%%%%#
@@ -45,10 +47,7 @@ for (mice_data_sel in 1:5) {
   num_row <- nrow(df_plausi)
   num_col <- ncol(df_plausi)
   
-  print(paste("Number of respondents:", num_id))
-  print(paste("Number of rows:", num_row))
-  print(paste("Number of columns:", num_col))
-  print(paste("Number of missing values:", sum(is.na(df_plausi)))) # MUST BE 0!
+  # print(paste("Number of missing values:", sum(is.na(df_plausi)))) # MUST BE 0!
   
   
   #%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -323,10 +322,17 @@ for (mice_data_sel in 1:5) {
   #### FINAL STEPS ####
   #%%%%%%%%%%%%%%%%%%%#
   
+  # ungroup
+  df_plausi <- df_plausi %>% ungroup()
+  
   # check if no respondents, rows, and columns got dropped
   num_id == length(unique(df_plausi$id_t))
   num_row ==  nrow(df_plausi)
   num_col == ncol(df_plausi)
+  
+  print(paste("Number of respondents:", length(unique(df_plausi$id_t))))
+  print(paste("Number of rows:", nrow(df_plausi)))
+  print(paste("Number of columns:", ncol(df_plausi)))
   
   # no missing values
   print(paste("Number of missing values:", sum(is.na(df_plausi))))
