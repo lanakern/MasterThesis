@@ -629,6 +629,6 @@ df_excel_save <- data.frame(
 )
   ## load function
 source("Functions/func_save_sample_reduction.R")
-func_save_sample_reduction(df_excel_save)
+func_save_sample_reduction(df_excel_save, "grade")
 
   

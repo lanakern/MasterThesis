@@ -1695,7 +1695,7 @@ for (mice_result_sel in 1:mice_num_data_sets) {
   )
   ## load function
   source("Functions/func_save_sample_reduction.R")
-  func_save_sample_reduction(df_excel_save)
+  func_save_sample_reduction(df_excel_save, "grade")
   
 } # close iteration over mice result data frames
 
