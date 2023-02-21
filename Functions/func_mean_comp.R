@@ -29,13 +29,15 @@ func_mean_comp <- function(df, y_variables, treatment_setting){
     
     # calculate mean and standard error across treatment groups
     data_comp_mean_se <- left_join(
-      df %>% 
-        select(treatment_sport, all_of(y_variables)),
+      df %>% select(treatment_sport, all_of(y_variables)),
       df %>% group_by(treatment_sport)  %>% summarize(num_obs = n()),
       by = "treatment_sport"
     ) 
     
-    
+    data_comp_mean_se_all <- df %>% 
+      select(all_of(y_variables)) %>% 
+      mutate(num_obs = df %>% summarize(num_obs = n()) %>% pull())
+
     # by group
     data_se <- left_join(
       # se
@@ -70,7 +72,7 @@ func_mean_comp <- function(df, y_variables, treatment_setting){
     # all
     data_se_all <- left_join(
       # se
-      data_comp_mean_se %>%
+      data_comp_mean_se_all %>%
         select(y_variables, num_obs) %>%
         mutate(across(y_variables, ~ func_se(., num_obs))) %>%
         distinct() %>%
@@ -78,7 +80,7 @@ func_mean_comp <- function(df, y_variables, treatment_setting){
         rename(num_obs = num_obs_se) %>%
         mutate(treatment_sport = "all"),
       # mean
-      data_comp_mean_se %>%
+      data_comp_mean_se_all %>%
         summarize_at(y_variables, list(mean = mean)) %>%
         mutate(treatment_sport = "all"),
       by = "treatment_sport"
@@ -121,7 +123,14 @@ func_mean_comp <- function(df, y_variables, treatment_setting){
     
     # combine: ttest and mean, se
     df_result <- left_join(data_mean_se, df_ttest, by = "variable") %>%
-      select(variable, cohort_prep, treatment_repl, treatment_def, extra_act_save, everything()) %>%
+      mutate(
+        p_value = case_when(treatment_sport == "all" ~ as.numeric(NA), TRUE ~ p_value),
+        t_value = case_when(treatment_sport == "all" ~ as.numeric(NA), TRUE ~ t_value)
+        ) %>% 
+      rename_with(~ str_replace(., ".*_se$", "se")) %>%
+      select(variable, cohort_prep, treatment_repl, treatment_def, extra_act_save, 
+             treatment_sport, num_obs, ends_with("mean"), ends_with("se"), 
+             ends_with("p_value"), ends_with("t_value"), time_stamp, everything()) %>%
       as.data.frame() 
     
     return(df_result)
@@ -131,11 +140,137 @@ func_mean_comp <- function(df, y_variables, treatment_setting){
   #++++++++++++++++++++++++++++++++++++#
     
   } else if (treatment_setting == "multi") {
-    df_result <- data.frame()
+    
+    # function for standard error
+    func_se <- function(var, num_obs) {
+      sd(var) / sqrt(num_obs)
+    }
+    
+    # calculate mean and standard error across treatment groups
+    data_comp_mean_se <- left_join(
+      df %>% select(treatment_sport_freq, all_of(y_variables)),
+      df %>% group_by(treatment_sport_freq)  %>% summarize(num_obs = n()),
+      by = "treatment_sport_freq"
+    ) 
+    
+    data_comp_mean_se_all <- df %>% 
+      select(all_of(y_variables)) %>% 
+      mutate(num_obs = df %>% summarize(num_obs = n()) %>% pull())
+    
+    # by group
+    data_se <- left_join(
+      # se
+      data_comp_mean_se %>%
+        group_by(treatment_sport_freq) %>%
+        mutate(across(y_variables, ~ func_se(., num_obs))) %>%
+        distinct() %>%
+        rename_with(~ str_c(., "_se"), everything()) %>%
+        rename(treatment_sport_freq = treatment_sport_freq_se, num_obs = num_obs_se),
+      # mean
+      data_comp_mean_se %>%
+        group_by(treatment_sport_freq) %>%
+        summarize_at(y_variables, list(mean = mean)),
+      by = "treatment_sport_freq"
+    )
+    
+    if (length(y_variables) > 1) {
+      data_se <- data_se %>% 
+        gather(-c(treatment_sport_freq, num_obs), key = "variable", value = "value") %>%
+        mutate(variable_2 = sub(".*\\_", "", variable),
+               variable = sub('_[^_]*$', '', variable)) %>%
+        spread(variable_2, value) %>%
+        mutate(treatment_sport_freq = as.character(treatment_sport_freq)) %>%
+        select(variable, treatment_sport_freq, num_obs, mean, se)
+    } else {
+      data_se <- data_se %>%
+        mutate(treatment_sport_freq = as.character(treatment_sport_freq),
+               variable = y_variables)
+    }
+    
+    
+    # all
+    data_se_all <- left_join(
+      # se
+      data_comp_mean_se_all %>%
+        select(y_variables, num_obs) %>%
+        mutate(across(y_variables, ~ func_se(., num_obs))) %>%
+        distinct() %>%
+        rename_with(~ str_c(., "_se"), everything()) %>%
+        rename(num_obs = num_obs_se) %>%
+        mutate(treatment_sport_freq = "all"),
+      # mean
+      data_comp_mean_se_all %>%
+        summarize_at(y_variables, list(mean = mean)) %>%
+        mutate(treatment_sport_freq = "all"),
+      by = "treatment_sport_freq"
+    )
+    
+    if (length(y_variables) > 1) {
+      data_se_all <- data_se_all %>% 
+        gather(-c(treatment_sport_freq, num_obs), key = "variable", value = "value") %>%
+        mutate(variable_2 = sub(".*\\_", "", variable),
+               variable = sub('_[^_]*$', '', variable)) %>%
+        spread(variable_2, value) %>%
+        mutate(treatment_sport_freq = as.character(treatment_sport_freq)) %>%
+        select(variable, treatment_sport_freq, num_obs, mean, se)
+    } else {
+      data_se_all <- data_se_all %>%
+        mutate(treatment_sport_freq = as.character(treatment_sport_freq),
+               variable = y_variables)
+    }
+    
+    data_mean_se <- rbind(data_se, data_se_all) %>%
+      mutate(
+        cohort_prep = cohort_prep, treatment_repl = treatment_repl, 
+        treatment_def = treatment_def, extra_act_save = extra_act, 
+        time_stamp = Sys.time()
+      )
+    
+    # calculate p-value and t-value
+    df_ttest <- data.frame()
+    
+    for (i in 1:length(y_variables)) {
+      
+      # extract y-variable
+      y_variable <- y_variables[i]
+      x_variable <- "treatment_sport_freq"
+      
+      # generate formula
+      exp1 <- expr(!!ensym(y_variable) ~ !!ensym(x_variable))
+      
+      df_multi_ttest_1 <- df %>% filter(treatment_sport_freq != "never")
+      multi_ttest_1 <- t.test(formula = eval(exp1), data = df_multi_ttest_1)
+      
+      df_multi_ttest_2 <- df %>% filter(treatment_sport_freq != "daily + weekly")
+      multi_ttest_2 <- t.test(formula = eval(exp1), data = df_multi_ttest_2)
+      
+      df_multi_ttest_3 <- df %>% filter(treatment_sport_freq != "monthly + less")
+      multi_ttest_3 <- t.test(formula = eval(exp1), data = df_multi_ttest_3)
+      
+      df_ttest_sub <- data.frame(
+        variable = rep(y_variable, 4),
+        treatment_sport_freq = c("daily + weekly", "monthly + less", "never", "all"),
+        t_value_daily = c(NA, unname(multi_ttest_1$statistic), unname(multi_ttest_3$statistic), NA),
+        t_value_monthly = c(unname(multi_ttest_1$statistic), NA, unname(multi_ttest_2$statistic), NA),
+        p_value_daily = c(NA, multi_ttest_1$p.value, multi_ttest_3$p.value, NA),
+        p_value_monthly = c(multi_ttest_1$p.value, NA, multi_ttest_2$p.value, NA)
+      ) 
+    
+      df_ttest <- rbind(df_ttest, df_ttest_sub)
+    }
+    
+    # combine: ttest and mean, se
+    df_result <- left_join(data_mean_se, df_ttest, by = c("treatment_sport_freq", "variable")) %>%
+      rename_with(~ str_replace(., ".*_se$", "se")) %>%
+      select(variable, cohort_prep, treatment_repl, treatment_def, extra_act_save, 
+             treatment_sport_freq, num_obs, ends_with("mean"), ends_with("se"), 
+             ends_with("p_value"), ends_with("t_value"), time_stamp, everything()) %>%
+      as.data.frame() 
+    
     return(df_result)
+    
   } else {
     stop("treatment_setting can only take on the values binary and multi.")
   }
   
- 
 }
