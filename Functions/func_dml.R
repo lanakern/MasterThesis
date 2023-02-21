@@ -178,6 +178,7 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
         data <- data
       }
 
+      data <- as.data.frame(data)
       # extract training and test data
       indices_fold_sel <- K_folds$splits[[fold_sel]]$in_id
       data_train <- data[indices_fold_sel, ]
@@ -220,8 +221,11 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
         #+++++++++#
         
         # predict nuisance functions via lasso
-        ls_ml <- func_ml_lasso(treatment_setting, data_train, data_test, 
-                               outcome, treatment, group, K_tuning, lambda_val)
+        ls_ml <- func_ml_lasso(
+          treatment_setting = treatment_setting, data_train = data_train, data_test = data_test, 
+          outcome = outcome, treatment = treatment, group = group, K = K_tuning, lambda_val = lambda_val
+          )
+
         
         # append predictions to data frame
         data_pred <- ls_ml$pred
@@ -270,7 +274,7 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
         ## RANDOM FORESTS ##
         #++++++++++++++++++#
         
-        rf_ml <- func_ml_rf(data_train, data_test, outcome, treatment, group, K_tuning, rf_grid)
+        rf_ml <- func_ml_rf(treatment_setting, data_train, data_test, outcome, treatment, group, K_tuning, rf_grid)
         
         # append predictions to data frame
         data_pred <- rf_ml$pred
