@@ -27,12 +27,12 @@
 func_ml_postlasso <- function(data_train, data_test, outcome, treatment, group, K, lambda_val) {
   
   # ensure that treatment variable is factor
-  data_train <- data_train %>% mutate({{treatment}} := as.factor(!!sym(treatment))) 
-  data_test <- data_test %>% mutate({{treatment}} := as.factor(!!sym(treatment))) 
+  data_train <- data_train %>% mutate("treatment_sport" = as.factor(treatment_sport)) 
+  data_test <- data_test %>% mutate("treatment_sport" = as.factor(treatment_sport)) 
   
-  # generate extra training data sets for outcome predictions
-  data_train_g1 <- data_train %>% filter(!!sym(treatment) == 1)
-  data_train_g0 <- data_train %>% filter(!!sym(treatment) == 0)
+  # separate training data for g0 and g1 prediction
+  data_train_g1 <- data_train %>% filter(treatment_sport == 1)
+  data_train_g0 <- data_train %>% filter(treatment_sport == 0)
   
   # generate vector with control variable names
   X_controls <- data_train %>% 
