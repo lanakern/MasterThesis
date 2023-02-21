@@ -179,16 +179,16 @@ data_target_cati <- read.dta13("Data/Raw/SC5_pTargetCATI_D_16-0-0.dta",
 cati_label_col_name_raw <- 
   c("t67809a", "t67810a", "t66003a", "tg15001", "t31300a",
     "t66406a", "tg2411a", "t514001",
-    "t66201a", "t66208a", "t515052", "tg08003",
-    "t66800a", "t66800b", "t66800c", "t66800d", "t66800e")
+    "t66201a", "t66208a", "t515052", "tg08003")
+  #  "t66800a", "t66800b", "t66800c", "t66800d", "t66800e")
   ## vector with new variable names
 cati_label_col_name_new <- 
   c("personality_assertiveness", "personality_conflicts", 
     "personality_selfesteem", "parents_opinion_degree", "opinion_educ",
     "motivation_degree", "satisfaction_study", "satisfaction_life",
-    "interest_math", "interest_german", "risk", "uni_offers_helpful",
-    "bigfive_extraversion", "bigfive_agreeableness", "bigfive_conscientiousness",
-    "bigfive_neuroticism", "bigfive_openness")
+    "interest_math", "interest_german", "risk", "uni_offers_helpful")
+    # "bigfive_extraversion", "bigfive_agreeableness", "bigfive_conscientiousness",
+    # "bigfive_neuroticism", "bigfive_openness")
   ## generate empty list (where results will be stored)
 list_cati_labels <- list()
   ## iterate over variable names
@@ -268,11 +268,16 @@ data_target_cati <- data_target_cati %>%
     # outcome: final grade
     grade_final = t724403,
     # outcome: big five personality traits
-    bigfive_extraversion = t66800a, 
-    bigfive_agreeableness = t66800b, 
-    bigfive_conscientiousness = t66800c, 
-    bigfive_neuroticism = t66800d, 
-    bigfive_openness = t66800e, 
+    # bigfive_extraversion = t66800a, 
+    # bigfive_agreeableness = t66800b, 
+    # bigfive_conscientiousness = t66800c, 
+    # bigfive_neuroticism = t66800d, 
+    # bigfive_openness = t66800e,
+    bigfive_extraversion = t66800a_g1, 
+    bigfive_agreeableness = t66800b_g1, 
+    bigfive_conscientiousness = t66800c_g1, 
+    bigfive_neuroticism = t66800d_g1, 
+    bigfive_openness = t66800e_g1, 
     # other personality traits
     personality_sociable = t66800f,
     personality_criticize = t66800g,
