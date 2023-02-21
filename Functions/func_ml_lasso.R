@@ -43,13 +43,14 @@ func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome, tre
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
   
   if (treatment_setting == "binary") {
+    
     # ensure that treatment variable is factor
-    data_train <- data_train %>% mutate({{treatment}} := as.factor(!!sym(treatment))) 
-    data_test <- data_test %>% mutate({{treatment}} := as.factor(!!sym(treatment))) 
+    data_train <- data_train %>% mutate("treatment_sport" = as.factor(treatment_sport)) 
+    data_test <- data_test %>% mutate("treatment_sport" = as.factor(treatment_sport)) 
     
     # separate training data for g0 and g1 prediction
-    data_train_g1 <- data_train %>% filter(!!sym(treatment) == 1)
-    data_train_g0 <- data_train %>% filter(!!sym(treatment) == 0)
+    data_train_g1 <- data_train %>% filter(treatment_sport == 1)
+    data_train_g0 <- data_train %>% filter(treatment_sport == 0)
     
     # specify the model
     ## logistic regression with lasso for treatment; linear regression with lasso for outcome
@@ -604,8 +605,6 @@ func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome, tre
     
     # return data frame with predictions
     return(list("pred" = df_pred, "param" = df_best_param))
-  }
-  
-  
+  } # close else-if from multi
   
 } # close function() 
