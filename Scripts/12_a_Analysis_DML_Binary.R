@@ -61,6 +61,8 @@ for (mice_data_sel in 1:5) {
     outcome_var <- "outcome_grade_stand"
   }
   
+  data_dml <- data_dml %>% as.data.frame()
+  
   
   #%%%%%%%%%%%#
   #### APE ####

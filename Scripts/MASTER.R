@@ -175,13 +175,13 @@ cronbach_a <- "yes" # "no" (not used anymore)
 
 df_inputs_dml <- data.frame(
   model_treatment = c("binary", NA, NA, NA),
-  model_type = c("base", NA, NA, NA),
+  model_type = c("all", NA, NA, NA),
   model_algo = c("lasso", "postlasso", "randomforests", "xgboost"),
-  model_k = c(2, NA, NA, NA),
+  model_k = c(4, NA, NA, NA),
   model_k_tuning = c(2, NA, NA, NA),
   model_s_rep = c(2, NA, NA, NA),
   model_trimming = c(0.01, NA, NA, NA),
-  model_outcome = c("level", NA, NA, NA),
+  model_outcome = c("stand", NA, NA, NA),
   model_controls = c("no_lags", NA, NA, NA)
 )
 
@@ -478,13 +478,15 @@ for (prep_sel_num in 1:nrow(df_inputs)) {
 #### Descriptive Statistics ####
 #++++++++++++++++++++++++++++++#
 
+gc()
+eval(parse(text = keep_after_file_run))
+
 # only for main model
 cohort_prep <- main_cohort_prep
 treatment_repl <- main_treatment_repl
 treatment_def <- main_treatment_def
 extra_act <- main_extra_act
 source("Scripts/09_Descriptive_Statistics.R") 
-
 
 
 
@@ -531,12 +533,12 @@ treatment_setting <- "binary"
 # -> lasso (parameter tuning of lambda with 10-fold CV) 
 # -> K = 5, S = 100, 
 
-cohort_prep <- "controls_same_outcome"
-treatment_repl <- "down"
-treatment_def <- "weekly"
-extra_act <- "yes"
+cohort_prep <- main_cohort_prep
+treatment_repl <- main_treatment_repl
+treatment_def <- main_treatment_def
+extra_act <- main_extra_act
 
-dml_num <- 2
+dml_num <- 1
 
 
 #### LASSO ####

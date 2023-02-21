@@ -34,7 +34,7 @@ func_dml_common_support <- function(treatment_setting, data_pred, min_trimming, 
       mutate(treatment_label = ifelse(treatment == 1, "Sport Participatiopn", "No Sport Participation")) %>%
       ggplot(aes(x = m, fill = treatment_label)) +
       # histogram
-      geom_histogram(binwidth = 0.01) +
+      geom_histogram(aes(y = ..density..), binwidth = 0.01) +
       scale_fill_manual(values = c("grey88", "grey38")) +
       # trimming thresholds
       geom_vline(xintercept = min_trimming, linetype = "longdash", 
@@ -43,7 +43,7 @@ func_dml_common_support <- function(treatment_setting, data_pred, min_trimming, 
                  color = "black", size = 0.5) + 
       # aesthetics
       xlab("Propensity Score") + 
-      ylab("Number of observations") + 
+      ylab("Density") + 
       ggtitle("Propensity Score Overlap") +
       theme_bw() +
       theme(plot.title = element_text(hjust = 0.5)) +
@@ -66,7 +66,7 @@ func_dml_common_support <- function(treatment_setting, data_pred, min_trimming, 
                                TRUE ~ "Never")) %>%
       ggplot() +
       # histogram
-      geom_histogram(aes(x = prob, binwidth = 0.01, fill = treatment_label), alpha = 0.6) +
+      geom_histogram(aes(y = ..density.., x = prob, binwidth = 0.01, fill = treatment_label), alpha = 0.6) +
       # bar colors
       scale_fill_manual(values = c("darkgreen", "grey38", "darkblue")) +
       # facet
@@ -76,7 +76,7 @@ func_dml_common_support <- function(treatment_setting, data_pred, min_trimming, 
       geom_vline(xintercept = max_trimming, linetype = "longdash", color = "black", size = 0.5) + 
       # aesthetics
       xlab("Propensity Score") + 
-      ylab("Number of observations") + 
+      ylab("Density") + 
       ggtitle("Propensity Score Overlap") +
       theme_bw() +
       theme(plot.title = element_text(hjust = 0.5)) +

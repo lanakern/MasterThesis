@@ -56,12 +56,12 @@ func_ml_xgboost <- function(treatment_setting, data_train, data_test, outcome, t
   if (treatment_setting == "binary") {
     
     # ensure that treatment variable is factor
-    data_train <- data_train %>% mutate({{treatment}} := as.factor(!!sym(treatment))) 
-    data_test <- data_test %>% mutate({{treatment}} := as.factor(!!sym(treatment))) 
+    data_train <- data_train %>% mutate("treatment_sport" = as.factor(treatment_sport)) 
+    data_test <- data_test %>% mutate("treatment_sport" = as.factor(treatment_sport)) 
     
     # separate training data for g0 and g1 prediction
-    data_train_g1 <- data_train %>% filter(!!sym(treatment) == 1)
-    data_train_g0 <- data_train %>% filter(!!sym(treatment) == 0)
+    data_train_g1 <- data_train %>% filter(treatment_sport == 1)
+    data_train_g0 <- data_train %>% filter(treatment_sport == 0)
     
     # specify the model
     ## treatment is predicted via binary classification and outcome via regression

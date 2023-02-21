@@ -6,17 +6,17 @@
 # by Lana Kern
 #+++
 # In this file, descriptive statistics are made for both the binary and 
-# multivalued treatment setting. For the outcome, ability, and personality
+# multivalued treatment setting. For the outcome, ability, and motivation
 # variables, differences-in-means are calculated. 
 # Everything is done for the main model and the five MICE data set. Those are
 # appended row-wise
 #+++
 
 # define inputs
-cohort_prep <- main_cohort_prep
-treatment_repl <- main_treatment_repl
-treatment_def <- main_treatment_def
-extra_act <- main_extra_act
+# cohort_prep <- main_cohort_prep
+# treatment_repl <- main_treatment_repl
+# treatment_def <- main_treatment_def
+# extra_act <- main_extra_act
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -67,6 +67,11 @@ for (mice_data_sel in 1:5) {
 id_num <- length(unique(data_descr$id_t))
 obs_num <- nrow(data_descr %>% filter(MICE == 1))
 
+# extract data from one mice data set: used for variables that have no missing
+# values like outcome, treatment, etc.
+# otherwise standard errors are downward biased
+data_descr_mice1 <- data_descr %>% filter(MICE == 1)
+
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 #### Treatment and Control Group ####
@@ -76,13 +81,13 @@ obs_num <- nrow(data_descr %>% filter(MICE == 1))
 ## Outcome ##
 #+++++++++++#
 
-data_outcome_descr <- func_mean_comp(data_descr, "outcome_grade",  "binary")
-data_outcomestand_descr <- func_mean_comp(data_descr, "outcome_grade_stand",  "binary")
+data_outcome_descr <- func_mean_comp(data_descr_mice1, "outcome_grade",  "binary")
+data_outcomestand_descr <- func_mean_comp(data_descr_mice1, "outcome_grade_stand",  "binary")
 
 if (file.exists("Output/Descriptives/OUTCOME_TREATMENT_BINARY.rds")) {
   data_outcome_descr_hist <- readRDS("Output/Descriptives/OUTCOME_TREATMENT_BINARY.rds")
   data_outcome_descr_save <- rbind(data_outcome_descr_hist, data_outcome_descr) %>%
-    group_by(cohort_prep , treatment_repl, treatment_def, extra_act_save) %>%
+    group_by(variable, cohort_prep , treatment_repl, treatment_def, extra_act_save) %>%
     filter(time_stamp == max(time_stamp)) %>%
     distinct() %>% ungroup() %>% data.frame()
   saveRDS(data_outcome_descr_save, "Output/Descriptives/OUTCOME_TREATMENT_BINARY.rds")
@@ -93,12 +98,12 @@ if (file.exists("Output/Descriptives/OUTCOME_TREATMENT_BINARY.rds")) {
 if (file.exists("Output/Descriptives/OUTCOME_TREATMENT_BINARY.rds")) {
   data_outcome_descr_hist <- readRDS("Output/Descriptives/OUTCOME_TREATMENT_BINARY.rds")
   data_outcome_descr_save <- rbind(data_outcome_descr_hist, data_outcomestand_descr) %>%
-    group_by(cohort_prep , treatment_repl, treatment_def, extra_act_save) %>%
+    group_by(variable, cohort_prep , treatment_repl, treatment_def, extra_act_save) %>%
     filter(time_stamp == max(time_stamp)) %>%
     distinct() %>% ungroup() %>% data.frame()
   saveRDS(data_outcome_descr_save, "Output/Descriptives/OUTCOME_TREATMENT_BINARY.rds")
 } else {
-  saveRDS(data_outcome_descr, "Output/Descriptives/OUTCOME_TREATMENT_BINARY.rds")
+  saveRDS(data_outcomestand_descr, "Output/Descriptives/OUTCOME_TREATMENT_BINARY.rds")
 }
 
 
@@ -114,7 +119,8 @@ plot_outcome_treatment_binary <-
   theme_bw() +
   guides(fill = guide_legend(title = "Treatment Group"))
   #geom_density()
-ggsave("Output/Descriptives/PLOT_OUTCOME_TREATMENT_BINARY.png")
+ggsave("Output/Descriptives/PLOT_OUTCOME_TREATMENT_BINARY.png", 
+       plot_outcome_treatment_binary)
 
 
 
@@ -122,24 +128,24 @@ ggsave("Output/Descriptives/PLOT_OUTCOME_TREATMENT_BINARY.png")
 #+++++++++++++++++++++++++++++++++++++++++++++#
 
 # number of observations
-data_descr_outcome_binary %>%
+data_descr_mice1 %>%
   ungroup() %>% group_by(treatment_sport) %>%
   summarize(number_obs = n())
 
-obs_num_treatment <- data_descr_outcome_binary %>% filter(treatment_sport == 1) %>% nrow()
-obs_num_control <- data_descr_outcome_binary %>% filter(treatment_sport == 0) %>% nrow()
+obs_num_treatment <- data_descr_mice1 %>% filter(treatment_sport == 1) %>% nrow()
+obs_num_control <- data_descr_mice1 %>% filter(treatment_sport == 0) %>% nrow()
 obs_num_treatment + obs_num_control # must equal obs_num
 
 # number of individuals
-data_descr_outcome_binary %>%
+data_descr_mice1 %>%
   ungroup() %>% group_by(id_t, treatment_sport) %>%
   summarize(number_obs = n()) %>%
   ungroup() %>% group_by(treatment_sport) %>%
   summarize(number_id = n())
 
 
-id_num_treatment <- data_descr_outcome_binary %>% filter(treatment_sport == 1) %>% pull(id_t) %>% unique() %>% length()
-id_num_control <- data_descr_outcome_binary %>% filter(treatment_sport == 0) %>% pull(id_t) %>% unique() %>% length()
+id_num_treatment <- data_descr_mice1 %>% filter(treatment_sport == 1) %>% pull(id_t) %>% unique() %>% length()
+id_num_control <- data_descr_mice1 %>% filter(treatment_sport == 0) %>% pull(id_t) %>% unique() %>% length()
 id_num_treatment + id_num_control # not id_num because individuals may change from treatment to control group
 
 
@@ -268,7 +274,7 @@ if (file.exists("Output/Descriptives/OUTCOME_TREATMENT_BINARY.rds")) {
     distinct() %>% ungroup() %>% data.frame()
   saveRDS(data_outcome_descr_save, "Output/Descriptives/OUTCOME_TREATMENT_BINARY.rds")
 } else {
-  saveRDS(data_outcome_descr, "Output/Descriptives/OUTCOME_TREATMENT_BINARY.rds")
+  saveRDS(data_motiv_descr, "Output/Descriptives/OUTCOME_TREATMENT_BINARY.rds")
 }
 
 
@@ -278,9 +284,18 @@ if (file.exists("Output/Descriptives/OUTCOME_TREATMENT_BINARY.rds")) {
 #### EXTRACURRICULAR ACTIVITIES ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-vars_motivation <- data_descr %>% select(starts_with("extracurricular_num")) %>% colnames()
-data_motiv_descr <- func_mean_comp(data_descr, "extracurricular_num", "binary")
+data_extra_descr <- func_mean_comp(data_descr, "extracurricular_num", "binary")
 
+if (file.exists("Output/Descriptives/OUTCOME_TREATMENT_BINARY.rds")) {
+  data_outcome_descr_hist <- readRDS("Output/Descriptives/OUTCOME_TREATMENT_BINARY.rds")
+  data_outcome_descr_save <- rbind(data_outcome_descr_hist, data_extra_descr) %>%
+    group_by(variable, cohort_prep , treatment_repl, treatment_def, extra_act_save) %>%
+    filter(time_stamp == max(time_stamp)) %>%
+    distinct() %>% ungroup() %>% data.frame()
+  saveRDS(data_outcome_descr_save, "Output/Descriptives/OUTCOME_TREATMENT_BINARY.rds")
+} else {
+  saveRDS(data_extra_descr, "Output/Descriptives/OUTCOME_TREATMENT_BINARY.rds")
+}
 
 # do sport participants also participate in other extracurricular activities
 summary(data_descr$extracurricular_num)
@@ -306,7 +321,8 @@ table(data_descr %>% filter(treatment_sport == 0) %>% select(extracurricular_fre
 #### DESCRIPTIVES MOST IMPROTANT PREDICTORS ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-data_descr_sub <- eval(parse(text = paste('data_descr %>%', vars_baseline)))
+vars_baseline_descr <- str_replace(vars_baseline, "\ngroup,", "")
+data_descr_sub <- eval(parse(text = paste('data_descr %>%', vars_baseline_descr)))
 data_descr_sub %>% colnames()
 
 
@@ -418,10 +434,8 @@ id_num_multi <- length(unique(data_descr_multi$id_t))
 obs_num_multi <- nrow(data_descr_multi %>% filter(MICE == 1))
 
 
-#### Outcome ####
-#%%%%%%%%%%%%%%%#
-
-data_descr_outcome_multi <- data_descr_multi %>% filter(MICE == 1) %>%
+# categorize treatment frequency variable
+data_descr_multi <- data_descr_multi %>%
   mutate(
     treatment_sport_freq = case_when(
       treatment_sport_freq == "daily" ~ "daily + weekly",
@@ -431,75 +445,111 @@ data_descr_outcome_multi <- data_descr_multi %>% filter(MICE == 1) %>%
       TRUE ~ "never"
     ))
 
-# difference-in-means: outcome variable
-# same across data frames because outcome variable is not imputed!
-# https://sejdemyr.github.io/r-tutorials/statistics/tutorial8.html
-data_outcome_descr_multi <-
-  data_descr_outcome_multi %>%
-  group_by(treatment_sport_freq) %>%
-  summarize(
-    num_obs = n(), 
-    mean_grades = mean(outcome_grade),
-    se_grades = sd(outcome_grade) / sqrt(num_obs)
-    # add total
-  ) %>% rbind(
-    data_descr_outcome_multi %>%
-      summarize(
-        num_obs = n(), 
-        mean_grades = mean(outcome_grade),
-        se_grades = sd(outcome_grade) / sqrt(num_obs)
-      ) %>%
-      mutate(treatment_sport_freq = "all") %>%
-      select(treatment_sport_freq, everything())
-  )
-data_outcome_descr_multi
 
-# the difference-in-means of the outcome variable is statistically significant at 
-# any conventional significance level
-data_descr_outcome_multi_ttest_1 <- data_descr_outcome_multi %>%
-  filter(treatment_sport_freq != "never")
-outcome_treatment_ttest_1 <- with(data_descr_outcome_multi_ttest_1, t.test(outcome_grade ~ treatment_sport_freq))
+# data set only for first MICE data set
+data_descr_multi_mice1 <- data_descr_multi %>% filter(MICE == 1)
 
-data_descr_outcome_multi_ttest_2 <- data_descr_outcome_multi %>%
-  filter(treatment_sport_freq != "daily + weekly")
-outcome_treatment_ttest_2 <- with(data_descr_outcome_multi_ttest_2, t.test(outcome_grade ~ treatment_sport_freq))
 
-data_descr_outcome_multi_ttest_3 <- data_descr_outcome_multi %>%
-  filter(treatment_sport_freq != "monthly + less")
-outcome_treatment_ttest_3 <- with(data_descr_outcome_multi_ttest_3, t.test(outcome_grade ~ treatment_sport_freq))
+#%%%%%%%%%%%%%%%#
+#### OUTCOME ####
+#%%%%%%%%%%%%%%%#
 
-data_outcome_descr_multi <- data_outcome_descr_multi %>%
-  mutate(p_value_daily = c(NA, outcome_treatment_ttest_1$p.value, outcome_treatment_ttest_3$p.value, NA)) %>%
-  mutate(p_value_monthly = c(outcome_treatment_ttest_1$p.value, NA, outcome_treatment_ttest_2$p.value, NA))
-
+df_descr_outcome_multi <- func_mean_comp(data_descr_multi_mice1, "outcome_grade", "multi")
+df_descr_outcomestand_multi <- func_mean_comp(data_descr_multi_mice1, "outcome_grade_stand", "multi")
 
 # save result
-data_outcome_descr_multi <- data_outcome_descr_multi %>%
-  mutate(
-    cohort_prep = cohort_prep, treatment_repl = treatment_repl, 
-    treatment_def = treatment_def, extra_act_save = extra_act, 
-    time_stamp = Sys.time()
-  ) %>%
-  select(cohort_prep, treatment_repl, treatment_def, extra_act_save, everything()) %>%
-  as.data.frame()
-
 if (file.exists("Output/OUTCOME_TREATMENT_MULTI.rds")) {
   data_outcome_descr_hist <- readRDS("Output/OUTCOME_TREATMENT_MULTI.rds")
-  data_outcome_descr_save <- rbind(data_outcome_descr_hist, data_outcome_descr_multi) %>%
-    group_by(cohort_prep , treatment_repl, treatment_def, extra_act_save) %>%
+  data_outcome_descr_save <- rbind(data_outcome_descr_hist, df_descr_outcome_multi) %>%
+    group_by(variable, cohort_prep , treatment_repl, treatment_def, extra_act_save) %>%
     filter(time_stamp == max(time_stamp)) %>%
     distinct() %>% ungroup() %>% data.frame()
   saveRDS(data_outcome_descr_save, "Output/OUTCOME_TREATMENT_MULTI.rds")
 } else {
-  saveRDS(data_outcome_descr_multi, "Output/OUTCOME_TREATMENT_MULTI.rds")
+  saveRDS(df_descr_outcome_multi, "Output/OUTCOME_TREATMENT_MULTI.rds")
+}
+
+if (file.exists("Output/OUTCOME_TREATMENT_MULTI.rds")) {
+  data_outcome_descr_hist <- readRDS("Output/OUTCOME_TREATMENT_MULTI.rds")
+  data_outcome_descr_save <- rbind(data_outcome_descr_hist, df_descr_outcomestand_multi) %>%
+    group_by(variable, cohort_prep , treatment_repl, treatment_def, extra_act_save) %>%
+    filter(time_stamp == max(time_stamp)) %>%
+    distinct() %>% ungroup() %>% data.frame()
+  saveRDS(data_outcome_descr_save, "Output/OUTCOME_TREATMENT_MULTI.rds")
+} else {
+  saveRDS(df_descr_outcomestand_multi, "Output/OUTCOME_TREATMENT_MULTI.rds")
 }
 
 
-#### Personality ####
+#%%%%%%%%%%%%%%%%%%%ä
+#### PERSONALITY ####
 #%%%%%%%%%%%%%%%%%%%#
 
+# NEU MIT ZAHLEN
 
-#### Ability ####
-#%%%%%%%%%%%%%%%#
+
+#%%%%%%%%%%%%%%%%%%%%#
+#### COMPETENCIES ####
+#%%%%%%%%%%%%%%%%%%%%#
+
+# differs across MICE data sets as they are imputed
+
+# competence variables
+vars_ability <- data_descr_multi %>% select(starts_with("comp_")) %>% colnames()
+
+# apply operation
+data_comp_descr_multi <- func_mean_comp(data_descr_multi, vars_ability,  "multi")
+
+if (file.exists("Output/Descriptives/OUTCOME_TREATMENT_MULTI.rds")) {
+  data_comp_descr_hist <- readRDS("Output/Descriptives/OUTCOME_TREATMENT_MULTI.rds")
+  data_comp_descr_save <- rbind(data_comp_descr_hist, data_comp_descr_multi) %>%
+    group_by(variable, cohort_prep , treatment_repl, treatment_def, extra_act_save) %>%
+    filter(time_stamp == max(time_stamp)) %>%
+    distinct() %>% ungroup() %>% data.frame()
+  saveRDS(data_comp_descr_save, "Output/Descriptives/OUTCOME_TREATMENT_MULTI.rds")
+} else {
+  saveRDS(data_comp_descr_multi, "Output/Descriptives/OUTCOME_TREATMENT_MULTI.rds")
+}
+
+
+
+
+#%%%%%%%%%%%%%%%%%%#
+#### MOTIVATION ####
+#%%%%%%%%%%%%%%%%%%#
+
+vars_motivation <- data_descr_multi %>% select(starts_with("motivation_degree")) %>% colnames()
+data_motiv_descr_multi <- func_mean_comp(data_descr_multi, vars_motivation, "multi")
+
+if (file.exists("Output/Descriptives/OUTCOME_TREATMENT_MULTI.rds")) {
+  data_outcome_descr_hist <- readRDS("Output/Descriptives/OUTCOME_TREATMENT_MULTI.rds")
+  data_outcome_descr_save <- rbind(data_outcome_descr_hist, data_motiv_descr_multi) %>%
+    group_by(variable, cohort_prep , treatment_repl, treatment_def, extra_act_save) %>%
+    filter(time_stamp == max(time_stamp)) %>%
+    distinct() %>% ungroup() %>% data.frame()
+  saveRDS(data_outcome_descr_save, "Output/Descriptives/OUTCOME_TREATMENT_MULTI.rds")
+} else {
+  saveRDS(data_motiv_descr_multi, "Output/Descriptives/OUTCOME_TREATMENT_MULTI.rds")
+}
+
+
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### EXTRACURRICULAR ACTIVITIES ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+data_extra_descr_multi <- func_mean_comp(data_descr_multi, "extracurricular_num", "multi")
+
+if (file.exists("Output/Descriptives/OUTCOME_TREATMENT_MULTI.rds")) {
+  data_outcome_descr_hist <- readRDS("Output/Descriptives/OUTCOME_TREATMENT_MULTI.rds")
+  data_outcome_descr_save <- rbind(data_outcome_descr_hist, data_extra_descr_multi) %>%
+    group_by(variable, cohort_prep , treatment_repl, treatment_def, extra_act_save) %>%
+    filter(time_stamp == max(time_stamp)) %>%
+    distinct() %>% ungroup() %>% data.frame()
+  saveRDS(data_outcome_descr_save, "Output/Descriptives/OUTCOME_TREATMENT_MULTI.rds")
+} else {
+  saveRDS(data_extra_descr_multi, "Output/Descriptives/OUTCOME_TREATMENT_MULTI.rds")
+}
 
 
