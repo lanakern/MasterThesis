@@ -191,7 +191,8 @@ if (cohort_prep == "controls_same_outcome") {
            starts_with("sport_"), grade_final, everything())
 } 
 
-
+# big five personality variables as numeric
+data_cati <- data_cati %>% mutate_at(vars(starts_with("bigfive")),funs(as.numeric))
 
 
 
