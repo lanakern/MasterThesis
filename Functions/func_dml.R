@@ -78,7 +78,12 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
   # )
   
   # SMALL GRIDS
-  lambda_val <- 100
+  if (mlalgo == "lasso") {
+    lambda_val <- 100
+  } else {
+    lambda_val <- 20 # for post-lasso as it is computationally more expensive
+  }
+  
   ## xgboost
   xgb_grid <- expand.grid(
     tree_depth = c(3, 6), # default: 6
@@ -389,7 +394,7 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
     # is wished to save (that is only for main model)
     if (S_rep == 1 & save_trimming == TRUE) {
       plot_common_support <- func_dml_common_support(treatment_setting, df_pred_all, min_trimming_all, max_trimming_all)
-      ggsave(paste0("Output/plot_common_support_", treatment_setting, "_", mlalgo, ".png"), plot_common_support)
+      ggsave(paste0("Output/DML/dml_plot_common_support_", treatment_setting, "_", mlalgo, ".png"), plot_common_support)
       
     }
     
