@@ -114,64 +114,76 @@ func_ml_rf <- function(treatment_setting, data_train, data_test, outcome, treatm
     #### PARAMETER TUNING ####
     #%%%%%%%%%%%%%%%%%%%%%%%%#
     
-    # remove trees from grid as trees are not tuned
-    rf_grid <- rf_grid %>% select(-trees) %>% distinct()
-    
-    
-    # parameter tuning via 5-fold CV
-    # this means that training data is again partitioned into 5 folds
-    K_folds_inner_m <- rsample::group_vfold_cv(
-      data = data_train, 
-      v = K, group = group, strata = all_of(treatment), balance = "observations"
-    )
-    K_folds_inner_g0 <- rsample::group_vfold_cv(
-      data = data_train_g0,  
-      v = K, group = group, strata = all_of(outcome), balance = "observations"
-    )
-    K_folds_inner_g1 <- rsample::group_vfold_cv(
-      data = data_train_g1,  
-      v = K, group = group, strata = all_of(outcome), balance = "observations"
-    )
-    
-    
-    # conduct parameter tuning
-    ## m(X)
-    rf_grid_search_m <- 
-      rf_workflow_m %>%
-      tune_grid(
-        # specify 5-fold CV
-        resamples = K_folds_inner_m,
-        # add parameter values used for tuning
-        grid = rf_grid,
-        # define performance metrics (only AUC is used to select the best model)
-        metrics = metric_set(roc_auc)
+    # only conducted if K > 1
+    if (K > 1) {
+      # remove trees from grid as trees are not tuned
+      rf_grid <- rf_grid %>% select(-trees) %>% distinct()
+      
+      
+      # parameter tuning via 5-fold CV
+      # this means that training data is again partitioned into 5 folds
+      K_folds_inner_m <- rsample::group_vfold_cv(
+        data = data_train, 
+        v = K, group = group, strata = all_of(treatment), balance = "observations"
       )
-    ## g(0, X)
-    rf_grid_search_g0 <- 
-      rf_workflow_g0 %>%
-      tune_grid(resamples = K_folds_inner_g0, grid = rf_grid, 
-                metrics = metric_set(rmse))
-    ## g(1, X)
-    rf_grid_search_g1 <- 
-      rf_workflow_g1 %>%
-      tune_grid(resamples = K_folds_inner_g1, grid = rf_grid, 
-                metrics = metric_set(rmse))
+      K_folds_inner_g0 <- rsample::group_vfold_cv(
+        data = data_train_g0,  
+        v = K, group = group, strata = all_of(outcome), balance = "observations"
+      )
+      K_folds_inner_g1 <- rsample::group_vfold_cv(
+        data = data_train_g1,  
+        v = K, group = group, strata = all_of(outcome), balance = "observations"
+      )
+      
+      
+      # conduct parameter tuning
+      ## m(X)
+      rf_grid_search_m <- 
+        rf_workflow_m %>%
+        tune_grid(
+          # specify 5-fold CV
+          resamples = K_folds_inner_m,
+          # add parameter values used for tuning
+          grid = rf_grid,
+          # define performance metrics (only AUC is used to select the best model)
+          metrics = metric_set(roc_auc)
+        )
+      ## g(0, X)
+      rf_grid_search_g0 <- 
+        rf_workflow_g0 %>%
+        tune_grid(resamples = K_folds_inner_g0, grid = rf_grid, 
+                  metrics = metric_set(rmse))
+      ## g(1, X)
+      rf_grid_search_g1 <- 
+        rf_workflow_g1 %>%
+        tune_grid(resamples = K_folds_inner_g1, grid = rf_grid, 
+                  metrics = metric_set(rmse))
+      
+      
+      # select best penalty parameter: parameter with highest AUC
+      rf_best_param_m <- rf_grid_search_m %>% select_best("roc_auc")
+      rf_best_param_g0 <- rf_grid_search_g0 %>% select_best("rmse")
+      rf_best_param_g1 <- rf_grid_search_g1 %>% select_best("rmse")
+      
+      
+      df_best_param <- data.frame(
+        "m_trees" = trees_sel, "m_mtry" = rf_best_param_m$mtry,
+        "m_min_n" = rf_best_param_m$min_n,
+        "g0_trees" = trees_sel, "g0_mtry" = rf_best_param_g0$mtry,
+        "g0_min_n" = rf_best_param_g0$min_n,
+        "g1_trees" = trees_sel, "g1_mtry" = rf_best_param_g1$mtry,
+        "g1_min_n" = rf_best_param_g1$min_n
+      )
+      
+    } else {
+      # default parameter
+      df_best_param <- data.frame(
+        "m_trees" = trees_sel, "m_mtry" = floor(sqrt(ncol(data_train))), "m_min_n" = 5,
+        "g0_trees" = trees_sel, "g0_mtry" = floor(ncol(data_train)/3), "g0_min_n" = 5,
+        "g1_trees" = trees_sel, "g1_mtry" = floor(ncol(data_train)/3), "g1_min_n" = 5
+      )
+    }
     
-    
-    # select best penalty parameter: parameter with highest AUC
-    rf_best_param_m <- rf_grid_search_m %>% select_best("roc_auc")
-    rf_best_param_g0 <- rf_grid_search_g0 %>% select_best("rmse")
-    rf_best_param_g1 <- rf_grid_search_g1 %>% select_best("rmse")
-    
-    
-    df_best_param <- data.frame(
-      "m_trees" = trees_sel, "m_mtry" = rf_best_param_m$mtry,
-      "m_min_n" = rf_best_param_m$min_n,
-      "g0_trees" = trees_sel, "g0_mtry" = rf_best_param_g0$mtry,
-      "g0_min_n" = rf_best_param_g0$min_n,
-      "g1_trees" = trees_sel, "g1_mtry" = rf_best_param_g1$mtry,
-      "g1_min_n" = rf_best_param_g1$min_n
-    )
     
     
     
@@ -387,83 +399,100 @@ func_ml_rf <- function(treatment_setting, data_train, data_test, outcome, treatm
     #### Parameter Tuning ####
     #%%%%%%%%%%%%%%%%%%%%%%%%#
     
-    # parameter tuning via 5-fold CV
-    # this means that training data is again partitioned into K-folds
-    K_folds_inner_m1 <- rsample::group_vfold_cv(
-      data = data_train, 
-      v = K, group = group, strata = all_of(treatment_sport_freq_weekly_atleast), balance = "observations"
-    )
-    K_folds_inner_m2 <- rsample::group_vfold_cv(
-      data = data_train, 
-      v = K, group = group, strata = all_of(treatment_sport_freq_monthly_less), balance = "observations"
-    )
-    K_folds_inner_m3 <- rsample::group_vfold_cv(
-      data = data_train, 
-      v = K, group = group, strata = all_of(treatment_sport_freq_never), balance = "observations"
-    )
-    
-    
-    K_folds_inner_g1 <- rsample::group_vfold_cv(
-      data = data_train_g1,  
-      v = K, group = group, strata = all_of(outcome), balance = "observations"
-    )
-    K_folds_inner_g2 <- rsample::group_vfold_cv(
-      data = data_train_g2,  
-      v = K, group = group, strata = all_of(outcome), balance = "observations"
-    )
-    K_folds_inner_g3 <- rsample::group_vfold_cv(
-      data = data_train_g3,  
-      v = K, group = group, strata = all_of(outcome), balance = "observations"
-    )
-    
-    # conduct parameter tuning
-    ## m(X)
-    rf_grid <- rf_grid %>% select(-trees)
-    
-    rf_grid_search_m1 <- 
-      rf_workflow_m1 %>%
-      tune_grid(resamples = K_folds_inner_m1, grid = rf_grid, metrics = metric_set(roc_auc))
-    rf_grid_search_m2 <- 
-      rf_workflow_m2 %>%
-      tune_grid(resamples = K_folds_inner_m2, grid = rf_grid, metrics = metric_set(roc_auc))
-    rf_grid_search_m3 <- 
-      rf_workflow_m3 %>%
-      tune_grid(resamples = K_folds_inner_m3, grid = rf_grid, metrics = metric_set(roc_auc))
-    ## g(D, X)
-    rf_grid_search_g1 <- 
-      rf_workflow_g1 %>%
-      tune_grid(resamples = K_folds_inner_g1, grid = rf_grid, metrics = metric_set(rmse))
-    rf_grid_search_g2 <- 
-      rf_workflow_g2 %>%
-      tune_grid(resamples = K_folds_inner_g2, grid = rf_grid, metrics = metric_set(rmse))
-    rf_grid_search_g3 <- 
-      rf_workflow_g3 %>%
-      tune_grid(resamples = K_folds_inner_g3, grid = rf_grid, metrics = metric_set(rmse))
-    
-    
-    # select best penalty parameter: parameter with highest AUC
-    rf_best_param_m1 <- rf_grid_search_m1 %>% select_best("roc_auc")
-    rf_best_param_m2 <- rf_grid_search_m2 %>% select_best("roc_auc")
-    rf_best_param_m3 <- rf_grid_search_m3 %>% select_best("roc_auc")
-    rf_best_param_g1 <- rf_grid_search_g1 %>% select_best("rmse")
-    rf_best_param_g2 <- rf_grid_search_g2 %>% select_best("rmse")
-    rf_best_param_g3 <- rf_grid_search_g3 %>% select_best("rmse")
-    
-    
-    df_best_param <- data.frame(
-      "m1_trees" = trees_sel, "m1_mtry" = rf_best_param_m1$mtry,
-      "m1_min_n" = rf_best_param_m1$min_n,
-      "m2_trees" = trees_sel, "m2_mtry" = rf_best_param_m2$mtry,
-      "m2_min_n" = rf_best_param_m2$min_n,
-      "m3_trees" = trees_sel, "m3_mtry" = rf_best_param_m3$mtry,
-      "m3_min_n" = rf_best_param_m3$min_n,
-      "g1_trees" = trees_sel, "g1_mtry" = rf_best_param_g1$mtry,
-      "g1_min_n" = rf_best_param_g1$min_n,
-      "g2_trees" = trees_sel, "g2_mtry" = rf_best_param_g1$mtry,
-      "g2_min_n" = rf_best_param_g1$min_n,
-      "g3_trees" = trees_sel, "g3_mtry" = rf_best_param_g1$mtry,
-      "g3_min_n" = rf_best_param_g1$min_n
-    )
+    if (K > 1) {
+      # parameter tuning via 5-fold CV
+      # this means that training data is again partitioned into K-folds
+      K_folds_inner_m1 <- rsample::group_vfold_cv(
+        data = data_train, 
+        v = K, group = group, strata = all_of(treatment_sport_freq_weekly_atleast), balance = "observations"
+      )
+      K_folds_inner_m2 <- rsample::group_vfold_cv(
+        data = data_train, 
+        v = K, group = group, strata = all_of(treatment_sport_freq_monthly_less), balance = "observations"
+      )
+      K_folds_inner_m3 <- rsample::group_vfold_cv(
+        data = data_train, 
+        v = K, group = group, strata = all_of(treatment_sport_freq_never), balance = "observations"
+      )
+      
+      
+      K_folds_inner_g1 <- rsample::group_vfold_cv(
+        data = data_train_g1,  
+        v = K, group = group, strata = all_of(outcome), balance = "observations"
+      )
+      K_folds_inner_g2 <- rsample::group_vfold_cv(
+        data = data_train_g2,  
+        v = K, group = group, strata = all_of(outcome), balance = "observations"
+      )
+      K_folds_inner_g3 <- rsample::group_vfold_cv(
+        data = data_train_g3,  
+        v = K, group = group, strata = all_of(outcome), balance = "observations"
+      )
+      
+      # conduct parameter tuning
+      ## m(X)
+      rf_grid <- rf_grid %>% select(-trees)
+      
+      rf_grid_search_m1 <- 
+        rf_workflow_m1 %>%
+        tune_grid(resamples = K_folds_inner_m1, grid = rf_grid, metrics = metric_set(roc_auc))
+      rf_grid_search_m2 <- 
+        rf_workflow_m2 %>%
+        tune_grid(resamples = K_folds_inner_m2, grid = rf_grid, metrics = metric_set(roc_auc))
+      rf_grid_search_m3 <- 
+        rf_workflow_m3 %>%
+        tune_grid(resamples = K_folds_inner_m3, grid = rf_grid, metrics = metric_set(roc_auc))
+      ## g(D, X)
+      rf_grid_search_g1 <- 
+        rf_workflow_g1 %>%
+        tune_grid(resamples = K_folds_inner_g1, grid = rf_grid, metrics = metric_set(rmse))
+      rf_grid_search_g2 <- 
+        rf_workflow_g2 %>%
+        tune_grid(resamples = K_folds_inner_g2, grid = rf_grid, metrics = metric_set(rmse))
+      rf_grid_search_g3 <- 
+        rf_workflow_g3 %>%
+        tune_grid(resamples = K_folds_inner_g3, grid = rf_grid, metrics = metric_set(rmse))
+      
+      
+      # select best penalty parameter: parameter with highest AUC
+      rf_best_param_m1 <- rf_grid_search_m1 %>% select_best("roc_auc")
+      rf_best_param_m2 <- rf_grid_search_m2 %>% select_best("roc_auc")
+      rf_best_param_m3 <- rf_grid_search_m3 %>% select_best("roc_auc")
+      rf_best_param_g1 <- rf_grid_search_g1 %>% select_best("rmse")
+      rf_best_param_g2 <- rf_grid_search_g2 %>% select_best("rmse")
+      rf_best_param_g3 <- rf_grid_search_g3 %>% select_best("rmse")
+      
+      
+      df_best_param <- data.frame(
+        "m1_trees" = trees_sel, "m1_mtry" = rf_best_param_m1$mtry,
+        "m1_min_n" = rf_best_param_m1$min_n,
+        "m2_trees" = trees_sel, "m2_mtry" = rf_best_param_m2$mtry,
+        "m2_min_n" = rf_best_param_m2$min_n,
+        "m3_trees" = trees_sel, "m3_mtry" = rf_best_param_m3$mtry,
+        "m3_min_n" = rf_best_param_m3$min_n,
+        "g1_trees" = trees_sel, "g1_mtry" = rf_best_param_g1$mtry,
+        "g1_min_n" = rf_best_param_g1$min_n,
+        "g2_trees" = trees_sel, "g2_mtry" = rf_best_param_g1$mtry,
+        "g2_min_n" = rf_best_param_g1$min_n,
+        "g3_trees" = trees_sel, "g3_mtry" = rf_best_param_g1$mtry,
+        "g3_min_n" = rf_best_param_g1$min_n
+      )
+    } else {
+      df_best_param <- data.frame(
+        "m1_trees" = trees_sel, "m1_mtry" = floor(sqrt(ncol(data_train))),
+        "m1_min_n" = 5,
+        "m2_trees" = trees_sel, "m2_mtry" = floor(sqrt(ncol(data_train))),
+        "m2_min_n" = 5,
+        "m3_trees" = trees_sel, "m3_mtry" = floor(sqrt(ncol(data_train))),
+        "m3_min_n" = 5,
+        "g1_trees" = trees_sel, "g1_mtry" = floor(ncol(data_train)/3),
+        "g1_min_n" = 5,
+        "g2_trees" = trees_sel, "g2_mtry" = floor(ncol(data_train)/3),
+        "g2_min_n" = 5,
+        "g3_trees" = trees_sel, "g3_mtry" = floor(ncol(data_train)/3),
+        "g3_min_n" = 5
+      )
+    }
     
     
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
