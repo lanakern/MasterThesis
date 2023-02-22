@@ -362,7 +362,7 @@ print(paste("Number of respondents before sample selection:", id_num_start))
 print(paste("Number of respondents after dropping students who do not participate in any extracurricular activity:", 
             id_num_adj_1))
 print(paste("Number of treatment periods:", id_treatment_periods_1))
-print(paste("Number of respondents after dropping students who are not in age range 17 to 30:", id_num_adj_2))
+print(paste("Number of respondents after dropping students who are not in age range 18 to 29:", id_num_adj_2))
 print(paste("Number of treatment periods:", id_treatment_periods_2))
 
 # number of respondents, number of rows, and number of columns after sample selection
