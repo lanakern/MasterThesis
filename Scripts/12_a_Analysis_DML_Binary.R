@@ -4,6 +4,9 @@
 
 # LAGS müssen raus, da sonst kein common support
 
+# track time
+start_time <- Sys.time()
+
 # set seed for reproducible results
 set.seed(1234)
 
@@ -132,19 +135,21 @@ dml_result_save <- dml_result_pooled %>%
     # number of treatment periods after trimming
     n_treats_min = min(unlist(lapply(lapply(dml_result_all, "[[" , "trimming"), "[[", "n_treats"))), 
     # add date
-    time_stamp = as.character(Sys.time())) %>%
+    time_stamp = as.character(Sys.time()),
+    # addt time
+    time_elapsed = Sys.time() - start_time) %>%
   cbind(dml_result_error) %>%
   # re-order columns
   select(cohort_prep, treatment_repl, treatment_def, extra_act, starts_with("model"), 
          n_treats_min, starts_with("num_pred"), everything()) %>%
-  relocate(time_stamp, .after = last_col()) # time-stamp is ordered last
+  relocate(time_elapsed, time_stamp, .after = last_col()) # time-stamp is ordered last
 
 
 # save estimation results
 dml_result_save <- as.data.frame(dml_result_save)
-if (file.exists("Output/ESTIMATION_RESULTS.xlsx")) {
+if (file.exists("Output/DML/DML_BINARY_ESTIMATION_RESULTS.xlsx")) {
   ## replace same estimations
-  dml_result_save_all <- read.xlsx("Output/ESTIMATION_RESULTS.xlsx", sheetName = "Sheet1")
+  dml_result_save_all <- read.xlsx("Output/DML/DML_BINARY_ESTIMATION_RESULTS.xlsx", sheetName = "Sheet1")
   dml_result_save_all <- rbind(dml_result_save_all, dml_result_save)
   cols_aggr <- dml_result_save_all %>%
     select(cohort_prep, treatment_repl, treatment_def, starts_with("model")) %>%
@@ -154,10 +159,10 @@ if (file.exists("Output/ESTIMATION_RESULTS.xlsx")) {
     filter(time_stamp == max(time_stamp)) %>%
     ungroup() %>% data.frame()
   ## save
-  write.xlsx(dml_result_save_all, "Output/ESTIMATION_RESULTS.xlsx", sheetName = "Sheet1",
+  write.xlsx(dml_result_save_all, "Output/DML/DML_BINARY_ESTIMATION_RESULTS.xlsx", sheetName = "Sheet1",
              row.names = FALSE, append = FALSE, showNA = FALSE)
 } else {
-  write.xlsx(dml_result_save, "Output/ESTIMATION_RESULTS.xlsx", row.names = FALSE)
+  write.xlsx(dml_result_save, "Output/DML/DML_BINARY_ESTIMATION_RESULTS.xlsx", row.names = FALSE)
 }
 
 
