@@ -514,12 +514,10 @@ for (prep_sel_num in 1:nrow(df_inputs)) {
 
 
 
-#%%%%%%%%%%%%%%%#
-#### RUN DML ####
-#%%%%%%%%%%%%%%%#
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### RUN DML: BINARY TREATMENT SETTING ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-
-#### BINARY TREATMENT SETTING ####
 
 treatment_setting <- "binary"
 
@@ -533,20 +531,53 @@ treatment_def <- main_treatment_def
 extra_act <- main_extra_act
 model_treatment <- "binary"
 model_type <- "all"
-model_k <- 4
-model_k_tuning <- 2
-model_s_rep <- 2
-model_trimming <- 0.01
 model_outcome <- "stand"
 model_controls <- "no_lags"
+model_trimming <- 0.01
+
+# for lasso and xgboost higher K as they are computationally faster
+model_k <- 4 # 4
+model_k_tuning <- 2 # 4
+model_s_rep <- 2 # 20
 
 
+## LASSO ##
 model_algo <- "lasso"
 source("Scripts/12_a_Analysis_DML_Binary.R") 
 
 
+## XGBoost ##
+model_algo <- "xgboost"
+source("Scripts/12_a_Analysis_DML_Binary.R") 
 
 
+
+## RANDOM FORESTS ##
+
+# for random forests smaller K and no parameter tuning as it is computationally expensive
+model_k <- 2 # 2
+model_k_tuning <- 1 # 1
+model_s_rep <- 2 # 2
+model_algo <- "randomforests"
+source("Scripts/12_a_Analysis_DML_Binary.R") 
+
+
+## POST-LASSO ##
+model_algo <- "post-lasso"
+source("Scripts/12_a_Analysis_DML_Binary.R") 
+
+
+
+#### ROBUSTNESS CHECKS ####
+#++++++++++++++++++++++++#
+
+
+
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### RUN DML: MULTIVALUED TREATMENT SETTING ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 
 
