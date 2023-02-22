@@ -524,19 +524,32 @@ for (prep_sel_num in 1:nrow(df_inputs)) {
 treatment_setting <- "binary"
 
 
-#### OWN FUNCTION ####
-#++++++++++++++++++++#
-
-# Baseline regression: 
-# -> Small data sets (with small amount of predictors)
-# -> binary treatment setting with weekly sport definition and downward replacement
-# -> lasso (parameter tuning of lambda with 10-fold CV) 
-# -> K = 5, S = 100, 
+#### MAIN MODEL ####
+#++++++++++++++++++#
 
 cohort_prep <- main_cohort_prep
 treatment_repl <- main_treatment_repl
 treatment_def <- main_treatment_def
 extra_act <- main_extra_act
+model_treatment <- "binary"
+model_type <- "all"
+model_k <- 4
+model_k_tuning <- 2
+model_s_rep <- 2
+model_trimming <- 0.01
+model_outcome <- "stand"
+model_controls <- "no_lags"
+
+
+model_algo <- "lasso"
+source("Scripts/12_a_Analysis_DML_Binary.R") 
+
+
+
+
+
+
+
 
 dml_num <- 1
 
