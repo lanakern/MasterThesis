@@ -292,8 +292,8 @@ func_ml_rf <- function(treatment_setting, data_train, data_test, outcome, treatm
   } else if (treatment_setting == "multi") {
     
     # ensure that treatment variables are factor
-    data_train <- data_train %>% mutate({{treatment}} := as.factor(!!sym(treatment))) 
-    data_test <- data_test %>% mutate({{treatment}} := as.factor(!!sym(treatment))) 
+    data_train <- data_train %>% mutate("treatment_sport_freq" = as.factor(treatment_sport_freq)) 
+    data_test <- data_test %>% mutate("treatment_sport_freq" = as.factor(treatment_sport_freq)) 
     
     data_train <- data_train %>% mutate("treatment_sport_freq_weekly_atleast" = as.factor(treatment_sport_freq_weekly_atleast))
     data_test <- data_test %>% mutate("treatment_sport_freq_weekly_atleast" = as.factor(treatment_sport_freq_weekly_atleast))
@@ -305,9 +305,9 @@ func_ml_rf <- function(treatment_setting, data_train, data_test, outcome, treatm
     data_test <- data_test %>% mutate("treatment_sport_freq_never" = as.factor(treatment_sport_freq_never))
     
     # separate training data for g(1, X), g(2, X), and g(3, X) prediction
-    data_train_g1 <- data_train %>% filter(!!sym(treatment) == 1)
-    data_train_g2 <- data_train %>% filter(!!sym(treatment) == 2)
-    data_train_g3 <- data_train %>% filter(!!sym(treatment) == 3)
+    data_train_g1 <- data_train %>% filter(treatment_sport_freq == 1)
+    data_train_g2 <- data_train %>% filter(treatment_sport_freq == 2)
+    data_train_g3 <- data_train %>% filter(treatment_sport_freq == 3)
     
     # specify the model: treatment is predicted via binary classification 
     # and outcome via regression
