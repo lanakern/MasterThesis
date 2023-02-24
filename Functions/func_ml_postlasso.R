@@ -211,8 +211,8 @@ func_ml_postlasso <- function(data_train, data_test, outcome, treatment, group, 
   
   data_train_final <- data_train %>% select(all_of(outcome), all_of(treatment), all_of(lasso_coef_all))
   data_train_final_m <- data_train_final %>% select(-all_of(outcome))
-  data_train_final_g0 <- data_train_final %>% filter(!!sym(treatment) == 0) %>% select(-all_of(treatment))
-  data_train_final_g1 <- data_train_final %>% filter(!!sym(treatment) == 0) %>% select(-all_of(treatment))
+  data_train_final_g0 <- data_train_final %>% filter(treatment_sport == 0) %>% select(-all_of(treatment))
+  data_train_final_g1 <- data_train_final %>% filter(treatment_sport == 1) %>% select(-all_of(treatment))
   
   data_test_final_m <- data_test %>% select(all_of(treatment), all_of(lasso_coef_all))
   data_test_final_g <- data_test %>% select(all_of(outcome), all_of(lasso_coef_all))
