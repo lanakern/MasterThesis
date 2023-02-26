@@ -37,6 +37,8 @@ func_ml_rf <- function(treatment_setting, data_train, data_test, outcome, treatm
     stop("Treatment setting: binary or multi")
   }
   
+  trees_sel <- unique(rf_grid$trees)[1]
+  
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
   #### BINARY TREATMENT SETTING ####
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -54,7 +56,6 @@ func_ml_rf <- function(treatment_setting, data_train, data_test, outcome, treatm
     # specify the model
     ## treatment is predicted via binary classification and outcome via regression
     # specify the model
-    trees_sel <- unique(rf_grid$trees)[1]
     rf_spec_m <- 
       rand_forest(trees = {{trees_sel}}, mtry = tune(), min_n = tune()) %>% 
       set_engine("randomForest") %>% 
