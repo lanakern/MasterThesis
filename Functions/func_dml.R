@@ -59,7 +59,12 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
                      trimming, save_trimming, probscore_separate = TRUE) {
   
   # define hyperparameters
-  num_X <- ncol(data) - 3 # number of controls (minus outcome, treatment, and group)
+  if (treatment_setting == "binary") {
+    num_X <- ncol(data) - 3 # number of controls (minus outcome, treatment, and group)
+  } else {
+    num_X <- ncol(data) - 6 # number of controls (minus outcome, treatment, three treatment dummies, and group)
+  }
+  
     ## lasso
   # lambda_val <- 1000
   #   ## xgboost
@@ -88,8 +93,8 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
   xgb_grid <- expand.grid(
     tree_depth = c(3, 6), # default: 6
     trees = c(15), # default: 15
-    learn_rate = c(0.01, 0.3), # default: 0.3
-    mtry = c(floor(sqrt(num_X)), round(num_X)), # default: p (X)
+    learn_rate = c(0.01, 0.1, 0.3), # default: 0.3
+    mtry = c(floor(sqrt(num_X)), round(num_X)/2, round(num_X)), # default: p (X)
     min_n = c(1) # default: 1
   )
   ## random forests
@@ -201,7 +206,10 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
         #++++++++++++++#
         
         # predict nuisance functions via lasso
-        pls_ml <- func_ml_postlasso(data_train, data_test, outcome, treatment, group, K_tuning, lambda_val)
+        pls_ml <- func_ml_postlasso(
+          treatment_setting = treatment_setting, data_train = data_train, data_test = data_test, 
+          outcome = outcome, treatment = treatment, group = group, K = K_tuning, lambda_val = lambda_val
+          )
         
         # append predictions to data frame
         data_pred <- pls_ml$pred
@@ -319,8 +327,11 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
       max_trimming_all <- c(max_trimming_all, max_trimming)
       
       # generate data frame with number of treatment periods kept
-      df_trimming <- data.frame("Repetition" = S_rep, "Fold" = fold_sel, 
-                                "n_treats" = nrow(data_pred))
+      df_trimming <- data.frame(
+        "Repetition" = S_rep, "Fold" = fold_sel, 
+        "min_trimming" = min_trimming, "max_trimming" = max_trimming,
+        "n_treats" = nrow(data_pred)
+        )
       df_trimming_all <- rbind(df_trimming_all, df_trimming)
       
       
@@ -494,23 +505,25 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
   # trimming: sum over folds
   df_trimming_all <- df_trimming_all %>%
     group_by(Repetition) %>%
-    summarize(n_treats = sum(n_treats))
+    summarize(n_treats = sum(n_treats), min_trimming = max(min_trimming), 
+              max_trimming = min(max_trimming))
   
   
   # number of predictors
-  df_pred_all <- df_pred_all %>% select(Repetition, Fold, starts_with("num_pred")) %>% distinct()
+  df_predictors_all <- df_pred_all %>% select(Repetition, Fold, starts_with("num_pred")) %>% distinct()
   
   
   # coefficients are only returned for lasso
   if (str_detect(mlalgo, "lasso")) {
     return(list("final" = df_result_all, "detail" = df_result_all_detailed,
                 "error" = df_error_all, "param" = df_param_all,
-                "trimming" = df_trimming_all, "predictors" = df_pred_all,
-                "coef" = df_coef_all))
+                "trimming" = df_trimming_all, "predictors" = df_predictors_all,
+                "pred" = df_pred_all, "coef" = df_coef_all))
   } else {
     return(list("final" = df_result_all, "detail" = df_result_all_detailed,
                 "error" = df_error_all, "param" = df_param_all,
-                "trimming" = df_trimming_all, "predictors" = df_pred_all))
+                "trimming" = df_trimming_all, "predictors" = df_predictors_all,
+                "pred" = df_pred_all))
   }
 
   
