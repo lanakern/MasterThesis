@@ -80,8 +80,9 @@ for (mice_data_sel in 1:5) {
   ape <- data_dml %>% filter(treatment_sport == 1) %>% pull(outcome_var) %>% mean() -
       data_dml %>% filter(treatment_sport == 0) %>% pull(outcome_var) %>% mean()
   
-  df_ape <- data.frame("MICE" = mice_data_sel, "APE" = ape)
-  df_ape_all <- rbind(df_ape_all, df_ape)
+  # same across mice data sets as no missing values are replaced
+  # df_ape <- data.frame("MICE" = mice_data_sel, "APE" = ape)
+  # df_ape_all <- rbind(df_ape_all, df_ape)
 
 
   #%%%%%%%%%%%%%%%%%%#
@@ -106,13 +107,18 @@ for (mice_data_sel in 1:5) {
     mlalgo = model_algo, trimming = model_trimming, save_trimming = save_trimming_sel
   )
   
+  # append APE
+  dml_result$ape <- ape
+  
   # append to full data frame
   dml_result_all <- append(dml_result_all, list(dml_result))
+  
 }
+
 
 # save results
 save_dml <- 
-  paste0("Output/DML/", model_algo, "_", model_type, "_", model_outcome, "_", str_replace_all(cohort_prep, "_", ""),
+  paste0("Output/DML/binary_", model_algo, "_", model_type, "_", model_outcome, "_", str_replace_all(cohort_prep, "_", ""),
          "_", treatment_def, "_", treatment_repl, extra_act_save, ".rds")
 
 saveRDS(dml_result_all, save_dml)
@@ -137,7 +143,7 @@ dml_result_save <- dml_result_pooled %>%
     # add date
     time_stamp = as.character(Sys.time()),
     # addt time
-    time_elapsed = Sys.time() - start_time) %>%
+    time_elapsed = as.character(Sys.time() - start_time)) %>%
   cbind(dml_result_error) %>%
   # re-order columns
   select(cohort_prep, treatment_repl, treatment_def, extra_act, starts_with("model"), 
