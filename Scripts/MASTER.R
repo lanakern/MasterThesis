@@ -103,6 +103,9 @@ library(janitor)  # for remove_constant() (-> dropping constant variables)
 if (!require("pROC")) install.packages("pROC")
 library(pROC) # for multiclass AUC
 
+if (!require("purrr")) install.packages("purrr")
+library(purrr) # for reduce function (union of variables)
+
 
 # set language for dates and times to German, since the NEPS month names
 # are written in German; otherwise date/time functions are not working
@@ -299,6 +302,8 @@ df_inputs_indiv <- df_inputs %>% select(cohort_prep, treatment_repl) %>% distinc
 
 for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
   
+  print(paste0("START COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs_indiv)))
+  
   # select data preparation possibilities
   df_inputs_sel <- df_inputs_indiv[prep_sel_num, ] # subset data
   cohort_prep <- df_inputs_sel$cohort_prep # select cohort prep preparation
@@ -328,6 +333,8 @@ for (cohort_prep_sel in unique(na.omit(df_inputs$cohort_prep))) {
   
   # select cohort prep
   cohort_prep <- cohort_prep_sel # select cohort prep preparation
+  
+  print(cohort_prep)
 
   # Prepare individual data sets
   source("Scripts/03_c_Prep_Sibling.R") # Sibling
@@ -355,6 +362,8 @@ for (cohort_prep_sel in unique(na.omit(df_inputs$cohort_prep))) {
 # rows and columns only differ across cohort_prep
 
 for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
+  
+  print(paste0("START COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs_indiv)))
   
   # select data preparation possibilities
   df_inputs_sel <- df_inputs_indiv[prep_sel_num, ] # subset data
@@ -555,7 +564,7 @@ source("Scripts/12_a_Analysis_DML_Binary.R")
 ## RANDOM FORESTS ##
 
 # for random forests smaller K and no parameter tuning as it is computationally expensive
-model_k <- 2 # 2
+model_k <- 2 # 2, evtl. 4
 model_k_tuning <- 1 # 1
 model_s_rep <- 2 # 2
 model_algo <- "randomforests"
@@ -563,7 +572,8 @@ source("Scripts/12_a_Analysis_DML_Binary.R")
 
 
 ## POST-LASSO ##
-model_algo <- "post-lasso"
+model_k_tuning <- 2 # parameter tuning
+model_algo <- "postlasso"
 source("Scripts/12_a_Analysis_DML_Binary.R") 
 
 
@@ -579,8 +589,54 @@ source("Scripts/12_a_Analysis_DML_Binary.R")
 #### RUN DML: MULTIVALUED TREATMENT SETTING ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
+treatment_setting <- "multi"
 
 
+#### MAIN MODEL ####
+#++++++++++++++++++#
+
+cohort_prep <- main_cohort_prep
+treatment_repl <- main_treatment_repl
+treatment_def <- main_treatment_def
+extra_act <- main_extra_act
+model_treatment <- "multi"
+model_type <- "all"
+model_outcome <- "stand"
+model_controls <- "no_lags"
+model_trimming <- 0.01
+probscore_separate <- TRUE
+
+# for lasso and xgboost higher K as they are computationally faster
+model_k <- 4 # 4
+model_k_tuning <- 2 # 4
+model_s_rep <- 2 # 20
+
+
+## LASSO ##
+multi_model_algo <- "lasso"
+source("Scripts/12_c_Analysis_DML_Multi.R") 
+
+## XGBoost ##
+multi_model_algo <- "xgboost"
+source("Scripts/12_c_Analysis_DML_Multi.R") 
+
+
+## Random Forests ##
+model_k <- 2 # 2, evtl. 4
+model_k_tuning <- 1 # 1
+model_s_rep <- 2 # 2
+multi_model_algo <- "randomforests"
+source("Scripts/12_c_Analysis_DML_Multi.R") 
+
+
+## Post-Lasso ##
+model_k_tuning <- 2 # 2
+multi_model_algo <- "postlasso"
+source("Scripts/12_c_Analysis_DML_Multi.R") 
+
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 dml_num <- 1
 
