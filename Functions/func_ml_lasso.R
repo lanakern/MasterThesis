@@ -264,9 +264,9 @@ func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome, tre
       "treatment" = data_test %>% pull(treatment), 
       "outcome" = data_test %>% pull(outcome),
       # number of predictors
-      "num_pred_m" = ncol(lasso_fit_final_m$pre$mold$predictors),
-      "num_pred_g0" = ncol(lasso_fit_final_g0$pre$mold$predictors),
-      "num_pred_g1" = ncol(lasso_fit_final_g1$pre$mold$predictors)
+      "num_pred_m" = nrow(lasso_coef_m),
+      "num_pred_g0" = nrow(lasso_coef_g0),
+      "num_pred_g1" = nrow(lasso_coef_g1) #ncol(lasso_fit_final_g1$pre$mold$predictors)
     )
     
     # return data frame with predictions
@@ -280,8 +280,8 @@ func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome, tre
   } else if (treatment_setting == "multi") {
     
     # ensure that treatment variables are factor
-    data_train <- data_train %>% mutate({{treatment}} := as.factor(!!sym(treatment))) 
-    data_test <- data_test %>% mutate({{treatment}} := as.factor(!!sym(treatment))) 
+    data_train <- data_train %>% mutate("treatment_sport_freq" = as.factor(treatment_sport_freq)) 
+    data_test <- data_test %>% mutate("treatment_sport_freq" = as.factor(treatment_sport_freq)) 
     
     data_train <- data_train %>% mutate("treatment_sport_freq_weekly_atleast" = as.factor(treatment_sport_freq_weekly_atleast))
     data_test <- data_test %>% mutate("treatment_sport_freq_weekly_atleast" = as.factor(treatment_sport_freq_weekly_atleast))
@@ -293,9 +293,9 @@ func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome, tre
     data_test <- data_test %>% mutate("treatment_sport_freq_never" = as.factor(treatment_sport_freq_never))
     
     # separate training data for g(1, X), g(2, X), and g(3, X) prediction
-    data_train_g1 <- data_train %>% filter(!!sym(treatment) == 1)
-    data_train_g2 <- data_train %>% filter(!!sym(treatment) == 2)
-    data_train_g3 <- data_train %>% filter(!!sym(treatment) == 3)
+    data_train_g1 <- data_train %>% filter(treatment_sport_freq == 1)
+    data_train_g2 <- data_train %>% filter(treatment_sport_freq == 2)
+    data_train_g3 <- data_train %>% filter(treatment_sport_freq == 3)
     
     # specify the model: treatment is predicted via binary classification 
     # and outcome via regression
@@ -386,7 +386,7 @@ func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome, tre
     #### Parameter Tuning ####
     #%%%%%%%%%%%%%%%%%%%%%%%%#
     
-    # parameter tuning via 5-fold CV
+    # parameter tuning via k-fold CV
     # this means that training data is again partitioned into K-folds
     K_folds_inner_m1 <- rsample::group_vfold_cv(
       data = data_train, 
@@ -554,6 +554,41 @@ func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome, tre
       fit(data_train_g3)
     
     
+    #%%%%%%%%%%%%%%%%%%%%#
+    #### Coefficients ####
+    #%%%%%%%%%%%%%%%%%%%%#
+    
+    # extract coefficients for treatment prediction
+    lasso_coef_m1 <- tidy(lasso_fit_final_m1) %>% as.data.frame()
+    lasso_coef_m1 <- lasso_coef_m1 %>% filter(estimate > 0) %>% mutate(model = "m") %>% select(-penalty)
+    
+    lasso_coef_m2 <- tidy(lasso_fit_final_m2) %>% as.data.frame()
+    lasso_coef_m2 <- lasso_coef_m2 %>% filter(estimate > 0) %>% mutate(model = "m") %>% select(-penalty)
+    
+    lasso_coef_m3 <- tidy(lasso_fit_final_m3) %>% as.data.frame()
+    lasso_coef_m3 <- lasso_coef_m3 %>% filter(estimate > 0) %>% mutate(model = "m") %>% select(-penalty)
+    
+    # extract coefficients for outcome prediction
+    lasso_coef_g1 <- tidy(lasso_fit_final_g1) %>% as.data.frame()
+    lasso_coef_g1 <- lasso_coef_g1 %>% filter(estimate > 0) %>% mutate(model = "g1") %>% select(-penalty)
+    
+    lasso_coef_g2 <- tidy(lasso_fit_final_g2) %>% as.data.frame()
+    lasso_coef_g2 <- lasso_coef_g2 %>% filter(estimate > 0) %>% mutate(model = "g2") %>% select(-penalty)
+    
+    lasso_coef_g3 <- tidy(lasso_fit_final_g3) %>% as.data.frame()
+    lasso_coef_g3 <- lasso_coef_g3 %>% filter(estimate > 0) %>% mutate(model = "g3") %>% select(-penalty)
+    
+    
+    # append extracted coefficients to final data frame
+    lasso_coef_all <- lasso_coef_m1
+    lasso_coef_all <- rbind(lasso_coef_all, lasso_coef_m2)
+    lasso_coef_all <- rbind(lasso_coef_all, lasso_coef_m3)
+    lasso_coef_all <- rbind(lasso_coef_all, lasso_coef_g1)
+    lasso_coef_all <- rbind(lasso_coef_all, lasso_coef_g2)
+    lasso_coef_all <- rbind(lasso_coef_all, lasso_coef_g3)
+    
+    
+    
     #%%%%%%%%%%%%%%%%%%%#
     #### Predictions ####
     #%%%%%%%%%%%%%%%%%%%#
@@ -587,12 +622,12 @@ func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome, tre
       "treatment" = data_test %>% pull(treatment), 
       "outcome" = data_test %>% pull(outcome),
       # number of predictors
-      "num_pred_m1" = ncol(lasso_fit_final_m1$pre$mold$predictors),
-      "num_pred_m2" = ncol(lasso_fit_final_m2$pre$mold$predictors),
-      "num_pred_m3" = ncol(lasso_fit_final_m3$pre$mold$predictors),
-      "num_pred_g1" = ncol(lasso_fit_final_g1$pre$mold$predictors),
-      "num_pred_g2" = ncol(lasso_fit_final_g2$pre$mold$predictors),
-      "num_pred_g3" = ncol(lasso_fit_final_g3$pre$mold$predictors)
+      "num_pred_m1" = nrow(lasso_coef_m1),
+      "num_pred_m2" = nrow(lasso_coef_m2),
+      "num_pred_m3" = nrow(lasso_coef_m3),
+      "num_pred_g1" = nrow(lasso_coef_g1),
+      "num_pred_g2" = nrow(lasso_coef_g2),
+      "num_pred_g3" = nrow(lasso_coef_g3)
     )
     
     
@@ -604,7 +639,7 @@ func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome, tre
  
     
     # return data frame with predictions
-    return(list("pred" = df_pred, "param" = df_best_param))
+    return(list("pred" = df_pred, "param" = df_best_param, "coef" = lasso_coef_all))
   } # close else-if from multi
   
 } # close function() 
