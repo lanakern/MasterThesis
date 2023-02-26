@@ -167,7 +167,7 @@ dml_final <-
   mutate(across(c(TE, SE, t, p), ~ mean(.))) %>%
   select(-MICE) %>% distinct() %>% as.data.frame()
 
-saveRDS(dml_final, "Output/DML/Function_knaus_binary.rds")
+saveRDS(dml_final, "Output/DML/FUNCTION_KNAUS_BINARY.rds")
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -307,7 +307,7 @@ dml_final_multi <-
   mutate(across(c(TE, SE, t, p), ~ mean(.))) %>%
   select(-MICE) %>% distinct() %>% as.data.frame()
 
-saveRDS(dml_final_multi, "Output/DML/Function_knaus_multi.rds")
+saveRDS(dml_final_multi, "Output/DML/FUNCTION_KNAUS_MULTI.rds")
 
 
 
