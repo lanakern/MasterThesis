@@ -158,23 +158,22 @@ dml_result_function_pooled <- dml_result_function_pooled %>%
 # save
 dml_result_save <- as.data.frame(dml_result_function_pooled)
 ## replace same estimations
-if (file.exists("Output/ESTIMATION_RESULTS_FUNCTION.xlsx")) {
-  dml_result_save_all <- read.xlsx("Output/ESTIMATION_RESULTS_FUNCTION.xlsx", sheetName = "Sheet1")
+if (file.exists("Output/DML/FUNCTION_DOUBLEML.rds")) {
+  dml_result_save_all <- readRDS("Output/DML/FUNCTION_DOUBLEML.rds")
   dml_result_save_all <- rbind(dml_result_save_all, dml_result_save)
   dml_result_save_all <- dml_result_save_all %>%
     group_by(across(starts_with("model"))) %>%
     filter(time_stamp == max(time_stamp)) %>%
     ungroup() %>% data.frame()
   ## save
-  write.xlsx(dml_result_save_all, "Output/ESTIMATION_RESULTS_FUNCTION.xlsx", sheetName = "Sheet1",
-             row.names = FALSE, append = FALSE, showNA = FALSE)
+  saveRDS(dml_result_save_all, "Output/DML/FUNCTION_DOUBLEML.rds")
 } else {
-  write.xlsx(dml_result_save, "Output/ESTIMATION_RESULTS_FUNCTION.xlsx", row.names = FALSE)
+  saveRDS(dml_result_save_all, "Output/DML/FUNCTION_DOUBLEML.rds")
 }
 
 
 # show estimation results
-read.xlsx("Output/ESTIMATION_RESULTS_FUNCTION.xlsx", sheetName = "Sheet1")
+readRDS("Output/DML/FUNCTION_DOUBLEML.rds")
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
