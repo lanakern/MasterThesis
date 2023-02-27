@@ -41,7 +41,7 @@ for (mice_data_sel in 1:5) {
   }
 
   load_data <- paste0(
-    "Data/Prep_11/prep_11_dml_multi_", model_type, "_", model_outcome,
+    "Data/Prep_11/prep_11_dml_multi_", model_type, "_", 
     "_", treatment_def, "_", treatment_repl, extra_act_save, "_mice", mice_data_sel, ".rds"
     )
 
@@ -53,13 +53,6 @@ for (mice_data_sel in 1:5) {
     data_dml <- data_dml %>% select(-c(ends_with("_lag")))
   } else {
     data_dml <- data_dml
-  }
-  
-  # outcome variable depends on selection
-  if (model_outcome == "level") {
-    outcome_var <- "outcome_grade"
-  } else if (model_outcome == "stand") {
-    outcome_var <- "outcome_grade_stand"
   }
   
   
