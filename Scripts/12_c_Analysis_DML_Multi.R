@@ -60,8 +60,14 @@ for (mice_data_sel in 1:5) {
   #### APE ####
   #%%%%%%%%%%%#
   
-  ape <- data_dml %>% filter(treatment_sport == 1) %>% pull(outcome_var) %>% mean() -
-    data_dml %>% filter(treatment_sport == 0) %>% pull(outcome_var) %>% mean()
+  df_ape <- data.frame(
+    "weekly_no" = data_dml %>% filter(treatment_sport_freq == 1) %>% pull(outcome_var) %>% mean() -
+      data_dml %>% filter(treatment_sport_freq == 3) %>% pull(outcome_var) %>% mean(),
+    "monthly_no" = data_dml %>% filter(treatment_sport_freq == 2) %>% pull(outcome_var) %>% mean() -
+      data_dml %>% filter(treatment_sport_freq == 3) %>% pull(outcome_var) %>% mean(),
+    "monthly_weekly" = data_dml %>% filter(treatment_sport_freq == 2) %>% pull(outcome_var) %>% mean() -
+      data_dml %>% filter(treatment_sport_freq == 1) %>% pull(outcome_var) %>% mean()
+  )
   
 
   #%%%%%%%%%%%%%%%%%%#
@@ -82,7 +88,7 @@ for (mice_data_sel in 1:5) {
   )
   
   # append APE
-  dml_result$ape <- ape
+  dml_result$ape <- df_ape
   
   # append to full data frame
   dml_result_all <- append(dml_result_all, list(dml_result))
