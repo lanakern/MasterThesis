@@ -58,51 +58,8 @@
 func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tuning, S, mlalgo, 
                      trimming, save_trimming, probscore_separate = TRUE) {
   
-  # define hyperparameters
-  if (treatment_setting == "binary") {
-    num_X <- ncol(data) - 3 # number of controls (minus outcome, treatment, and group)
-  } else {
-    num_X <- ncol(data) - 6 # number of controls (minus outcome, treatment, three treatment dummies, and group)
-  }
   
-    ## lasso
-  # lambda_val <- 1000
-  #   ## xgboost
-  # xgb_grid <- expand.grid(
-  #   tree_depth = c(3, 6, 9), # default: 6
-  #   trees = c(5, 15, 100), # default: 15
-  #   learn_rate = c(0.01, 0.1, 0.3), # default: 0.3
-  #   mtry = c(10, round(sqrt(num_X)), round(num_X)), # default: p (X)
-  #   min_n = c(1, 5) # default: 1
-  # )
-  #   ## random forests
-  # rf_grid <- expand.grid(
-  #   trees = c(1000), # default: 500
-  #   mtry = c(5, 10, floor(sqrt(num_X)), floor(num_X/3), round(num_X)), # default: floor(sqrt(num_X)) for classification and floor(num_X/3) for regression
-  #   min_n = c(1, 5, 10, 15) # default: 5 for regression and 10 for classification
-  # )
-  
-  # SMALL GRIDS
-  if (mlalgo == "lasso") {
-    lambda_val <- 100
-  } else {
-    lambda_val <- 20 # for post-lasso as it is computationally more expensive
-  }
-  
-  ## xgboost
-  xgb_grid <- expand.grid(
-    tree_depth = c(3, 6), # default: 6
-    trees = c(15), # default: 15
-    learn_rate = c(0.01, 0.1, 0.3), # default: 0.3
-    mtry = c(floor(sqrt(num_X)), round(num_X)/2, round(num_X)), # default: p (X)
-    min_n = c(1) # default: 1
-  )
-  ## random forests
-  rf_grid <- expand.grid(
-    trees = c(500), # default: 500
-    mtry = c(floor(sqrt(num_X)), floor(num_X/3), round(num_X)), # default: floor(sqrt(num_X)) for classification and floor(num_X/3) for regression
-    min_n = c(5) # default: 5 for regression and 10 for classification
-  )
+  ## FOR SAVING RESULTS ##
   
   # generate empty data frames
   df_pred_all <- data.frame()
@@ -132,11 +89,86 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
     APO_2_all <- c()
     APO_3_all <- c()
   }
-
-
   
-  # Accounting for uncertainty by repeating the process S times #
-  #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
+  
+  #### HYPERPARAMETERS ####
+  #+++++++++++++++++++++++#
+  
+  # number of predictors
+  if (treatment_setting == "binary") {
+    num_X <- ncol(data) - 3 # number of controls (minus outcome, treatment, and group)
+  } else {
+    num_X <- ncol(data) - 6 # number of controls (minus outcome, treatment, three treatment dummies, and group)
+  }
+  
+  ## (post-)lasso
+  if (mlalgo == "lasso") {
+    lambda_val <- 100
+  } else {
+    lambda_val <- 20 # for post-lasso as it is computationally more expensive
+  }
+  
+  ## xgboost
+  xgb_grid <- expand.grid(
+    tree_depth = c(3, 6), # default: 6
+    trees = c(15), # default: 15
+    learn_rate = c(0.01, 0.1, 0.3), # default: 0.3
+    mtry = c(floor(sqrt(num_X)), round(num_X)/2, round(num_X)), # default: p (X)
+    min_n = c(1) # default: 1
+  )
+  
+  ## random forests
+  rf_grid <- expand.grid(
+    trees = c(500), # default: 500
+    mtry = c(floor(sqrt(num_X)), floor(num_X/3), round(num_X)), # default: floor(sqrt(num_X)) for classification and floor(num_X/3) for regression
+    min_n = c(5) # default: 5 for regression and 10 for classification
+  )
+  
+  
+  #### STANDARDIZATION ####
+  #+++++++++++++++++++++++#
+  
+  # If lasso is selected, predictors need to be standardized.
+  # Otherwise, predictors are left as they are.
+  if (str_detect(mlalgo, "lasso")) {
+    # select predictors that are standardized
+    # -> all except outcome, treatment, and group variable
+    if (treatment_setting == "multi") {
+      data_cols <- data %>% 
+        select(-c(all_of(outcome), all_of(treatment), group, starts_with("treatment_sport_freq") & !ends_with("na"))) %>% 
+        colnames()
+    } else {
+      data_cols <- data %>% 
+        select(-c(all_of(outcome), all_of(treatment), group)) %>% 
+        colnames()
+    }
+    
+    # standardize features (mean zero and standard deviation of one)
+    data <- data %>%
+      recipe(.) %>%
+      update_role({{treatment}}, new_role = "outcome") %>%
+      step_normalize(all_of(data_cols)) %>%
+      prep() %>%
+      bake(new_data = NULL)
+    
+  } else {
+    
+    data <- data 
+  }
+  
+  # However in any case the outcome variable is standardized.
+  data <- data %>%
+    recipe(.) %>%
+    step_normalize(all_of(outcome)) %>%
+    prep() %>%
+    bake(new_data = NULL) %>% 
+    as.data.frame()
+  
+  
+  #### REPEATING THE PROCESS S TIMES ####
+  #+++++++++++++++++++++++++++++++++++++#
+  
+  # Accounting for uncertainty by repeating the process S times
   
   for (S_rep in 1:S) {
     
@@ -162,33 +194,7 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
       
       print(paste("Fold", fold_sel))
       
-      # if lasso is selected, predictors need to be standardized
-      # otherwise, predictors are left as they are
-      if (str_detect(mlalgo, "lasso")) {
-        # select predictors that are standardized
-        # -> all except outcome, treatment, and group variable
-        if (treatment_setting == "multi") {
-          data_cols <- data %>% 
-            select(-c(all_of(outcome), all_of(treatment), group, starts_with("treatment_sport_freq") & !ends_with("na"))) %>% 
-            colnames()
-        } else {
-          data_cols <- data %>% 
-            select(-c(all_of(outcome), all_of(treatment), group)) %>% 
-            colnames()
-        }
-        
-        # standardize features (mean zero and standard deviation of one)
-        data <- data %>%
-          recipe(.) %>%
-          update_role({{treatment}}, new_role = "outcome") %>%
-          step_normalize(all_of(data_cols)) %>%
-          prep() %>%
-          bake(new_data = NULL)
-      } else {
-        data <- data
-      }
 
-      data <- as.data.frame(data)
       # extract training and test data
       indices_fold_sel <- K_folds$splits[[fold_sel]]$in_id
       data_train <- data[indices_fold_sel, ]
