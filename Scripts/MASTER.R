@@ -521,18 +521,28 @@ for (prep_sel_num in 1:nrow(df_inputs)) {
 }
 
 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+# Next, the treatment effect estimation using DML is performed. Note that I
+# split this up (no loops as before) as this is VERY computationally
+# expensive!
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 #### RUN DML: BINARY TREATMENT SETTING ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-
 treatment_setting <- "binary"
 
+#%%%%%%%%%%%%%%%%%%%%%%%#
+#### OUTCOME: GRADES ####
+#%%%%%%%%%%%%%%%%%%%%%%%#
 
-#### MAIN MODEL ####
-#++++++++++++++++++#
+outcome_var <- "outcome_grade"
+
+
+## MAIN MODEL ##
+#++++++++++++++#
 
 cohort_prep <- main_cohort_prep
 treatment_repl <- main_treatment_repl
@@ -540,7 +550,6 @@ treatment_def <- main_treatment_def
 extra_act <- main_extra_act
 model_treatment <- "binary"
 model_type <- "all"
-model_outcome <- "stand"
 model_controls <- "no_lags"
 model_trimming <- 0.01
 
@@ -560,7 +569,6 @@ model_algo <- "xgboost"
 source("Scripts/12_a_Analysis_DML_Binary.R") 
 
 
-
 ## RANDOM FORESTS ##
 
 # for random forests smaller K and no parameter tuning as it is computationally expensive
@@ -578,8 +586,15 @@ source("Scripts/12_a_Analysis_DML_Binary.R")
 
 
 
-#### ROBUSTNESS CHECKS ####
-#++++++++++++++++++++++++#
+## ROBUSTNESS CHECKS ##
+#+++++++++++++++++++++#
+
+
+
+
+#%%%%%%%%%%%%%%%%%%%%%%#####%#
+#### OUTCOME: PERSONALITY ####
+#%%%%%%%%%%%%%%%%%%%%%%#####%#
 
 
 
@@ -590,6 +605,13 @@ source("Scripts/12_a_Analysis_DML_Binary.R")
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 treatment_setting <- "multi"
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%#
+#### OUTCOME: GRADES ####
+#%%%%%%%%%%%%%%%%%%%%%%%#
+
+outcome_var <- "outcome_grade"
 
 
 #### MAIN MODEL ####
