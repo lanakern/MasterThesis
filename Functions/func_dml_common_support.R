@@ -66,14 +66,14 @@ func_dml_common_support <- function(treatment_setting, data_pred, min_trimming, 
                                TRUE ~ "Never")) %>%
       ggplot() +
       # histogram
-      geom_histogram(aes(y = ..density.., x = prob, binwidth = 0.01, fill = treatment_label), alpha = 0.6) +
+      geom_histogram(aes(y = ..density.., x = prob, fill = treatment_label), alpha = 0.6, binwidth = 0.01) +
       # bar colors
       scale_fill_manual(values = c("darkgreen", "grey38", "darkblue")) +
-      # facet
-      facet_wrap(~ class, ncol = 1) +
       # trimming thresholds
       geom_vline(xintercept = min_trimming, linetype = "longdash", color = "black", size = 0.5) +
       geom_vline(xintercept = max_trimming, linetype = "longdash", color = "black", size = 0.5) + 
+      # facet
+      facet_wrap(~ class, ncol = 1) +
       # aesthetics
       xlab("Propensity Score") + 
       ylab("Density") + 
