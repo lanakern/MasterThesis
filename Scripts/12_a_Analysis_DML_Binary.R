@@ -40,33 +40,23 @@ for (mice_data_sel in 1:5) {
     ## cohort prep
   if (cohort_prep == "controls_same_outcome") {
     load_data <- 
-      paste0("Data/Prep_11/prep_11_dml_binary_", model_type, "_", model_outcome,
-             "_", treatment_def, "_", treatment_repl, extra_act_save, "_mice", mice_data_sel, ".rds")
+      paste0("Data/Prep_11/prep_11_dml_binary_", model_type, "_", treatment_def, 
+             "_", treatment_repl, extra_act_save, "_mice", mice_data_sel, ".rds")
   } else {
     load_data <- 
-      paste0("Data/Prep_11/prep_11_dml_binary_", model_type, "_", model_outcome,
-             "_", treatment_def, "_", treatment_repl, extra_act_save, "robustcheck_mice", mice_data_sel, ".rds")
+      paste0("Data/Prep_11/prep_11_dml_binary_", model_type, "_", treatment_def, 
+             "_", treatment_repl, extra_act_save, "robustcheck_mice", mice_data_sel, ".rds")
   }
   
-  load_data <- str_replace(load_data, "_level", "") # drop level
   data_dml <- readRDS(load_data)
   
   if (model_controls == "no_lags") {
-    data_dml <- data_dml %>% select(-c(ends_with("_lag")))
+    data_dml <- data_dml %>% select(-c(ends_with("_lag"))) %>% as.data.frame()
   } else {
-    data_dml <- data_dml
+    data_dml <- data_dml %>% as.data.frame()
   }
   
-  # outcome variable depends on selection
-  if (model_outcome == "level") {
-    outcome_var <- "outcome_grade"
-  } else if (model_outcome == "stand") {
-    outcome_var <- "outcome_grade_stand"
-  }
-  
-  data_dml <- data_dml %>% as.data.frame()
-  
-  
+
   #%%%%%%%%%%%#
   #### APE ####
   #%%%%%%%%%%%#
