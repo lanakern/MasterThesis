@@ -560,13 +560,13 @@ func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome, tre
     
     # extract coefficients for treatment prediction
     lasso_coef_m1 <- tidy(lasso_fit_final_m1) %>% as.data.frame()
-    lasso_coef_m1 <- lasso_coef_m1 %>% filter(estimate > 0) %>% mutate(model = "m") %>% select(-penalty)
+    lasso_coef_m1 <- lasso_coef_m1 %>% filter(estimate > 0) %>% mutate(model = "m1") %>% select(-penalty)
     
     lasso_coef_m2 <- tidy(lasso_fit_final_m2) %>% as.data.frame()
-    lasso_coef_m2 <- lasso_coef_m2 %>% filter(estimate > 0) %>% mutate(model = "m") %>% select(-penalty)
+    lasso_coef_m2 <- lasso_coef_m2 %>% filter(estimate > 0) %>% mutate(model = "m2") %>% select(-penalty)
     
     lasso_coef_m3 <- tidy(lasso_fit_final_m3) %>% as.data.frame()
-    lasso_coef_m3 <- lasso_coef_m3 %>% filter(estimate > 0) %>% mutate(model = "m") %>% select(-penalty)
+    lasso_coef_m3 <- lasso_coef_m3 %>% filter(estimate > 0) %>% mutate(model = "m3") %>% select(-penalty)
     
     # extract coefficients for outcome prediction
     lasso_coef_g1 <- tidy(lasso_fit_final_g1) %>% as.data.frame()
