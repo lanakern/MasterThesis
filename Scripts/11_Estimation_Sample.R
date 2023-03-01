@@ -58,7 +58,8 @@ for (mice_data_sel in 1:5) {
     # in the cross-fitting procedure
     mutate(group = as.integer(factor(id_t,levels = unique(id_t))))  %>%
     select(-c(id_t, starts_with("interview_date"), treatment_period, 
-              starts_with("na_count"), ends_with("stand"), ends_with("stand_lag")))
+              starts_with("na_count"), ends_with("stand"), ends_with("stand_lag"),
+              ends_with("_cat")))
   
   # ensure all character variables are dropped
   treatment_sport_freq <- data_final$treatment_sport_freq # keep
