@@ -65,6 +65,8 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
   df_pred_all <- data.frame()
   df_param_all <- data.frame()
   df_coef_all <- data.frame()
+  data_cov_bal_fold <- list()
+  data_cov_bal_rep <- list()
   df_cov_bal_all <- list()
   df_error_all <- data.frame()
   df_result_all_detailed <- data.frame()
@@ -106,7 +108,7 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
   if (mlalgo == "lasso") {
     lambda_val <- 100
   } else {
-    lambda_val <- 20 # for post-lasso as it is computationally more expensive
+    lambda_val <- 5 # for post-lasso as it is computationally more expensive
   }
   
   ## xgboost
@@ -235,16 +237,6 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
           select(Repetition, Fold, everything())
         df_coef_all <- rbind(df_coef_all, data_coef)
         
-        # append covariate balance data frame
-        data_cov_bal <- pls_ml$cov_balance
-        data_cov_bal[["pred"]] <- data_cov_bal[["pred"]] %>% 
-          mutate(Fold = fold_sel, Repetition = S_rep) %>%
-          select(Repetition, Fold, everything())
-        data_cov_bal[["controls"]] <- data_cov_bal[["controls"]] %>% 
-          mutate(Fold = fold_sel, Repetition = S_rep) %>%
-          select(Repetition, Fold, everything())
-        df_cov_bal_all[[fold_sel]] <- data_cov_bal
-        
       } else if (mlalgo == "lasso") {
         
         ## LASSO ##
@@ -357,7 +349,6 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
       #+++++++++++++++++++++++++++#
       
       # only prepare data set for postlasso
-      
       if (mlalgo == "postlasso") {
         # extract coef
         pls_coef_keep <- unique(pls_ml$coef$term)
@@ -371,8 +362,7 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
           mutate(Fold = fold_sel, Repetition = S_rep) %>%
           select(Repetition, Fold, everything())
         
-        data_cov_bal_pred_all <- rbind(data_cov_bal_pred_all, data_cov_bal_pred)
-        data_cov_bal_x_all <- rbind(data_cov_bal_x_all, data_cov_bal_x)
+        data_cov_bal_fold[[fold_sel]] <- list("pred" = data_cov_bal_pred, "controls" = data_cov_bal_x)
       }
 
       
@@ -509,6 +499,15 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
       df_result <- rbind(df_result_ATE, df_result_ATTE, df_result_AP01, df_result_AP02, df_result_AP03) 
       df_result_all_detailed <- rbind(df_result_all_detailed, df_result)
     }
+    
+
+    ## Covariate Balancing ##
+    #+++++++++++++++++++++++#
+    
+    # only prepare data set for postlasso
+    if (mlalgo == "postlasso") {
+      data_cov_bal_rep[[S_rep]] <- data_cov_bal_fold
+    }
 
     
   } # close iteration over S repetitions  
@@ -555,8 +554,7 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
   df_predictors_all <- df_pred_all %>% select(Repetition, Fold, starts_with("num_pred")) %>% distinct()
   
   # covariate balance
-  data_cov_bal <- list("pred" = data_cov_bal_pred_all, "controls" = data_cov_bal_x_all)
-  df_cov_bal_all[[mice_data_sel]] <- data_cov_bal
+  df_cov_bal_all[[mice_data_sel]] <- data_cov_bal_rep
   
   # coefficients are only returned for lasso
   if (str_detect(mlalgo, "lasso")) {
