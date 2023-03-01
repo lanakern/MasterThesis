@@ -82,7 +82,7 @@ for (mice_data_sel in 1:5) {
   # only save common support plot for main model
   if (cohort_prep == main_cohort_prep & treatment_def == main_treatment_def  &
       treatment_repl == main_treatment_repl & extra_act == main_extra_act & 
-      model_type == main_model_type & model_outcome == main_model_outcome & 
+      model_type == main_model_type & 
       model_controls == main_model_controls & model_treatment == main_model_treatment) {
     save_trimming_sel <- TRUE
   } else {
@@ -108,7 +108,7 @@ for (mice_data_sel in 1:5) {
 
 # save results
 save_dml <- 
-  paste0("Output/DML/binary_", model_algo, "_", model_type, "_", model_outcome, "_", str_replace_all(cohort_prep, "_", ""),
+  paste0("Output/DML/binary_", model_algo, "_", model_type, "_", str_replace_all(cohort_prep, "_", ""),
          "_", treatment_def, "_", treatment_repl, extra_act_save, ".rds")
 
 saveRDS(dml_result_all, save_dml)
@@ -127,7 +127,7 @@ dml_result_save <- dml_result_pooled %>%
     # append user selections
     model_type = model_type, model_algo = model_algo, model_k = model_k, 
     model_k_tuning = model_k_tuning, model_s_rep = model_s_rep, model_trimming = model_trimming, 
-    model_outcome = model_outcome, model_controls = model_controls,
+    model_controls = model_controls,
     # number of treatment periods after trimming
     n_treats_min = min(unlist(lapply(lapply(dml_result_all, "[[" , "trimming"), "[[", "n_treats"))), 
     # add date
