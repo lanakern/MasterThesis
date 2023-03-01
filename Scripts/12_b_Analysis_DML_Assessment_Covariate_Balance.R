@@ -1,6 +1,6 @@
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-#### ASSESSMENT OF COVARIATE BALANCE ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### ASSESSMENT OF COVARIATE BALANCE AND MAIN DRIVERS OF SELECTION ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 
 
@@ -11,11 +11,16 @@
 # load data
 data_dml_binary <- readRDS("Data/Prep_11/prep_11_dml_binary_all_stand_weekly_down_extradrop_mice1.rds")
 
+dml_result_all <- 
+  readRDS("Output/DML/binary_postlasso_all_controlssameoutcome_weekly_down_extradrop.rds")
+
+mice_data_sel <- 1
+df_pred_binary <- dml_result_all[[mice_data_sel]]$cov_balance[[1]][[1]][[1]]$pred
+df_controls_binary <- dml_result_all[[mice_data_sel]]$cov_balance[[1]][[1]][[1]]$controls
+
+
 # calculate weights #
 #+++++++++++++++++++#
-
-data_cov_bal_binary <- readRDS("TEST_COV_BAL.rds")
-data_cov_bal_binary <- data_cov_bal_binary[[1]]
 
 func_weights_normalize <- function(w) {
   w <- w / sum(w) * length(w)
@@ -24,12 +29,12 @@ func_weights_normalize <- function(w) {
 
 
 # extract and prepare information
-prob_score <- as.matrix(data_cov_bal_binary$pred$m)
+prob_score <- as.matrix(df_pred_binary$m)
 prob_score <- cbind(1 - prob_score, prob_score)
-y <- as.matrix(data_cov_bal_binary$pred$outcome, ncol = 1) 
-t <- data_cov_bal_binary$pred$treatment %>% as.character() %>% as.numeric() 
+y <- as.matrix(df_pred_binary$outcome, ncol = 1) 
+t <- df_pred_binary$treatment %>% as.character() %>% as.numeric() 
 t <- cbind(1 - t, t)
-x <- data_cov_bal_binary$controls %>% select(-c(Fold, Repetition)) %>% as.matrix()
+x <- df_controls_binary %>% select(-c(Fold, Repetition)) %>% mutate(intercept = 1) %>% as.matrix()
 n <- nrow(t)
 num_t <- ncol(t)
 
@@ -39,16 +44,16 @@ w_ols <- matrix(0, n, num_t)
 w_adj <- matrix(0, n, num_t)
 
 for (i in 1:num_t) {
-  xx <- add_intercept(x)
   
-  # IPW weights
+  # IPW weights (w_t^p)
   w_ipw[,i] <- as.matrix(t[,i] / prob_score[,i], ncol = 1)
   w_ipw[,i] <- func_weights_normalize(w_ipw[,i])
   
-  # Get X'X for treated
-  XtX <- crossprod(xx[t[,i] == 1,])
-  # Get X(X'X)-1 for treated
-  XXtX <- xx[t[,i] == 1,] %*% inv(XtX)
+  #  X_t'X_t 
+  XtX <- crossprod(x[t[,i] == 1,])
+  
+  # X_t(X_t'X_t)-1 for treated
+  XXtX <- x[t[,i] == 1,] %*% inv(XtX)
   
   for (r in 1:n) {
     w_ol <- matrix(0, n, 1)
