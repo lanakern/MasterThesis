@@ -61,10 +61,11 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
   
   ## FOR SAVING RESULTS ##
   
-  # generate empty data frames
+  # generate empty data frames / lists
   df_pred_all <- data.frame()
   df_param_all <- data.frame()
   df_coef_all <- data.frame()
+  df_cov_bal_all <- list()
   df_error_all <- data.frame()
   df_result_all_detailed <- data.frame()
   df_trimming_all <- data.frame()
@@ -234,6 +235,16 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
           select(Repetition, Fold, everything())
         df_coef_all <- rbind(df_coef_all, data_coef)
         
+        # append covariate balance data frame
+        data_cov_bal <- pls_ml$cov_balance
+        data_cov_bal[["pred"]] <- data_cov_bal[["pred"]] %>% 
+          mutate(Fold = fold_sel, Repetition = S_rep) %>%
+          select(Repetition, Fold, everything())
+        data_cov_bal[["controls"]] <- data_cov_bal[["controls"]] %>% 
+          mutate(Fold = fold_sel, Repetition = S_rep) %>%
+          select(Repetition, Fold, everything())
+        df_cov_bal_all[[fold_sel]] <- data_cov_bal
+        
       } else if (mlalgo == "lasso") {
         
         ## LASSO ##
@@ -339,6 +350,31 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
         "n_treats" = nrow(data_pred)
         )
       df_trimming_all <- rbind(df_trimming_all, df_trimming)
+      
+      
+      #+++++++++++++++++++++++++++#
+      #### Covariate Balancing ####
+      #+++++++++++++++++++++++++++#
+      
+      # only prepare data set for postlasso
+      
+      if (mlalgo == "postlasso") {
+        # extract coef
+        pls_coef_keep <- unique(pls_ml$coef$term)
+        pls_coef_keep <- pls_coef_keep[pls_coef_keep %in% colnames(data_test)]
+        
+        # data frame for covariate balance assessment with only controls
+        # selected in post-lasso
+        data_cov_bal_pred <- data_pred %>% select(-starts_with("num"))
+        data_cov_bal_x <- data_test %>% 
+          select(all_of(pls_coef_keep)) %>%
+          mutate(Fold = fold_sel, Repetition = S_rep) %>%
+          select(Repetition, Fold, everything())
+        
+        data_cov_bal_pred_all <- rbind(data_cov_bal_pred_all, data_cov_bal_pred)
+        data_cov_bal_x_all <- rbind(data_cov_bal_x_all, data_cov_bal_x)
+      }
+
       
       
       #+++++++++++++++++++++#
@@ -518,13 +554,25 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
   # number of predictors
   df_predictors_all <- df_pred_all %>% select(Repetition, Fold, starts_with("num_pred")) %>% distinct()
   
+  # covariate balance
+  data_cov_bal <- list("pred" = data_cov_bal_pred_all, "controls" = data_cov_bal_x_all)
+  df_cov_bal_all[[mice_data_sel]] <- data_cov_bal
   
   # coefficients are only returned for lasso
   if (str_detect(mlalgo, "lasso")) {
-    return(list("final" = df_result_all, "detail" = df_result_all_detailed,
-                "error" = df_error_all, "param" = df_param_all,
-                "trimming" = df_trimming_all, "predictors" = df_predictors_all,
-                "pred" = df_pred_all, "coef" = df_coef_all))
+    # for post-lasso also covariate balance is returned
+    if (mlalgo == "postlasso") {
+      return(list("final" = df_result_all, "detail" = df_result_all_detailed,
+                  "error" = df_error_all, "param" = df_param_all,
+                  "trimming" = df_trimming_all, "predictors" = df_predictors_all,
+                  "pred" = df_pred_all, "coef" = df_coef_all, 
+                  "cov_balance" = df_cov_bal_all))
+    } else {
+      return(list("final" = df_result_all, "detail" = df_result_all_detailed,
+                  "error" = df_error_all, "param" = df_param_all,
+                  "trimming" = df_trimming_all, "predictors" = df_predictors_all,
+                  "pred" = df_pred_all, "coef" = df_coef_all))
+    }
   } else {
     return(list("final" = df_result_all, "detail" = df_result_all_detailed,
                 "error" = df_error_all, "param" = df_param_all,
@@ -532,6 +580,4 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
                 "pred" = df_pred_all))
   }
 
-  
-  
 }
