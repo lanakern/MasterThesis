@@ -42,7 +42,7 @@ for (mice_data_sel in 1:5) {
 
   load_data <- paste0(
     "Data/Prep_11/prep_11_dml_multi_", model_type, "_", 
-    "_", treatment_def, "_", treatment_repl, extra_act_save, "_mice", mice_data_sel, ".rds"
+    treatment_def, "_", treatment_repl, extra_act_save, "_mice", mice_data_sel, ".rds"
     )
 
   load_data <- str_replace(load_data, "_level", "") # drop level
@@ -97,8 +97,8 @@ for (mice_data_sel in 1:5) {
 
 # save results
 save_dml <- 
-  paste0("Output/DML/", treatment_setting, "_", multi_model_algo, "_", main_model_type, "_", 
-         main_model_outcome, "_", str_replace_all(main_cohort_prep, "_", ""),
+  paste0("Output/DML/", treatment_setting, "_", multi_model_algo, "_", main_model_type, 
+         "_", str_replace_all(main_cohort_prep, "_", ""),
          "_", main_treatment_def, "_", main_treatment_repl, extra_act_save, ".rds")
 
 saveRDS(dml_result_all, save_dml)
@@ -118,8 +118,7 @@ dml_result_save <- dml_result_pooled %>%
     # append user selections
     model_type = main_model_type, model_algo = multi_model_algo, model_k = main_model_k, 
     model_k_tuning = main_model_k_tuning, model_s_rep = main_model_s_rep, 
-    model_trimming = main_model_trimming, model_outcome = main_model_outcome, 
-    model_controls = main_model_controls,
+    model_trimming = main_model_trimming, model_controls = main_model_controls,
     # number of treatment periods after trimming
     n_treats_min = min(unlist(lapply(lapply(dml_result_all, "[[" , "trimming"), "[[", "n_treats"))), 
     # type of model generation
