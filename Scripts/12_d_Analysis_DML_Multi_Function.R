@@ -192,12 +192,12 @@ for (mice_data_sel in 1:5) {
   }
   if (cohort_prep == "controls_same_outcome") {
     load_data <- 
-      paste0("Data/Prep_11/prep_11_dml_multi_", model_type, "_", model_outcome,
-             "_", treatment_def, "_", treatment_repl, extra_act_save, "_mice", mice_data_sel, ".rds")
+      paste0("Data/Prep_11/prep_11_dml_multi_", model_type, "_", 
+             treatment_def, "_", treatment_repl, extra_act_save, "_mice", mice_data_sel, ".rds")
   } else {
     load_data <- 
-      paste0("Data/Prep_11/prep_11_dml_multi_", model_type, "_", model_outcome,
-             "_", treatment_def, "_", treatment_repl, extra_act_save, "robustcheck_mice", mice_data_sel, ".rds")
+      paste0("Data/Prep_11/prep_11_dml_multi_", model_type, "_", 
+             treatment_def, "_", treatment_repl, extra_act_save, "robustcheck_mice", mice_data_sel, ".rds")
   }
   load_data <- str_replace(load_data, "_level", "") # drop level
   data_dml <- readRDS(load_data)
@@ -210,14 +210,7 @@ for (mice_data_sel in 1:5) {
   
   # drop other treatment_freq columns
   data_dml <- data_dml %>% select(-c(starts_with("treatment_sport_freq_") & !ends_with("_na")))
-  
-  # outcome variable depends on selection
-  if (model_outcome == "level") {
-    outcome_var <- "outcome_grade"
-  } else if (model_outcome == "stand") {
-    outcome_var <- "outcome_grade_stand"
-  }
-  
+
   # adjust column names because in function, e.g. brackets make problems
   colnames(data_dml) <- str_replace_all(colnames(data_dml), "\\(", "")
   colnames(data_dml) <- str_replace_all(colnames(data_dml), "\\)", "")
