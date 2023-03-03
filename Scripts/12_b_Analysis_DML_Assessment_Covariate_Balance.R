@@ -2,25 +2,267 @@
 #### ASSESSMENT OF COVARIATE BALANCE AND MAIN DRIVERS OF SELECTION ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
+#++
+# by Lana Kern
+#++ 
+# In this file, covariate balancing and the main drivers of selection are
+# assessed by calculating standardized differences following Yang et al (2016)
+# and Knaus (2018).
+# -> Standardization factor is the same before and after matching to ensure
+# changes in the mean difference are not confounded by changes in the 
+# standard deviation of the covariate. 
+#++ 
+# Sources:
+# -> https://cran.r-project.org/web/packages/cobalt/vignettes/cobalt.html
+# -> https://cran.r-project.org/web/packages/MatchIt/vignettes/assessing-balance.html
+# -> Thoemmes and Kim (2011)
+# -> Knaus (2018)
+#++
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 #### BINARY TREATMENT SETTING ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-# load data
-data_dml_binary <- readRDS("Data/Prep_11/prep_11_dml_binary_all_stand_weekly_down_extradrop_mice1.rds")
 
+#### Prepare Data ####
+#++++++++++++++++++++#
+
+# load covariate balance results from post-lasso (MICE can be identified via the list)
 dml_result_all <- 
   readRDS("Output/DML/binary_postlasso_all_controlssameoutcome_weekly_down_extradrop.rds")
-
-mice_data_sel <- 1
-df_pred_binary <- dml_result_all[[mice_data_sel]]$cov_balance[[1]][[1]][[1]]$pred
-df_controls_binary <- dml_result_all[[mice_data_sel]]$cov_balance[[1]][[1]][[1]]$controls
+#dml_result_all[["MICE"]]$cov_balance[["MICE"]][["REP"]][["FOLD"]]
 
 
-# calculate weights #
-#+++++++++++++++++++#
+# iterate over mice data frames
+df_smd_binary_all <- data.frame()
+df_smd_all_binary_all <- data.frame()
+for (mice_data_sel in 1:5) {
+  
+  # load and standardize original data
+  data_dml_binary <- 
+    readRDS(paste0("Data/Prep_11/prep_11_dml_binary_all_stand_weekly_down_extradrop_mice", mice_data_sel, ".rds"))
+  data_dml_binary <- data_dml_binary %>%
+    recipe(.) %>%
+    update_role(treatment_sport, new_role = "outcome") %>%
+    step_normalize(all_of(data_dml_binary %>% select(-treatment_sport) %>% colnames())) %>%
+    prep() %>%
+    bake(new_data = NULL)
+  
+  
+  # append predictions across repetitions and fold in selected mice data frame
+  df_pred_binary_all <- data.frame()
+  df_iterate <- data.frame("Rep" = c(1, 1, 2, 2), "Fold" = c(1, 2, 1, 2))
+  for (rep_fold in 1:nrow(df_iterate)) {
+    df_iterate_sel <- df_iterate[rep_fold, ]
+    df_pred_binary <- dml_result_all[[mice_data_sel]]$cov_balance[[mice_data_sel]][[df_iterate_sel$Rep]][[df_iterate_sel$Fold]]$pred
+    df_pred_binary_all <- rbind(df_pred_binary_all, df_pred_binary)
+  }
+  
+  # append columns: only columns in all data sets are used
+  df_controls_binary_all <- data.frame()
+  controls_sel_binary_all <- c()
+  for (rep_fold in 1:nrow(df_iterate)) {
+    
+    # extract covariates
+    df_iterate_sel <- df_iterate[rep_fold, ]
+    df_controls_binary <- dml_result_all[[mice_data_sel]]$cov_balance[[mice_data_sel]][[df_iterate_sel$Rep]][[df_iterate_sel$Fold]]$controls
+    
+    # keep only covariates which are in all data frames
+    controls_sel_binary <- colnames(df_controls_binary)
+    if (rep_fold != 1) {
+      controls_sel_binary_all <- controls_sel_binary[controls_sel_binary %in% controls_sel_binary_all]
+    } else {
+      controls_sel_binary_all <- controls_sel_binary
+    }
+    df_controls_binary <- df_controls_binary[, controls_sel_binary_all]
+    if (rep_fold != 1) {
+      df_controls_binary_all <- df_controls_binary_all[, controls_sel_binary_all]
+    } else {
+      df_controls_binary_all <- df_controls_binary_all
+    }
+    df_controls_binary_all <- rbind(df_controls_binary_all, df_controls_binary)
+  }
+  
+  controls_sel <- colnames(df_controls_binary_all)
+  
+  
+  #### Calculate weights ####
+  #+++++++++++++++++++++++++#
+  
+  func_weights_normalize <- function(w) {
+    w <- w / sum(w) * length(w)
+    return(w)
+  }
+  
+  
+  # extract and prepare information
+  prob_score <- as.matrix(df_pred_binary_all$m)
+  prob_score <- cbind(1 - prob_score, prob_score)
+  y <- as.matrix(df_pred_binary_all$outcome, ncol = 1) 
+  t <- df_pred_binary_all$treatment %>% as.character() %>% as.numeric() 
+  t <- cbind(1 - t, t)
+  x <- df_controls_binary_all %>% select(-c(Fold, Repetition)) %>% mutate(intercept = 1) %>% as.matrix()
+  n <- nrow(t)
+  num_t <- ncol(t)
+  
+  # Predict y's
+  w_ipw <- matrix(0, n, num_t)
+  w_ols <- matrix(0, n, num_t)
+  w_adj <- matrix(0, n, num_t)
+  
+  for (i in 1:num_t) {
+    
+    # IPW weights (w_t^p)
+    w_ipw[,i] <- as.matrix(t[,i] / prob_score[,i], ncol = 1)
+    w_ipw[,i] <- func_weights_normalize(w_ipw[,i])
+    
+    #  X_t'X_t 
+    XtX <- crossprod(x[t[,i] == 1,])
+    
+    # X_t(X_t'X_t)-1 for treated
+    XXtX <- x[t[,i] == 1,] %*% inv(XtX)
+    
+    for (r in 1:n) {
+      w_ol <- matrix(0, n, 1)
+      XXtXX <- XXtX %*% x[r,]
+      w_ol[t[,i] == 1,] <- unname(XXtXX[, 1])
+      w_ols[,i] <- w_ols[,i] + w_ol
+      w_adj[,i] <- w_adj[,i] + w_ol * w_ipw[r,i]
+    }
+  } # End t
+  
+  # Calculate weight matrix
+  w_mat <- w_ipw + w_ols - w_adj
+  weights <- rowSums(w_mat)
+  
+  
+  ## ASDM: Apply Own Function ##
+  #++++++++++++++++++++++++++++#
+  
+  list_smd_binary <- func_cov_balance("binary", data_dml_binary, controls_sel, weights)
+  df_smd_binary <- list_smd_binary$smd_summary %>% mutate(MICE = mice_data_sel)
+  df_smd_binary_all <- rbind(df_smd_binary_all, df_smd_binary)
+  df_smd_all_binary <- list_smd_binary$smd_values %>% mutate(MICE = mice_data_sel)
+  df_smd_all_binary_all <- rbind(df_smd_all_binary_all, df_smd_all_binary)
+}
+
+
+#### Covariate Balancing: Summary ####
+#++++++++++++++++++++++++++++++++++++#
+
+df_smd_binary_all %>% 
+  group_by(treatment_setting, adjustment, controls) %>% 
+  summarize_all(mean) %>% 
+  select(-MICE)
+  
+
+#### Covariate Balancing: Cobalt Function ####
+#++++++++++++++++++++++++++++++++++++++++++++#
+  
+# https://cran.r-project.org/web/packages/cobalt/vignettes/cobalt.html
+# Before matching: "Un"; after matching: "Adj"
+D <- df_pred_binary_all$treatment %>% as.character() %>% as.numeric() 
+balance <- bal.tab(
+  as.data.frame(x), treat = D, weights = weights, method = "weighting",
+  s.d.denom = "pooled", # pooled standard deviation (most appropriate for ATE; for ATTE: "treated")
+  disp.v.ratio = TRUE, disp.ks = TRUE, 
+  un = TRUE, # display statistics also for before DML
+  binary = "std" # also standardized binary covariates
+  # which.treat = .all # for multivalued treatment: pairwise comparisons
+)
+df_smd_after_binary <- balance$Balance %>% select(Diff.Adj) %>% mutate(SD = abs(Diff.Adj))
+  
+  
+#### Covariate Balancing: Plot ####
+#+++++++++++++++++++++++++++++++++#
+  
+ggplot() +
+  geom_area(data = df_smd_all_binary %>% arrange(desc(SD_before)) %>% 
+              mutate(var_num = 1:nrow(df_smd_all_binary)),
+            aes(x = var_num, y = SD_before, fill = "Before")) +
+  geom_area(data = df_smd_all_binary %>% arrange(desc(SD_after)) %>% 
+              mutate(var_num = 1:nrow(df_smd_all_binary)),
+            aes(x = var_num, y = SD_after, fill = "After")) +
+  scale_fill_manual(" ", values = c(Before = "grey20", After = "grey90")) +
+  xlab("ASDM") + ylab("Rank from highest to lowest ASDM") +
+  theme_bw() + theme(legend.position = "right") +
+  guides(fill = guide_legend(title = "ASDM")) 
+  
+  
+#### Main Drivers of Selection ####
+#+++++++++++++++++++++++++++++++++#
+  
+# 20 variables with highest ASDM are reported
+df_smd_all_binary_all %>% 
+  select(-MICE) %>%
+  group_by(control_var) %>% 
+  summarize_all(mean) %>% 
+  arrange(desc(SD_before)) %>% 
+  head(20)
+
+
+
+
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### MULTIVALUED TREATMENT SETTING ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+
+#### Prepare Data ####
+#++++++++++++++++++++#
+
+# load covariate balance results from post-lasso (MICE can be identified via the list)
+dml_result_all <- 
+  readRDS("Output/DML/multi_postlasso_all_controlssameoutcome_weekly_down_extradrop.rds")
+#dml_result_all[["MICE"]]$cov_balance[["MICE"]][["REP"]][["FOLD"]]
+
+# append predictions across repetitions and fold in selected mice data frame
+df_pred_multi_all <- data.frame()
+df_iterate <- data.frame("Rep" = c(1, 1, 2, 2), "Fold" = c(1, 2, 1, 2))
+for (rep_fold in 1:nrow(df_iterate)) {
+  df_iterate_sel <- df_iterate[rep_fold, ]
+  df_pred_multi <- dml_result_all[[mice_data_sel]]$cov_balance[[mice_data_sel]][[df_iterate_sel$Rep]][[df_iterate_sel$Fold]]$pred
+  df_pred_multi_all <- rbind(df_pred_multi_all, df_pred_multi)
+}
+
+# append columns: only columns in all data sets are used
+df_controls_multi_all <- data.frame()
+controls_sel_multi_all <- c()
+for (rep_fold in 1:nrow(df_iterate)) {
+  
+  # extract covariates
+  df_iterate_sel <- df_iterate[rep_fold, ]
+  df_controls_multi <- dml_result_all[[mice_data_sel]]$cov_balance[[mice_data_sel]][[df_iterate_sel$Rep]][[df_iterate_sel$Fold]]$controls
+  
+  # keep only covariates which are in all data frames
+  controls_sel_multi <- colnames(df_controls_multi)
+  if (rep_fold != 1) {
+    controls_sel_multi_all <- controls_sel_binary[controls_sel_binary %in% controls_sel_multi_all]
+  } else {
+    controls_sel_multi_all <- controls_sel_multi
+  }
+  df_controls_multi <- df_controls_multi[, controls_sel_multi_all]
+  if (rep_fold != 1) {
+    df_controls_multi_all <- df_controls_multi_all[, controls_sel_multi_all]
+  } else {
+    df_controls_multi_all <- df_controls_multi_all
+  }
+  df_controls_multi_all <- rbind(df_controls_multi_all, df_controls_multi)
+}
+
+controls_sel <- colnames(df_controls_multi_all)
+
+
+#### Calculate weights ####
+#+++++++++++++++++++++++++#
 
 func_weights_normalize <- function(w) {
   w <- w / sum(w) * length(w)
@@ -29,12 +271,12 @@ func_weights_normalize <- function(w) {
 
 
 # extract and prepare information
-prob_score <- as.matrix(df_pred_binary$m)
+prob_score <- as.matrix(df_pred_binary_all$m)
 prob_score <- cbind(1 - prob_score, prob_score)
-y <- as.matrix(df_pred_binary$outcome, ncol = 1) 
-t <- df_pred_binary$treatment %>% as.character() %>% as.numeric() 
+y <- as.matrix(df_pred_binary_all$outcome, ncol = 1) 
+t <- df_pred_binary_all$treatment %>% as.character() %>% as.numeric() 
 t <- cbind(1 - t, t)
-x <- df_controls_binary %>% select(-c(Fold, Repetition)) %>% mutate(intercept = 1) %>% as.matrix()
+x <- df_controls_binary_all %>% select(-c(Fold, Repetition)) %>% mutate(intercept = 1) %>% as.matrix()
 n <- nrow(t)
 num_t <- ncol(t)
 
@@ -69,64 +311,12 @@ w_mat <- w_ipw + w_ols - w_adj
 weights <- rowSums(w_mat)
 
 
-## Apply function ##
-#++++++++++++++++++#
-
-df_smd_binary <- func_cov_balance("binary", data_dml_binary, weights)
-
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-
-
-
-# ## WITH STANDARDIZED VARIABLES ##
-# 
-# # EXACTLY SAME RESULT
-# 
-# data_dml_binary <- data_dml_binary %>%
-#   recipe(.) %>%
-#   update_role(treatment_sport, new_role = "outcome") %>%
-#   step_normalize(all_of(data_dml_binary %>% select(-treatment_sport) %>% colnames())) %>%
-#   prep() %>%
-#   bake(new_data = NULL)
-# 
-# 
-# # calculate absolute difference in means
-# df_diff <- abs(diff(as.matrix(
-#   data_dml_binary %>% 
-#     group_by(treatment_sport) %>%
-#     summarise(across(everything(), mean)) %>%
-#     select(-all_of(controls_drop))
-# ))) %>% 
-#   as.matrix()
-# 
-# 
-# # calculate factor
-# df_meanvar <- data_dml_binary %>% 
-#   group_by(treatment_sport) %>%
-#   summarise(across(everything(), var)) %>%
-#   select(-all_of(controls_drop)) %>%
-#   summarise(across(everything(), mean)) %>% 
-#   summarise(across(everything(), sqrt)) %>%
-#   as.matrix()
-# 
-# 
-# # fraction
-# df_smd <- (df_diff / df_meanvar) * 100
-# 
-# # descriptives
-# max(df_smd) # maximum SD
-# mean(df_smd) # mean SD
-# 
-# sum(df_smd > 10) # number of variables with SD > 10
-# sum(df_smd > 5) # number of variables with SD > 5
-
 
 
 ## MULTIVALUED TREATMENT SETTING ##
 #+++++++++++++++++++++++++++++++++#
 
-data_dml_multi <- readRDS("Data/Prep_11/prep_11_dml_multi_all_stand_weekly_down_extradrop_mice1.rds")
+data_dml_multi <- readRDS("Output/DML/multi_postlasso_all_controlssameoutcome_weekly_down_extradrop.rds")
 controls_drop <- data_dml_multi %>% select(starts_with("treatment"), starts_with("outcome"), group) %>% colnames()
 #controls_drop <- controls_drop[!str_detect(controls_drop, "na")]
 controls_drop <- controls_drop[!str_detect(controls_drop, "treatment_sport_freq$")]
