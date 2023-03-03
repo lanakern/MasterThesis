@@ -108,7 +108,7 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
   if (mlalgo == "lasso") {
     lambda_val <- 100
   } else {
-    lambda_val <- 5 # for post-lasso as it is computationally more expensive
+    lambda_val <- 20 # for post-lasso as it is computationally more expensive
   }
   
   ## xgboost
