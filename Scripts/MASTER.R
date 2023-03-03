@@ -106,8 +106,13 @@ library(pROC) # for multiclass AUC
 if (!require("purrr")) install.packages("purrr")
 library(purrr) # for reduce function (union of variables)
 
-if (!require("matlib")) install.packages("matlib")
-library(matlib) # for inv() function (-> weights for covariate balancing)
+if (!require("MASS")) install.packages("MASS")
+# NOT LOADED AS IT MAKES TROUBLE WITH SELECT
+# library(MASS) # for ginv() function (-> weights for covariate balancing)
+
+# if (!require("cobalt")) install.packages("cobalt")
+# library(cobalt) # for bal.tab() function (covariate balance assessment)
+
 
 
 # set language for dates and times to German, since the NEPS month names
