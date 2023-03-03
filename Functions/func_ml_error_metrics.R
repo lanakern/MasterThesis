@@ -116,6 +116,18 @@ func_ml_error_metrics <- function(treatment_setting, data_pred, S_rep, fold_sel,
                m2_class = as.factor(ifelse(m2 > 0.5, 1, 0)), m2_treatment = as.factor(ifelse(treatment == 2, 1, 0)),
                m3_class = as.factor(ifelse(m3 > 0.5, 1, 0)), m3_treatment = as.factor(ifelse(treatment == 3, 1, 0)))
       
+      # if predictions are not including all classes, generate both factor levels
+      if (length(unique(data_pred$m1_class)) == 1) {
+        data_pred$m1_class <- factor(data_pred$m1_class, levels = c(0, 1))
+      } 
+      if (length(unique(data_pred$m2_class)) == 1) {
+        data_pred$m2_class <- factor(data_pred$m2_class, levels = c(0, 1))
+      }
+      if (length(unique(data_pred$m3_class)) == 1) {
+        data_pred$m3_class <- factor(data_pred$m3_class, levels = c(0, 1))
+      }
+    
+      
       # confusion matrices
       m1_conf_matrix <- confusionMatrix(data_pred$m1_class, data_pred$m1_treatment)
       m2_conf_matrix <- confusionMatrix(data_pred$m2_class, data_pred$m2_treatment)
