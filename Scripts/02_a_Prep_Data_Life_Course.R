@@ -129,7 +129,7 @@ data_school_bio$spms.y = NULL
 # check: all school spells are finished
 data_school_bio %>%
   subset(sptype == "School") %>%
-  select(splast) %>%
+  dplyr::select(splast) %>%
   unique()
 
 
@@ -154,7 +154,7 @@ data_educ_all$wave.y = NULL
 data_educ_all$spms.y = NULL
 
 # rename wave variable
-data_educ_all <- data_educ_all %>% rename(wave = wave.x) %>% select(-source_voc)
+data_educ_all <- data_educ_all %>% rename(wave = wave.x) %>% dplyr::select(-source_voc)
 
 
 #### Merge other episode data ####
@@ -224,7 +224,7 @@ nrow(data_life_course)
 #+++++++++++++++++++++++++++++++++++++++++#
 
   # check for missings
-data_life_course %>% select(startm, starty, endm, endy) %>% is.na() %>% colSums()
+data_life_course %>% dplyr::select(startm, starty, endm, endy) %>% is.na() %>% colSums()
   # for start date, the first of the month is used
   # for end date the 28 of the month (for simplicity; with other value problems with february)
 data_life_course <- data_life_course %>%
@@ -236,12 +236,12 @@ data_life_course <- data_life_course %>%
   # considered because it relates to the interview date which might not 
   # even overlap with the reported start and end date of the episode
   # drop all other variables corresponding to dates
-  select(
+  dplyr::select(
     -c(wave, splink, starts_with("source_"), 
        matches('_m$|_y$'), startm, starty, endm, endy)
   ) %>%
   # reorder columns
-  select(ID_t, start_date, end_date, everything()) %>%
+  dplyr::select(ID_t, start_date, end_date, everything()) %>%
   # sort data frame appropriately
   arrange(ID_t, start_date, end_date)
   ## ensure that no missing values were generated
@@ -265,7 +265,7 @@ data_life_course <- data_life_course %>%
   ## show example for school spell
 data_life_course %>%
   subset(ID_t == 7003000) %>%
-  select(ID_t, start_date, end_date, sptype)
+  dplyr::select(ID_t, start_date, end_date, sptype)
 
   ## create example for testing a variety of possibilities
 # test_ex <- data_life_course %>% 
@@ -333,12 +333,12 @@ while (sum(end_date_replace_1) > 0 | sum(end_date_replace_2) > 0) {
 data_life_course <- data_life_course %>%
   ungroup() %>%
   arrange(ID_t, start_date, end_date) %>%
-  select(-c(start_date_lead, end_date_lag, starts_with("end_date_replace")))
+  dplyr::select(-c(start_date_lead, end_date_lag, starts_with("end_date_replace")))
 
   ## show result
 data_life_course %>%
   subset(ID_t == 7003000) %>%
-  select(ID_t, start_date, end_date, start_date_orig, end_date_orig, sptype) 
+  dplyr::select(ID_t, start_date, end_date, start_date_orig, end_date_orig, sptype) 
   ## ensure that start_date is always before end_date
 sum(data_life_course$start_date >= data_life_course$end_date) # should be zero
 
@@ -350,11 +350,11 @@ sum(data_life_course$start_date >= data_life_course$end_date) # should be zero
 # replacements are also only made for School and VocTrain
 data_life_course %>%
   subset(ID_t == 7033988) %>%
-  select(ID_t, start_date, end_date, start_date_orig, end_date_orig, sptype)
+  dplyr::select(ID_t, start_date, end_date, start_date_orig, end_date_orig, sptype)
 
 data_life_course %>%
   subset(ID_t == 7006709) %>%
-  select(ID_t, start_date, end_date, start_date_orig, end_date_orig, sptype)
+  dplyr::select(ID_t, start_date, end_date, start_date_orig, end_date_orig, sptype)
 
 # make replacements as long as it is necessary
 i <- 0
@@ -378,7 +378,7 @@ while (i < 10) {
         TRUE ~ start_date
       )
     ) %>%
-    select(-c(start_date_lag, end_date_lag)) 
+    dplyr::select(-c(start_date_lag, end_date_lag)) 
 }
 
 data_life_course <- data_life_course %>% arrange(ID_t, start_date)
@@ -386,11 +386,11 @@ data_life_course <- data_life_course %>% arrange(ID_t, start_date)
   ## show result
 data_life_course %>%
   subset(ID_t == 7033988) %>%
-  select(ID_t, start_date, end_date, start_date_orig, end_date_orig, sptype)
+  dplyr::select(ID_t, start_date, end_date, start_date_orig, end_date_orig, sptype)
 
 data_life_course %>%
   subset(ID_t == 7006709) %>%
-  select(ID_t, start_date, end_date, start_date_orig, end_date_orig, sptype)
+  dplyr::select(ID_t, start_date, end_date, start_date_orig, end_date_orig, sptype)
 
   ## ensure that start_date is always before end_date
 sum(data_life_course$start_date >= data_life_course$end_date) # should be zero
@@ -472,9 +472,12 @@ id_no_start_WT10 <- setdiff(
   data_life_course %>% filter(educ_uni_start_WT10 == 1) %>% pull(ID_t) %>% unique()
 )
   ## some of them really have no study start, but some have
-data_life_course %>% subset(ID_t == id_no_start_WT10[1]) %>% select(ID_t, start_date, end_date, sptype, educ_study, educ_study_num, educ_uni_start, educ_uni_start_WT10, educ_uni_first_eps)
-data_life_course %>% subset(ID_t == id_no_start_WT10[10]) %>% select(ID_t, start_date, end_date, sptype, educ_study, educ_study_num, educ_uni_start, educ_uni_start_WT10, educ_uni_first_eps)
-data_life_course %>% subset(ID_t == id_no_start_WT10[15]) %>% select(ID_t, start_date, end_date, sptype, educ_study, educ_study_num, educ_uni_start, educ_uni_start_WT10, educ_uni_first_eps)
+data_life_course %>% subset(ID_t == id_no_start_WT10[1]) %>% 
+  dplyr::select(ID_t, start_date, end_date, sptype, educ_study, educ_study_num, educ_uni_start, educ_uni_start_WT10, educ_uni_first_eps)
+data_life_course %>% subset(ID_t == id_no_start_WT10[10]) %>% 
+  dplyr::select(ID_t, start_date, end_date, sptype, educ_study, educ_study_num, educ_uni_start, educ_uni_start_WT10, educ_uni_first_eps)
+data_life_course %>% subset(ID_t == id_no_start_WT10[15]) %>% 
+  dplyr::select(ID_t, start_date, end_date, sptype, educ_study, educ_study_num, educ_uni_start, educ_uni_start_WT10, educ_uni_first_eps)
   ## set educ_uni_first_eps for those who start study in the academic year 2010 (WT 10/11 and SS 11)
 data_life_course <- data_life_course %>%
   mutate(
@@ -482,14 +485,18 @@ data_life_course <- data_life_course %>%
     educ_uni_start_WT10 = ifelse(
       educ_uni_start_WT10_adj == TRUE & educ_study_num == 1 & start_date >= "2010-10-01" & start_date <= "2011-10-01", 1, educ_uni_start_WT10
     )
-  ) %>% select(-educ_uni_start_WT10_adj)
+  ) %>% dplyr::select(-educ_uni_start_WT10_adj)
   ## some persons are left who really did not start their study in WT 10/11
 id_no_start_WT10 <- setdiff(
   data_life_course %>% filter(educ_uni_start == 1) %>% pull(ID_t) %>% unique(),
   data_life_course %>% filter(educ_uni_start_WT10 == 1) %>% pull(ID_t) %>% unique()
 )
-data_life_course %>% subset(ID_t == id_no_start_WT10[1]) %>% select(ID_t, start_date, end_date, sptype, educ_study, educ_study_num, educ_uni_start, educ_uni_start_WT10, educ_uni_first_eps)
-data_life_course %>% subset(ID_t == id_no_start_WT10[2]) %>% select(ID_t, start_date, end_date, sptype, educ_study, educ_study_num, educ_uni_start, educ_uni_start_WT10, educ_uni_first_eps)
+data_life_course %>% subset(ID_t == id_no_start_WT10[1]) %>% 
+  dplyr::select(ID_t, start_date, end_date, sptype, educ_study, educ_study_num, 
+                educ_uni_start, educ_uni_start_WT10, educ_uni_first_eps)
+data_life_course %>% subset(ID_t == id_no_start_WT10[2]) %>% 
+  dplyr::select(ID_t, start_date, end_date, sptype, educ_study, educ_study_num, 
+                educ_uni_start, educ_uni_start_WT10, educ_uni_first_eps)
 
 
 ## Drop no first-year students in academic year 2010 ##
@@ -511,7 +518,7 @@ id_num_adj_1 - id_num_adj_2 # 11 (from id_no_start_WT10)
 data_check <- 
   data_life_course %>%
   ungroup() %>%
-  select(ID_t, start_date, educ_uni_start_WT10) %>%
+  dplyr::select(ID_t, start_date, educ_uni_start_WT10) %>%
   filter(educ_uni_start_WT10 == 1) %>%
   distinct() %>%
   mutate(
@@ -523,7 +530,7 @@ data_check <-
 table(data_check$year)
 id_drop <- data_check %>%
   filter(!year %in% c(2010, 2011)) %>%
-  select(ID_t) %>% pull() %>% unique()
+  dplyr::select(ID_t) %>% pull() %>% unique()
 length(id_drop) # 41 students are dropped
 ## drop those students
 data_life_course <- data_life_course %>%
@@ -544,13 +551,13 @@ data_life_course %>% filter(educ_uni_start_WT10 == 1) %>% pull(ID_t) %>% unique(
 
 # check if every individual has only one university start
   ## yes no results for general university start
-data_life_course %>% ungroup() %>% select(ID_t, educ_uni_start) %>% filter(educ_uni_start == 1) %>%
+data_life_course %>% ungroup() %>% dplyr::select(ID_t, educ_uni_start) %>% filter(educ_uni_start == 1) %>%
   group_by(ID_t) %>% count() %>% filter(n > 1)
   ## but two results for first study episode in WT 2010
-data_life_course %>% ungroup() %>% select(ID_t, educ_uni_start_WT10) %>% filter(educ_uni_start_WT10 == 1) %>%
+data_life_course %>% ungroup() %>% dplyr::select(ID_t, educ_uni_start_WT10) %>% filter(educ_uni_start_WT10 == 1) %>%
   group_by(ID_t) %>% count() %>% filter(n > 1)
 data_life_course %>% subset(ID_t == 7033988) %>% 
-  select(ID_t, start_date, end_date, sptype, educ_study, educ_study_num, educ_uni_start, educ_uni_start_WT10, educ_uni_first_eps)
+  dplyr::select(ID_t, start_date, end_date, sptype, educ_study, educ_study_num, educ_uni_start, educ_uni_start_WT10, educ_uni_first_eps)
   ## this is manually adjusted
 data_life_course[data_life_course$ID_t == "7033988" & data_life_course$start_date == "2011-10-01", "educ_uni_start_WT10"] <- 0
 
@@ -617,7 +624,7 @@ table(data_life_course$educ_uni_break_deregist_nform,  useNA = "always")
   ## drop gap: is not so interesting in my analysis, because most just were on
   ## vacation
 table(data_life_course$gap_type, useNA = "always")
-data_life_course <- data_life_course %>% select(-starts_with("gap"))
+data_life_course <- data_life_course %>% dplyr::select(-starts_with("gap"))
 
 
 ## Downward replacement ##
@@ -627,9 +634,10 @@ data_life_course <- data_life_course %>% select(-starts_with("gap"))
 # are kept, but other information like schooling should also be available
 # easily
 cols_fill <- data_life_course %>% ungroup() %>%
-  select(starts_with("educ_school"), starts_with("educ_highest"), starts_with("emp"),
-         starts_with("intern"), "military", "educ_voc_prep", 
-         starts_with("educ_uni_break")) %>% colnames()
+  dplyr::select(
+    starts_with("educ_school"), starts_with("educ_highest"), starts_with("emp"),
+    starts_with("intern"), "military", "educ_voc_prep", 
+    starts_with("educ_uni_break")) %>% colnames()
 
 data_life_course <- data_life_course %>%
   # fill up rows downwards by ID
@@ -706,12 +714,12 @@ sum(duplicated(data_life_course))
 sum(data_life_course$start_date >= data_life_course$end_date)
 
 # drop variables not needed anymore
-data_life_course <- data_life_course %>% select(-c(spms, splast, educ_uni_first_eps))
+data_life_course <- data_life_course %>% dplyr::select(-c(spms, splast, educ_uni_first_eps))
 
 # arrange
 data_life_course <- data_life_course %>%
-  select(ID_t, sptype, sptype_2, educ_study, educ_study_num, educ_uni_start, educ_uni_start_WT10,
-         start_date, end_date, start_date_orig, end_date_orig, everything())
+  dplyr::select(ID_t, sptype, sptype_2, educ_study, educ_study_num, educ_uni_start, educ_uni_start_WT10,
+                start_date, end_date, start_date_orig, end_date_orig, everything())
 
 # ungroup
 data_life_course <- data_life_course %>% ungroup()

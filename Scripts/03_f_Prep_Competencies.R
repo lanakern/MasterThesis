@@ -81,11 +81,11 @@ num_id_comp <- length(unique(data_competencies$ID_t))
 if (cohort_prep == "controls_same_outcome") {
   data_cohort_profile <- readRDS("Data/Prep_2/prep_2_cohort_profile.rds") %>%
     filter(wave_2 == "CATI") %>%
-    select(ID_t, wave, interview_date)
+    dplyr::select(ID_t, wave, interview_date)
 } else if (cohort_prep == "controls_bef_outcome") {
   data_cohort_profile <- readRDS("Data/Prep_2/prep_2_cohort_profile_robustcheck.rds") %>%
     filter(wave_2 == "CATI") %>%
-    select(ID_t, wave, interview_date)
+    dplyr::select(ID_t, wave, interview_date)
 }
 
 num_id_cohort <- length(unique(data_cohort_profile$ID_t))
@@ -97,11 +97,11 @@ num_id_cohort <- length(unique(data_cohort_profile$ID_t))
 #%%%%%%%%%%%%%%%%%%%%%%%%#
 
 # I am only interested in wave1 and wave5; hence first I drop all wave12 columns
-data_competencies <- data_competencies %>% select(-ends_with("12"))
+data_competencies <- data_competencies %>% dplyr::select(-ends_with("12"))
 
 # Drop respondents who have missing values in all competence measures
 data_competencies$sum_NA <- apply(data_competencies, 1, function(x) sum(is.na(x)))
-num_drop <- data_competencies %>% select(-c(ID_t, starts_with("wave"), "sum_NA")) %>% colnames() %>% length()
+num_drop <- data_competencies %>% dplyr::select(-c(ID_t, starts_with("wave"), "sum_NA")) %>% colnames() %>% length()
 id_drop <- data_competencies %>% filter(sum_NA == num_drop) %>% pull(ID_t) %>% unique()
 num_id_drop <- length(id_drop)
 data_competencies <- data_competencies %>% subset(!ID_t %in% id_drop)
@@ -136,7 +136,7 @@ data_competencies_long$w1 <- "2010/2011 (CATI+competencies)"
 data_competencies_long$w2 <- "2013 (CATI+competencies)"
 data_competencies_long <- data_competencies_long %>% 
   pivot_longer(!ID_t, names_to = "drop", values_to = "wave") %>%
-  select(-drop)
+  dplyr::select(-drop)
 
 # loop over wave 1, and wave 5
 for (wave_sel in c("w1", "w5")) {
@@ -150,7 +150,7 @@ for (wave_sel in c("w1", "w5")) {
       # keep only individuals who participated in competence measures in wave 1
       filter((!!sym(paste0("wave_", wave_sel))) == 1) %>%
       # keep only wave 1 variables
-      select(ID_t, ends_with(wave_sel)) %>%
+      dplyr::select(ID_t, ends_with(wave_sel)) %>%
       # omit individuals with at least one missing value
       # na.omit() %>%
       # adjust wave variable
@@ -193,13 +193,13 @@ data_competencies_final <- data_competencies_final %>%
   filter(year_comp == max(year_comp))
 
 # check that there are no duplicates (-> zero rows)
-data_competencies_final[duplicated(data_competencies_final %>% ungroup %>% select(ID_t, wave)),]
+data_competencies_final[duplicated(data_competencies_final %>% ungroup %>% dplyr::select(ID_t, wave)),]
 
 # remove variables not needed anymore
 data_competencies_final <- data_competencies_final %>%
   ungroup() %>%
   arrange(ID_t, year_cohort) %>%
-  select(-c(starts_with("wave"), starts_with("year")))
+  dplyr::select(-c(starts_with("wave"), starts_with("year")))
 
 
 
@@ -215,7 +215,7 @@ colSums(is.na(data_competencies_final))
 data_competencies_final <- 
   data_competencies_final %>% 
   group_by(ID_t) %>%
-  fill(data_competencies_final %>% select(-c(ID_t)) %>% colnames(), 
+  fill(data_competencies_final %>% dplyr::select(-c(ID_t)) %>% colnames(), 
        .direction = "down")
 colSums(is.na(data_competencies_final))
 
@@ -237,7 +237,7 @@ data_competencies_final <- data_competencies_final %>%
     comp_percspeed_sum = ifelse(is.na(comp_percspeed_paper_sum), comp_percspeed_comp_sum, comp_percspeed_paper_sum),
     comp_percspeed_sum = ifelse(is.na(comp_reasoning_sum),comp_percspeed_online_sum, comp_reasoning_sum)
   ) %>%
-  select(-c(matches(".*_comp_.*"), matches(".*_paper_.*"), matches(".*_online_.*")))
+  dplyr::select(-c(matches(".*_comp_.*"), matches(".*_paper_.*"), matches(".*_online_.*")))
 colSums(is.na(data_competencies_final))
 
 
@@ -248,7 +248,7 @@ colSums(is.na(data_competencies_final))
 
 # keep only wle estimates
 data_competencies_final <- data_competencies_final %>%
-  select(ID_t, interview_date, ends_with("_wle"))
+  dplyr::select(ID_t, interview_date, ends_with("_wle"))
 
 # check for duplicates
 sum(duplicated(data_competencies_final))

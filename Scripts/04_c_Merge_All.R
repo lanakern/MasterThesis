@@ -121,27 +121,27 @@ num_id_sib_adj_1 <- length(unique(data_sibling_adj$ID_t))
 
 # sub data frame
 data_sibling_adj_1 <- data_sibling_adj %>%
-  select(ID_t, sibling, sibling_total, starts_with("sibling_older_total"), starts_with("sibling_twin"),
-         matches(".*birth_date.*"), starts_with("sibling_uni_entrance_quali"))
+  dplyr::select(ID_t, sibling, sibling_total, starts_with("sibling_older_total"), starts_with("sibling_twin"),
+                matches(".*birth_date.*"), starts_with("sibling_uni_entrance_quali"))
 
 data_sibling_adj_2 <- data_sibling_adj %>%
-  select(ID_t, starts_with("sibling_employed"), starts_with("sibling_study"))
+  dplyr::select(ID_t, starts_with("sibling_employed"), starts_with("sibling_study"))
 
 
 # merge sibling information
 # as this information is cross-sectional, only the ID is needed for the merge
 data_merge_sib_1 <- inner_join(
-  data_cati_cawi_eps %>% select(ID_t, treatment_period, interview_date_spell) %>% distinct(), 
+  data_cati_cawi_eps %>% dplyr::select(ID_t, treatment_period, interview_date_spell) %>% distinct(), 
   data_sibling_adj_1, by = "ID_t"
 ) 
 length(unique(data_merge_sib_1$ID_t))
 
 data_merge_sib_2 <- inner_join(
-  data_cati_cawi_eps %>% select(ID_t, treatment_period, interview_date_spell), 
+  data_cati_cawi_eps %>% dplyr::select(ID_t, treatment_period, interview_date_spell), 
   data_sibling_adj_2, by = "ID_t"
 ) %>%
   filter(year(interview_date_spell) < 2013) %>%
-  select(-interview_date_spell)
+  dplyr::select(-interview_date_spell)
 length(unique(data_merge_sib_2$ID_t))
 
 data_merge_sib <- left_join(data_merge_sib_1, data_merge_sib_2, by = c("ID_t", "treatment_period"))
@@ -172,7 +172,7 @@ data_merge_sib <- data_merge_sib %>%
   mutate(
     sibling_age_1 = as.numeric(difftime(interview_date_spell, sibling_birth_date_1, units = "weeks")) / 52.5,
     sibling_age_2 = as.numeric(difftime(interview_date_spell, sibling_birth_date_2, units = "weeks")) / 52.5,
-  ) %>% select(-matches(".*birth_date.*"))
+  ) %>% dplyr::select(-matches(".*birth_date.*"))
 
 # adjust school degree
   ## if sibling_age < 18 & interview_date_spell >= 2013, then generate sibling_uni_entrance_quali_NA = 1,
@@ -198,14 +198,14 @@ colSums(is.na(data_merge_sib)) # should be only missings for age
 length(unique(data_merge_sib$ID_t))
 
 # for all students with only one sibling, "_2" variables are set to zero
-cols_sib_2 <- data_merge_sib %>% select(ends_with("_2")) %>% colnames()
+cols_sib_2 <- data_merge_sib %>% dplyr::select(ends_with("_2")) %>% colnames()
 data_merge_sib <- data_merge_sib %>%
   mutate_if(is.integer, as.numeric) %>%
   mutate(across(all_of(cols_sib_2), ~ case_when(sibling_total == 1 ~ 0, TRUE ~ .)))
 
 # merge this prepared data frame to data_cati_cawi_eps
 data_merge_1 <- left_join(
-  data_cati_cawi_eps, data_merge_sib %>% select(-interview_date_spell), 
+  data_cati_cawi_eps, data_merge_sib %>% dplyr::select(-interview_date_spell), 
   by = c("ID_t", "treatment_period")
 )
 length(unique(data_merge_1$ID_t))
@@ -218,17 +218,17 @@ data_merge_1 <- data_merge_1 %>%
   replace_na(list(sibling = 0, sibling_older_total = 0, sibling_twin = 0))
 table(data_merge_1$sibling, useNA = "always")
   ## replace all other vars with ß
-col_sibling <- colnames(data_merge_sib %>% select(starts_with("sibling")))
+col_sibling <- colnames(data_merge_sib %>% dplyr::select(starts_with("sibling")))
 data_merge_1 <- data_merge_1 %>%
   mutate_if(is.integer, as.numeric) %>% 
   mutate(across(all_of(col_sibling), ~ case_when(sibling == 0 ~ as.numeric(0), TRUE ~ .)))
 
 # check NAs in sibling variables
-sum(is.na(data_merge_1 %>% select(starts_with("sibling"))))
-colSums(is.na(data_merge_1 %>% select(starts_with("sibling"))))
+sum(is.na(data_merge_1 %>% dplyr::select(starts_with("sibling"))))
+colSums(is.na(data_merge_1 %>% dplyr::select(starts_with("sibling"))))
 
 # if sibling == 0, all sibling_ variables need to be 0
-data_merge_1 %>% filter(sibling == 0) %>% select(starts_with("sibling")) %>% unique() %>% pull()
+data_merge_1 %>% filter(sibling == 0) %>% dplyr::select(starts_with("sibling")) %>% unique() %>% pull()
 
 # number of respondents, rows and columns
 num_id_cati_cawi_eps_sib <- length(unique(data_merge_1$ID_t)) 
@@ -268,14 +268,14 @@ if (cohort_prep == "controls_bef_outcome") {
 setdiff(id_child, id_cati_cawi_eps_child)
 
 data_child %>% subset(ID_t == 7019629) %>% 
-  select(ID_t, starts_with("interview_date"))
+  dplyr::select(ID_t, starts_with("interview_date"))
 data_merge_1 %>% subset(ID_t == 7019629) %>% 
-  select(ID_t, starts_with("interview_date"))
+  dplyr::select(ID_t, starts_with("interview_date"))
 
 data_child %>% subset(ID_t == 7010555) %>% 
-  select(ID_t, starts_with("interview_date"))
+  dplyr::select(ID_t, starts_with("interview_date"))
 data_merge_1 %>% subset(ID_t == 7010555) %>% 
-  select(ID_t, starts_with("interview_date"))
+  dplyr::select(ID_t, starts_with("interview_date"))
 
 # keep only respondents in child who also have obsveration in other data set
 data_child <- data_child %>% subset(ID_t %in% id_cati_cawi_eps_child)
@@ -291,7 +291,7 @@ if (cohort_prep == "controls_bef_outcome") {
 }
 
 # extract child columns
-col_child <- data_child %>% select(-c(ID_t, interview_date)) %>% colnames()
+col_child <- data_child %>% dplyr::select(-c(ID_t, interview_date)) %>% colnames()
 
 # for respondents with no children all variables are set to zero
 data_merge_2 <- data_merge_2 %>%
@@ -299,7 +299,7 @@ data_merge_2 <- data_merge_2 %>%
 
 # check that there are no NAs in child variable
 data_merge_2 %>%
-  ungroup() %>% select(all_of(col_child)) %>%
+  ungroup() %>% dplyr::select(all_of(col_child)) %>%
   summarize(sum(is.na(.))) %>% pull()
 
 
@@ -337,10 +337,10 @@ if (cohort_prep == "controls_bef_outcome") {
 setdiff(id_partner, id_cati_cawi_eps_child_partner)
 
 data_partner %>% subset(ID_t == 7002301) %>% 
-  select(ID_t, starts_with("interview_date"))
+  dplyr::select(ID_t, starts_with("interview_date"))
 
 data_merge_2 %>% subset(ID_t == 7002301) %>% 
-  select(ID_t, starts_with("interview_date"))
+  dplyr::select(ID_t, starts_with("interview_date"))
 
 # keep only respondents in partner  who also have observation in other data set
 data_partner <- data_partner %>% subset(ID_t %in% id_cati_cawi_eps_child_partner)
@@ -357,7 +357,7 @@ if (cohort_prep == "controls_bef_outcome") {
 }
 
 # extract partner columns
-col_partner <- data_partner %>% select(-c(ID_t, interview_date)) %>% colnames()
+col_partner <- data_partner %>% dplyr::select(-c(ID_t, interview_date)) %>% colnames()
 
 # for respondents with no partner all variables are set to zero
 colSums(is.na(data_merge_3))
@@ -372,7 +372,7 @@ data_merge_3 <- data_merge_3 %>%
 
 
 # check that there are no NAs in partner variables
-colSums(is.na(data_merge_3 %>% select(all_of(col_partner))))
+colSums(is.na(data_merge_3 %>% dplyr::select(all_of(col_partner))))
 
 
 num_id_cati_cawi_eps_sib_child_partner <- length(unique(data_merge_3$ID_t))
@@ -407,7 +407,7 @@ if (cohort_prep == "controls_bef_outcome") {
 # analyse differences
 setdiff(id_cati_cawi_eps_child_partner, id_cati_cawi_eps_child_partner_comp)
 
-data_merge_3 %>% subset(ID_t == 7009318) %>% select(ID_t, starts_with("interview_date"))
+data_merge_3 %>% subset(ID_t == 7009318) %>% dplyr::select(ID_t, starts_with("interview_date"))
 data_competencies %>% subset(ID_t == 7009318)
 
 
@@ -427,7 +427,7 @@ if (cohort_prep == "controls_bef_outcome") {
 }
 
 
-colSums(is.na(data_merge_4 %>% select(starts_with("comp_"))))
+colSums(is.na(data_merge_4 %>% dplyr::select(starts_with("comp_"))))
 
 num_id_final <- length(unique(data_merge_4$ID_t)) 
 num_id_final
@@ -444,15 +444,15 @@ num_id_final
 data_merge_4 <- data_merge_4 %>% type.convert(as.is = TRUE)
 
 # all child and partner variables should not have any missing value.
-sum(is.na(data_merge_4 %>% select(starts_with("child_"), starts_with("partner_"))))
+sum(is.na(data_merge_4 %>% dplyr::select(starts_with("child_"), starts_with("partner_"))))
 
 # total missing values
 sum(is.na(data_merge_4))
 
 # check for duplicates
 sum(duplicated(data_merge_4))
-sum(duplicated(data_merge_4 %>% select(ID_t, starts_with("interview_date"))))
-sum(duplicated(data_merge_4 %>% select(ID_t, interview_date_start)))
+sum(duplicated(data_merge_4 %>% dplyr::select(ID_t, starts_with("interview_date"))))
+sum(duplicated(data_merge_4 %>% dplyr::select(ID_t, interview_date_start)))
 
 # number of respondents, rows, and columns
 print(paste("Number of respondents before data preparation:", num_id_cati_cawi_eps))

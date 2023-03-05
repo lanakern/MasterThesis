@@ -85,7 +85,7 @@ id_num_sib == nrow(data_sibling)
 # information on birth date
 data_target_cati <- data_target_cati %>%
   arrange(ID_t, wave) %>%
-  select(ID_t, birth_month, birth_year) %>%
+  dplyr::select(ID_t, birth_month, birth_year) %>%
   group_by(ID_t) %>%
   # to ensure that missing value is not kept
   fill(c(birth_month, birth_year), .direction = "downup") %>% ungroup() %>%
@@ -163,7 +163,7 @@ sum(is.na((data_sibling_adj_2$sibling_birth_date)))
   ## sibling is not the same
 data_sibling_adj_2 %>%
   subset(is.na(sibling_older) & !is.na(sibling_birth_date)) %>%
-  select(ID_t, wave, sibling_birth_date, birth_date, sibling_older)
+  dplyr::select(ID_t, wave, sibling_birth_date, birth_date, sibling_older)
 
 
 
@@ -223,7 +223,7 @@ data_sibling_adj_3 <- left_join(
 ) %>%
   mutate(sibling_twin = ifelse(sibling_twin_sum >= 1, 1, sibling_twin_sum)) %>%
   mutate(sibling_twin = ifelse(is.na(sibling_birth_date), NA, sibling_twin)) %>%
-  select(-sibling_twin_sum) %>% distinct()
+  dplyr::select(-sibling_twin_sum) %>% distinct()
   ## same with missings for twin variaböe
 data_sibling_adj_3 <- data_sibling_adj_3 %>% 
   group_by(ID_t) %>% 
@@ -233,7 +233,7 @@ data_sibling_adj_3 <- data_sibling_adj_3 %>%
 
 sum(is.na(data_sibling_adj_3$sibling_twin))
 summary(data_sibling_adj_3$sibling_twin)
-data_sibling_adj_3 %>% subset(ID_t == 7002020) %>% select(ID_t, wave, sibling_num, sibling_twin, sibling_older, sibling_total)
+data_sibling_adj_3 %>% subset(ID_t == 7002020) %>% dplyr::select(ID_t, wave, sibling_num, sibling_twin, sibling_older, sibling_total)
  
 
 
@@ -251,7 +251,7 @@ data_sibling_adj_4 <- data_sibling_adj_3 %>%
       count(n_true_fale = !is.na(sibling_school_degree)) %>% 
       subset(n_true_fale == TRUE) %>%
       rename(sibling_school_degree_non_na_num = n) %>% 
-      select(ID_t, sibling_school_degree_non_na_num) %>%
+      dplyr::select(ID_t, sibling_school_degree_non_na_num) %>%
       distinct(),
     by = "ID_t"
   )
@@ -264,7 +264,7 @@ data_sibling_adj_4 <- data_sibling_adj_3 %>%
   ## 1.) identify ID_t 
 id_drop <- data_sibling_adj_4 %>%
   subset(sibling_total > 2 & sibling_school_degree_non_na_num >= 2) %>%
-  select(ID_t) %>% unique() %>% pull()
+  dplyr::select(ID_t) %>% unique() %>% pull()
   ## 2.) Combine respondents where no rows are deleted with respondents where rows
   ## are deleted
 data_sibling_adj_4 <- 
@@ -284,7 +284,7 @@ data_sibling_adj_4 <- data_sibling_adj_4 %>%
       count(n_true_fale = !is.na(sibling_activity)) %>% 
       subset(n_true_fale == TRUE) %>%
       rename(sibling_activity_non_na_num = n) %>% 
-      select(ID_t, sibling_activity_non_na_num) %>%
+      dplyr::select(ID_t, sibling_activity_non_na_num) %>%
       distinct(),
     by = "ID_t"
   )
@@ -292,7 +292,7 @@ data_sibling_adj_4 <- data_sibling_adj_4 %>%
 
 id_drop <- data_sibling_adj_4 %>%
   subset(sibling_total > 2 & sibling_activity_non_na_num >= 2) %>%
-  select(ID_t) %>% unique() %>% pull()
+  dplyr::select(ID_t) %>% unique() %>% pull()
   ## 3.) Combine respondents where no rows are deleted with respondents where rows
   ## are deleted
 data_sibling_adj_4 <- 
@@ -345,12 +345,12 @@ length(unique(data_sibling_adj_4$ID_t))
 
 # students with only at the most two siblings do not need another preparation
 id_less_two <- data_sibling_adj_4 %>%
-  subset(n_sib <= 2) %>% select(ID_t) %>% unique() %>% pull()
+  subset(n_sib <= 2) %>% dplyr::select(ID_t) %>% unique() %>% pull()
 
 # students with more than two siblings need special preparation
 # more than two older
 id_more_two_older <- data_sibling_adj_4 %>%
-  subset(n_sib > 2 & n_sib_old >= 2) %>% select(ID_t) %>% unique() %>% pull()
+  subset(n_sib > 2 & n_sib_old >= 2) %>% dplyr::select(ID_t) %>% unique() %>% pull()
   ## -> drop rows with negative age difference (younger) and keep the two rows
   ## with most closest oldest siblings
 data_sub_1 <- data_sibling_adj_4 %>%
@@ -362,7 +362,7 @@ data_sub_1 <- data_sibling_adj_4 %>%
 
 # one older: keep oldest and closest youngest
 id_one_older <- data_sibling_adj_4 %>%
-  subset(n_sib > 2 & n_sib_old == 1) %>% select(ID_t) %>% unique() %>% pull()
+  subset(n_sib > 2 & n_sib_old == 1) %>% dplyr::select(ID_t) %>% unique() %>% pull()
 data_sub_2 <- rbind(
   data_sibling_adj_4 %>%
     subset(ID_t %in% id_one_older) %>%
@@ -379,7 +379,7 @@ data_sub_2 <- rbind(
 # NOTE: if birth dates are not given, sibling is considered as younger and
 # random selection is made
 id_younger <- data_sibling_adj_4 %>%
-  subset(n_sib > 2 & is.na(n_sib_old)) %>% select(ID_t) %>% unique() %>% pull()
+  subset(n_sib > 2 & is.na(n_sib_old)) %>% dplyr::select(ID_t) %>% unique() %>% pull()
 data_sub_3 <- 
   data_sibling_adj_4 %>%
   subset(ID_t %in% id_younger) %>%
@@ -440,7 +440,7 @@ data_sibling_final <- data_sibling_final %>%
   #replace_na(list(sibling_study = 0))
   ## spread() data frame
 data_sibling_adj_sub_1 <- data_sibling_final %>%
-  select(ID_t, sibling_num, sibling_uni_entrance_quali, sibling_employed, sibling_study, sibling_birth_date) %>%
+  dplyr::select(ID_t, sibling_num, sibling_uni_entrance_quali, sibling_employed, sibling_study, sibling_birth_date) %>%
   gather(variable, value, sibling_uni_entrance_quali, sibling_employed, sibling_study, sibling_birth_date) %>%
   unite(temp, sibling_num, variable) %>%
   spread(temp, value) %>%
@@ -459,7 +459,7 @@ data_sibling_adj_sub_1 <- data_sibling_final %>%
 
 # add this to other variables
 data_sibling_adj_sub_2 <- data_sibling_final %>%
-  select(ID_t, sibling_total, sibling_older_total, sibling_twin) %>% distinct()
+  dplyr::select(ID_t, sibling_total, sibling_older_total, sibling_twin) %>% distinct()
 
 
 # create final data frame: cross-sectional data set, i.e., one row for one respondent
@@ -520,8 +520,8 @@ setdiff(id_sib, unique(data_sibling_final_2$ID_t))
 
 # reorder columns
 data_sibling_final_2 <- data_sibling_final_2 %>%
-  select(ID_t, sibling, sibling_total, starts_with("sibling_older_total"), 
-         starts_with("sibling_twin"), matches("sibling_.*_1"), matches("sibling_.*_2"))
+  dplyr::select(ID_t, sibling, sibling_total, starts_with("sibling_older_total"), 
+                starts_with("sibling_twin"), matches("sibling_.*_1"), matches("sibling_.*_2"))
 
 # check respondents
 # df_check_1 <- data_target_cati %>% subset(ID_t %in% c(7001975, 7001971, 7002373, 7002298, 7001994, 7002007))

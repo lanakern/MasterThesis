@@ -86,11 +86,11 @@
 if (cohort_prep == "controls_same_outcome") {
   data_cohort_profile <- readRDS("Data/Prep_2/prep_2_cohort_profile.rds") %>%
     filter(wave_2 == "CATI") %>%
-    select(ID_t, wave, interview_date)
+    dplyr::select(ID_t, wave, interview_date)
 } else if (cohort_prep == "controls_bef_outcome") {
   data_cohort_profile <- readRDS("Data/Prep_2/prep_2_cohort_profile_robustcheck.rds") %>%
     filter(wave_2 == "CATI") %>%
-    select(ID_t, wave, interview_date)
+    dplyr::select(ID_t, wave, interview_date)
 }
 
 # child data
@@ -169,7 +169,7 @@ data_child_2 <- func_generate_date(
   varname = "child_birth_date"
 ) %>%
   # drop month and year variables (-> not needed anymore)
-  select(-c(child_birth_m, child_birth_y)) 
+  dplyr::select(-c(child_birth_m, child_birth_y)) 
   # check for missing values in birth date variable
 sum(is.na(data_child_2$child_birth_date)) # 103 missings (because year is missing)
   ## subset
@@ -184,20 +184,20 @@ data_child_2 <- data_child_2 %>%
   mutate(drop = case_when(
     child_type != "Biological child" & wave_child != wave ~ 1,
     TRUE ~ 0)) %>%
-  filter(drop == 0) %>% select(-drop)
+  filter(drop == 0) %>% dplyr::select(-drop)
 num_child_adj_6 <- length(unique(data_child_2$ID_t))
 num_child_adj_5 - num_child_adj_6
 
 
 # adjust child_num indicator
-data_child_2 %>% subset(ID_t == 7011560) %>% select(ID_t, interview_date, child_birth_date, child_num)
+data_child_2 %>% subset(ID_t == 7011560) %>% dplyr::select(ID_t, interview_date, child_birth_date, child_num)
 
 data_child_2 <- data_child_2 %>%
   group_by(ID_t, interview_date) %>%
   mutate(child_num = row_number()) %>% 
   distinct()
 
-data_child_2 %>% subset(ID_t == 7011560) %>% select(ID_t, interview_date, child_birth_date, child_num)
+data_child_2 %>% subset(ID_t == 7011560) %>% dplyr::select(ID_t, interview_date, child_birth_date, child_num)
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -249,7 +249,7 @@ data_child_2 <- data_child_2 %>%
       ) %>% ungroup(),
     by = c("ID_t", "interview_date")
   ) %>%
-  select(-c(child_age_toddler, child_age_preschool, child_age_school, child_age_teen)) %>%
+  dplyr::select(-c(child_age_toddler, child_age_preschool, child_age_school, child_age_teen)) %>%
   distinct()
 
 
@@ -384,7 +384,7 @@ sum(is.na(data_child_2$child_gender))
 data_child_2 <- left_join(
   data_child_2,
   data_child_2 %>%
-    select(ID_t, interview_date, child_gender) %>%
+    dplyr::select(ID_t, interview_date, child_gender) %>%
     filter(child_gender == "[m] male") %>%
     group_by(ID_t, interview_date) %>%
     count() %>%
@@ -410,11 +410,11 @@ data_child_final <- data_child_final %>% mutate(child = 1)
 
 # keep only variables of interest
 data_child_final <- data_child_final %>%
-  select(ID_t, interview_date, child, child_total_num, 
-         child_age_youngest, child_age_oldest, child_age_toddler_num, 
-         child_age_preschool_num, child_age_school_num, child_age_teen_num, 
-         child_school_num, child_biological_num,
-         child_living_hh_num, child_male_num) %>%
+  dplyr::select(ID_t, interview_date, child, child_total_num, 
+                child_age_youngest, child_age_oldest, child_age_toddler_num, 
+                child_age_preschool_num, child_age_school_num, child_age_teen_num, 
+                child_school_num, child_biological_num,
+                child_living_hh_num, child_male_num) %>%
   ungroup() %>%
   distinct() %>%
   arrange(ID_t, interview_date)
@@ -425,7 +425,7 @@ sum(is.na(data_child_final))
 
 # check for duplicates in ID_t and wave (there should not be any)
 sum(duplicated(data_child_final))
-data_child_final %>% select(ID_t, interview_date) %>% duplicated() %>% sum() == 0
+data_child_final %>% dplyr::select(ID_t, interview_date) %>% duplicated() %>% sum() == 0
 
 # check variables
 summary(data_child_final$child_age_youngest)
@@ -433,7 +433,7 @@ summary(data_child_final$child_age_oldest)
 summary(data_child_final$child_total_num)
 for (col_table in 
      data_child_final %>% 
-     select(-c(ID_t, interview_date, starts_with("child_age"), child_total_num)) %>% 
+     dplyr::select(-c(ID_t, interview_date, starts_with("child_age"), child_total_num)) %>% 
      colnames()
 ) {
   print(col_table)

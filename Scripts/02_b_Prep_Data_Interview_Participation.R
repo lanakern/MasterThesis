@@ -124,14 +124,14 @@ sum(is.na(data_cohort_profile$interview_year))
   ## missing for same respondent?: 
   ## yes all have all date info missing
 data_cohort_profile %>% 
-  select(ID_t, starts_with("interview_")) %>%
+  dplyr::select(ID_t, starts_with("interview_")) %>%
   group_by(ID_t) %>%
   # count number of NAs for each interview_* column
   summarise_all(~sum(is.na(.))) %>% 
   # take the row sum
   transmute(ID_t, sumNA = rowSums(.[-1])) %>%
   # check unique values: 0, 3, 6 
-  select(sumNA) %>% pull() %>% unique()
+  dplyr::select(sumNA) %>% pull() %>% unique()
   ## in which wave are the missing values?
   ## 2013 and 2017 CATI as well as 2011 CAWI
 data_cohort_profile[is.na(data_cohort_profile$interview_day), "wave"] %>% unique()
@@ -179,14 +179,14 @@ sum(is.na(data_cohort_profile$interview_month)) # 23
 sum(is.na(data_cohort_profile$competence_month))
 sum(is.na(data_cohort_profile$competence_year))
 data_cohort_profile %>% 
-  select(ID_t, competence_month, competence_year) %>%
+  dplyr::select(ID_t, competence_month, competence_year) %>%
   group_by(ID_t) %>%
   # count number of NAs for each interview_* column
   summarise_all(~sum(is.na(.))) %>% 
   # take the row sum
   transmute(ID_t, sumNA = rowSums(.[-1])) %>%
   # check unique values: 0, 3, 6 
-  select(sumNA) %>% pull() %>% unique()
+  dplyr::select(sumNA) %>% pull() %>% unique()
   ## create date variable for interview and competence
 data_cohort_profile <- data_cohort_profile %>%
   mutate(
@@ -222,7 +222,7 @@ sum(is.na(data_cohort_profile$interview_date))
 
 # keep only variables needed for the upcoming analysis
 data_cohort_profile <- data_cohort_profile %>%
-  select(ID_t, wave, interview_date, competence_date) %>%
+  dplyr::select(ID_t, wave, interview_date, competence_date) %>%
   ungroup()
 
 
@@ -356,7 +356,7 @@ if (cohort_prep == "controls_bef_outcome") {
   
   # drop variables not needed anymore
   data_cohort_profile_prep_1 <- data_cohort_profile_prep_1 %>%
-    select(-c(wave_2_lag, wave_2_lead, CAWI_imp))
+    dplyr::select(-c(wave_2_lag, wave_2_lead, CAWI_imp))
   
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
@@ -394,11 +394,11 @@ if (cohort_prep == "controls_bef_outcome") {
   df_keep_period <- data_cohort_profile_prep_1 %>% 
     ungroup() %>%
     filter(treatment_starts_help == treatment_ends) %>%
-    select(ID_t, treatment_starts_help)
+    dplyr::select(ID_t, treatment_starts_help)
     ## merge
   data_cohort_profile_prep_1 <- inner_join(
     data_cohort_profile_prep_1, df_keep_period, by = c("ID_t", "treatment_starts_help")
-  ) %>% select(-treatment_starts_help) %>% ungroup()
+  ) %>% dplyr::select(-treatment_starts_help) %>% ungroup()
   
   # drop rows where treatment_starts & treatmend_ends have missing values
   data_cohort_profile_prep_1 <- data_cohort_profile_prep_1 %>%
@@ -448,16 +448,16 @@ if (cohort_prep == "controls_bef_outcome") {
     mutate(
       max1 = max(treatment_starts, na.rm = TRUE), max2 = max(treatment_ends, na.rm = TRUE)
     ) %>%
-    select(ID_t, max1, max2) %>% distinct() %>%
+    dplyr::select(ID_t, max1, max2) %>% distinct() %>%
     summarize(check = sum(max1 != max2)) %>% summarize(sum(check))
     ## treatment start is always CATI, treatment end always CAWI
     ## -> result is CATI and CAWI
   data_cohort_profile_prep_1 %>%
-    select(ID_t, wave_2, treatment_starts) %>%
+    dplyr::select(ID_t, wave_2, treatment_starts) %>%
     na.omit() %>% pull(wave_2) %>% unique()
   
   data_cohort_profile_prep_1 %>%
-    select(ID_t, wave_2, treatment_ends) %>%
+    dplyr::select(ID_t, wave_2, treatment_ends) %>%
     na.omit() %>% pull(wave_2) %>% unique()
   
 } else {
@@ -477,13 +477,13 @@ if (cohort_prep == "controls_bef_outcome") {
   
   # extract start date of treatment period
   df_check_length_start <- df_check_length %>% 
-    select(ID_t, interview_date, treatment_starts) %>% 
+    dplyr::select(ID_t, interview_date, treatment_starts) %>% 
     na.omit() %>%
     rename(interview_date_start = interview_date)
   
   # extract end date of treatment period
   df_check_length_end <- df_check_length %>% 
-    select(ID_t, interview_date, treatment_ends) %>% 
+    dplyr::select(ID_t, interview_date, treatment_ends) %>% 
     na.omit() %>%
     rename(interview_date_end = interview_date)
   
@@ -500,12 +500,12 @@ if (cohort_prep == "controls_bef_outcome") {
   # identify rows to keep and drop
   df_check_length_keep <- df_check_length %>%
     filter(treatment_length <= 2) %>%
-    select(ID_t, treatment_period) %>%
+    dplyr::select(ID_t, treatment_period) %>%
     mutate(keep_row = TRUE) 
   
   df_check_length_drop <- df_check_length %>%
     filter(treatment_length > 2) %>%
-    select(ID_t, treatment_period) %>%
+    dplyr::select(ID_t, treatment_period) %>%
     mutate(end_NA = TRUE) 
   
   # starts are dropped and ends are set NA
@@ -516,11 +516,11 @@ if (cohort_prep == "controls_bef_outcome") {
     mutate(keep_row = ifelse(is.na(keep_row.x), keep_row.y, keep_row.x))
     ## keep only if keep_row = TRUE
   data_cohort_profile_prep_1 <- data_cohort_profile_prep_1 %>%
-    filter(keep_row == TRUE) %>% select(-(starts_with("keep_row")))
+    filter(keep_row == TRUE) %>% dplyr::select(-(starts_with("keep_row")))
     ## set treatment_ends = NA if end_NA = TRUE
   data_cohort_profile_prep_1 <- data_cohort_profile_prep_1 %>%
     mutate(treatment_ends = case_when(end_NA == TRUE ~ as.double(NA), TRUE ~ treatment_ends)) %>%
-    select(-end_NA)
+    dplyr::select(-end_NA)
   
   # adjust number of respondents
   num_id_adj_3 <- length(unique(data_cohort_profile_prep_1$ID_t))
@@ -533,13 +533,13 @@ if (cohort_prep == "controls_bef_outcome") {
   
   # extract start date of treatment period
   df_check_length_start <- df_check_length %>% 
-    select(ID_t, interview_date, treatment_starts) %>% 
+    dplyr::select(ID_t, interview_date, treatment_starts) %>% 
     na.omit() %>%
     rename(interview_date_start = interview_date)
   
   # extract end date of treatment period
   df_check_length_end <- df_check_length %>% 
-    select(ID_t, interview_date, treatment_ends) %>% 
+    dplyr::select(ID_t, interview_date, treatment_ends) %>% 
     na.omit() %>%
     rename(interview_date_end = interview_date)
   
@@ -559,14 +559,14 @@ if (cohort_prep == "controls_bef_outcome") {
       is.na(treatment_starts) ~ treatment_ends, TRUE ~ treatment_starts
     )) %>% 
     left_join(
-      df_check_length %>% select(ID_t, treatment_period, treatment_length),
+      df_check_length %>% dplyr::select(ID_t, treatment_period, treatment_length),
       by = c("ID_t", "treatment_period")
     )
   
   # subset data frame to only keep observations with treatment period below 2 years
   data_cohort_profile_prep_1 <- data_cohort_profile_prep_1 %>% 
     filter(treatment_length <= 1) %>%
-    select(-c(treatment_period, treatment_length))
+    dplyr::select(-c(treatment_period, treatment_length))
   
   # adjust number of respondents
   num_id_adj_3 <- length(unique(data_cohort_profile_prep_1$ID_t))

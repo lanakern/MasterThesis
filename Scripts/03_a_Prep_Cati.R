@@ -154,11 +154,11 @@ id_num_cati_adj_2 <- length(unique(data_cati$ID_t))
 setdiff(id_cohort, id_cati_adj_2)
 id_drop_num <- length(setdiff(id_cohort, id_cati_adj_2))
   ## examples
-data_cohort_profile %>% select(ID_t, wave, starts_with("treatment")) %>% subset(ID_t == 7011450)
-data_target_cati %>% select(ID_t, wave, starts_with("treatment")) %>% subset(ID_t == 7011450)
+data_cohort_profile %>% dplyr::select(ID_t, wave, starts_with("treatment")) %>% subset(ID_t == 7011450)
+data_target_cati %>% dplyr::select(ID_t, wave, starts_with("treatment")) %>% subset(ID_t == 7011450)
 
-data_cohort_profile %>% select(ID_t, wave, starts_with("treatment")) %>% subset(ID_t == 7016646)
-data_target_cati %>% select(ID_t, wave, starts_with("treatment")) %>% subset(ID_t == 7016646)
+data_cohort_profile %>% dplyr::select(ID_t, wave, starts_with("treatment")) %>% subset(ID_t == 7016646)
+data_target_cati %>% dplyr::select(ID_t, wave, starts_with("treatment")) %>% subset(ID_t == 7016646)
 
 
 
@@ -177,18 +177,18 @@ if (cohort_prep == "controls_same_outcome") {
   
   # order columns
   data_cati <- data_cati %>% 
-    select(-c(treatment_ends, starts_with("wave"))) %>%
-    select(ID_t, treatment_period, interview_date_start, 
-           starts_with("sport_"), grade_final, everything())
+    dplyr::select(-c(treatment_ends, starts_with("wave"))) %>%
+    dplyr::select(ID_t, treatment_period, interview_date_start, 
+                  starts_with("sport_"), grade_final, everything())
   
 } else if (cohort_prep == "controls_bef_outcome") {
   data_cati <- data_cati %>% rename(treatment_period = treatment_starts)
   
   # order columns
   data_cati <- data_cati %>% 
-    select(-c(treatment_ends, starts_with("wave"))) %>%
-    select(ID_t, treatment_period, interview_date, 
-           starts_with("sport_"), grade_final, everything())
+    dplyr::select(-c(treatment_ends, starts_with("wave"))) %>%
+    dplyr::select(ID_t, treatment_period, interview_date, 
+                  starts_with("sport_"), grade_final, everything())
 } 
 
 # big five personality variables as numeric

@@ -106,10 +106,10 @@ length(unique(data_uni$ID_t)) # all individuals are kept because all have univer
 
 
 # show example for merging
-data_uni %>% select(ID_t, start_date, end_date, sptype_2) %>% 
+data_uni %>% dplyr::select(ID_t, start_date, end_date, sptype_2) %>% 
   subset(ID_t %in% c(7001969, 7002033, 7019370))
 data_cati_cawi %>% 
-  select(ID_t, treatment_period, starts_with("interview_date")) %>% 
+  dplyr::select(ID_t, treatment_period, starts_with("interview_date")) %>% 
   subset(ID_t %in% c(7001969, 7002033, 7019370))
 
 # 1.) Check if interview date from outcome (interview_date_end in data_cati_cawi)
@@ -165,15 +165,15 @@ if (cohort_prep == "controls_bef_outcome") {
 # life course data is duplicated for each treatment period
 # thus, number of rows for each respondent is nrow(data_life_course)*num_treatment_periods
 data_cati_cawi_eps %>%
-  select(ID_t, treatment_period, interview_date_start, interview_date_spell, interview_date_end) %>%
+  dplyr::select(ID_t, treatment_period, interview_date_start, interview_date_spell, interview_date_end) %>%
   subset(ID_t == 7001984)
 
 data_cati_cawi_eps_all <- left_join(data_cati_cawi_eps, data_life_course, by = "ID_t")
 
 data_cati_cawi_eps_all %>%
   subset(ID_t == 7001984) %>%
-  select(ID_t, treatment_period, sptype_2, start_date, end_date, 
-         interview_date_start, interview_date_spell, interview_date_end) %>%
+  dplyr::select(ID_t, treatment_period, sptype_2, start_date, end_date, 
+                interview_date_start, interview_date_spell, interview_date_end) %>%
   head(20)
 
 
@@ -193,8 +193,8 @@ data_cati_cawi_eps_all <- data_cati_cawi_eps_all %>%
 
 data_cati_cawi_eps_all %>%
   subset(ID_t == 7001984) %>%
-  select(ID_t, treatment_period, sptype_2, start_date, end_date, end_date_adj, 
-         interview_date_start, interview_date_spell, interview_date_end) %>%
+  dplyr::select(ID_t, treatment_period, sptype_2, start_date, end_date, end_date_adj, 
+                interview_date_start, interview_date_spell, interview_date_end) %>%
   head(20)
 
 
@@ -212,8 +212,8 @@ data_cati_cawi_eps_all <- data_cati_cawi_eps_all %>%
 
 data_cati_cawi_eps_all %>%
   subset(ID_t == 7001984) %>%
-  select(ID_t, treatment_period, sptype_2, start_date, end_date, end_date_adj, 
-         interview_date_start, interview_date_spell, interview_date_end, eps_rel) %>%
+  dplyr::select(ID_t, treatment_period, sptype_2, start_date, end_date, end_date_adj, 
+                interview_date_start, interview_date_spell, interview_date_end, eps_rel) %>%
   head(20)
 
 # spell length in years: start_date - end_date
@@ -229,9 +229,9 @@ data_cati_cawi_eps_all <- data_cati_cawi_eps_all %>%
 
 data_cati_cawi_eps_all %>%
   subset(ID_t == 7001984) %>%
-  select(ID_t, treatment_period, sptype_2, start_date, end_date, end_date_adj, 
-         interview_date_start, interview_date_spell, interview_date_end, eps_rel,
-         spell_length_years) %>%
+  dplyr::select(ID_t, treatment_period, sptype_2, start_date, end_date, end_date_adj, 
+                interview_date_start, interview_date_spell, interview_date_end, eps_rel,
+                spell_length_years) %>%
   head(20)
 
 
@@ -248,9 +248,9 @@ data_cati_cawi_eps_all <- data_cati_cawi_eps_all %>%
 
 data_cati_cawi_eps_all %>%
   subset(ID_t == 7001984) %>%
-  select(ID_t, treatment_period, sptype_2, start_date, end_date, end_date_adj, 
-         interview_date_start, interview_date_spell, interview_date_end, eps_rel,
-         spell_length_years, spell_length_cum_years) %>%
+  dplyr::select(ID_t, treatment_period, sptype_2, start_date, end_date, end_date_adj, 
+                interview_date_start, interview_date_spell, interview_date_end, eps_rel,
+                spell_length_years, spell_length_cum_years) %>%
   head(20)
 
 
@@ -263,13 +263,13 @@ data_cati_cawi_eps_all <-
   mutate(uni_spell = ifelse(sptype_2 == "Uni", 1, 0)) %>%
   pivot_wider(names_from = sptype_2, values_from = spell_length_cum_years,
               names_prefix = "spell_length_cum_") %>%
-  select(-row) %>%
+  dplyr::select(-row) %>%
   fill(starts_with("spell_length_cum_"), .direction = "down")
 
 
 data_cati_cawi_eps_all %>%
   subset(ID_t == 7001984) %>%
-  select(ID_t, treatment_period, start_date, end_date, end_date_adj, 
+  dplyr::select(ID_t, treatment_period, start_date, end_date, end_date_adj, 
          interview_date_start, interview_date_spell, interview_date_end, eps_rel, 
          starts_with("spell_length_cum_")) %>%
   head(20)
@@ -294,11 +294,11 @@ length(unique(data_cati_cawi_eps_all_2$ID_t))
 # there may be duplicates as in this example because during interviews
 # respondent has two uni spells within one treatment period
 data_cati_cawi_eps_all_2 %>% 
-  select(ID_t, treatment_period, uni_spell) %>%
+  dplyr::select(ID_t, treatment_period, uni_spell) %>%
   group_by(ID_t, treatment_period) %>%
   count(uni_spell) %>% filter(n > 1)
 data_cati_cawi_eps_all_2 %>% subset(ID_t == 7001992) %>%
-  select(ID_t, treatment_period, starts_with("interview_date"), start_date, end_date)
+  dplyr::select(ID_t, treatment_period, starts_with("interview_date"), start_date, end_date)
 
 # in this case, the last (most recent) uni spell is kept
 data_cati_cawi_eps_all_2 <- data_cati_cawi_eps_all_2 %>%
@@ -307,7 +307,7 @@ data_cati_cawi_eps_all_2 <- data_cati_cawi_eps_all_2 %>%
   group_by(ID_t, treatment_period) %>%
   dplyr::slice(n())
 data_cati_cawi_eps_all_2 %>% subset(ID_t == 7001992) %>%
-  select(ID_t, treatment_period, starts_with("interview_date"), start_date, end_date)  
+  dplyr::select(ID_t, treatment_period, starts_with("interview_date"), start_date, end_date)  
 
 
 ## LENGTH CURRENT STUDY ##
@@ -325,7 +325,7 @@ data_cati_cawi_eps_all_2 <- data_cati_cawi_eps_all_2 %>%
 
 # check operations
 check <- data_cati_cawi_eps_all_2 %>% 
-  select(
+  dplyr::select(
     ID_t, start_date, end_date, end_date_adj, treatment_period, interview_date_start,
     interview_date_spell, interview_date_end, starts_with("spell_length_cum_"), 
     spell_length_current_Uni
@@ -337,8 +337,8 @@ check %>% ungroup() %>% select(starts_with("spell_length_cum_")) %>% summarize(s
 # drop variables which are not of interest anymore
 # order data frame
 data_cati_cawi_unispell <- data_cati_cawi_eps_all_2 %>%
-  select(-c(spell_length_years, uni_spell, eps_rel, sptype, start_date, end_date)) %>%
-  select(ID_t, treatment_period, starts_with("interview_"), starts_with("sport"),
+  dplyr::select(-c(spell_length_years, uni_spell, eps_rel, sptype, start_date, end_date)) %>%
+  dplyr::select(ID_t, treatment_period, starts_with("interview_"), starts_with("sport"),
          starts_with("grade"), starts_with("spell_"), starts_with("educ_"),
          everything()) %>%
   ungroup()
@@ -362,7 +362,7 @@ id_keep_emp <- unique(data_cati_cawi_unispell$ID_t)
 data_emp <- data_life_course %>% 
   subset(ID_t %in% id_keep_emp) %>%
   filter(sptype_2 == "Emp") %>%
-  select(ID_t, sptype_2, start_date, end_date, matches("emp"))
+  dplyr::select(ID_t, sptype_2, start_date, end_date, matches("emp"))
 
 length(unique(data_emp$ID_t)) # number of students who work / have worked at any time
 
@@ -372,7 +372,7 @@ length(unique(data_emp$ID_t)) # number of students who work / have worked at any
 # the created data frame identifies the employment spells during the university study
 data_emp_uni <- data_cati_cawi_unispell %>% 
   subset(ID_t %in% unique(data_emp$ID_t)) %>% 
-  select(ID_t, interview_date_spell)
+  dplyr::select(ID_t, interview_date_spell)
 length(unique(data_emp_uni$ID_t)) # number of students who work / have worked at any time
 
   ## example
@@ -394,29 +394,29 @@ length(unique(data_check_emp$ID_t)) # number of student who work during study
 # calculate length of current employment 
 data_check_emp <- data_check_emp %>%
  mutate(spell_length_current_Emp = as.numeric(difftime(interview_date_spell, start_date, units = "weeks")) / 52.5) %>%
-  select(-start_date)
+  dplyr::select(-start_date)
 
 
 # add prefix for emp_ variables: all starts with emp_current
 data_check_emp <- cbind(
   data_check_emp %>%
-    select(starts_with("emp")) %>%
+    dplyr::select(starts_with("emp")) %>%
     rename_with(~ gsub(.x, pattern = "emp", replacement = "emp_current")),
   data_check_emp %>%
-    select(-starts_with("emp"))
+    dplyr::select(-starts_with("emp"))
 )
 
 # check for duplicates (that is two employment spells within one treatment period)
 data_check_emp %>%
   group_by(ID_t, interview_date_spell) %>%
   count() %>% filter(n > 1)
-data_check_emp %>% subset(ID_t == 7001970) %>% select(ID_t, interview_date_spell, everything())
+data_check_emp %>% subset(ID_t == 7001970) %>% dplyr::select(ID_t, interview_date_spell, everything())
   ## in case of duplicated keep the employment spell with the longer duration
 data_check_emp <- data_check_emp %>%
   arrange(ID_t, interview_date_spell, spell_length_current_Emp) %>%
   group_by(ID_t, interview_date_spell) %>%
   dplyr::slice(n())
-data_check_emp %>% subset(ID_t == 7001970) %>% select(ID_t, interview_date_spell, everything())
+data_check_emp %>% subset(ID_t == 7001970) %>% dplyr::select(ID_t, interview_date_spell, everything())
 
 # add employment to respective treatment period
 data_cati_cawi_unispell_emp <- left_join(
@@ -430,10 +430,10 @@ data_cati_cawi_unispell_emp <- data_cati_cawi_unispell_emp %>%
 table(data_cati_cawi_unispell_emp$emp_current, useNA = "always")
 
 # drop the employment variables not needed anymore
-cols_emp_drop <- data_cati_cawi_unispell_emp %>% select(starts_with("emp")) %>% colnames()
+cols_emp_drop <- data_cati_cawi_unispell_emp %>% dplyr::select(starts_with("emp")) %>% colnames()
 cols_emp_drop <- cols_emp_drop[!str_detect(cols_emp_drop, "current")]
 data_cati_cawi_unispell_emp <- data_cati_cawi_unispell_emp %>%
-  select(-all_of(cols_emp_drop))
+  dplyr::select(-all_of(cols_emp_drop))
 
 
 # number of respondents

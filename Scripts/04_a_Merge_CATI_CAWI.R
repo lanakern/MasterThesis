@@ -72,8 +72,8 @@ if (cohort_prep == "controls_same_outcome") {
   data_cati_cawi <- inner_join(
     data_cati, data_cawi, by = c("ID_t", "treatment_period")
   ) %>% 
-    select(ID_t, treatment_period, interview_date_start, interview_date_end, 
-           starts_with("sport"), starts_with("grade"), everything())
+    dplyr::select(ID_t, treatment_period, interview_date_start, interview_date_end, 
+                  starts_with("sport"), starts_with("grade"), everything())
   
   # adjust number of respondents
   num_id_cati_cawi <- length(unique(data_cati_cawi$ID_t))
@@ -102,7 +102,7 @@ if (cohort_prep == "controls_same_outcome") {
   data_cati_cawi <- inner_join(
     data_cati, data_cawi, by = c("ID_t", "treatment_period")
   ) %>% 
-    select(ID_t, treatment_period, interview_date_start, interview_date_CATI, 
+    dplyr::select(ID_t, treatment_period, interview_date_start, interview_date_CATI, 
            interview_date_end, starts_with("sport"), starts_with("grade"), 
            everything())
   
