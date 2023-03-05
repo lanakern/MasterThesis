@@ -6,9 +6,11 @@
 # by Lana Kern
 #++++
 # In this file, the treatment and outcome variables are generated.
-# -> outcome: current average grade
-# -> treatment: sport participation as binary variable (0,1) and multiple
-# treatment variable considering the frequency (daily, weekly, monthly, never).
+# -> Outcome: current average grade
+# -> Treatment: sport participation as binary variable (0,1) and multiple
+# treatment variable considering the frequency (daily + weekly, monthly + less, never).
+# For the sport frequency variable, the categories are aggregated due to small
+# sample sizes.
 #++++
 # 1.) Treatment
 # -> Binary and multivalued treatment indicator: binary considers simply sport
@@ -74,10 +76,10 @@ num_id <- length(unique(data_raw$ID_t))
 #### Treatment ####
 #%%%%%%%%%%%%%%%%%#
 
-data_raw %>% select(ID_t, starts_with("interview_date"), starts_with("sport"))
+data_raw %>% dplyr::select(ID_t, starts_with("interview_date"), starts_with("sport"))
 
 # count missing values in treatment variables
-colSums(is.na(data_raw %>% select(starts_with("sport"))))
+colSums(is.na(data_raw %>% dplyr::select(starts_with("sport"))))
 
 # there are no non-missing values for sport_uni_freq if sport_uni is missing
 data_raw %>% filter(is.na(sport_uni) & !is.na(sport_uni_freq))
@@ -313,16 +315,16 @@ data_2 <- data_2 %>%
 
 # check
 data_2 %>% subset(ID_t == 7002010) %>% 
-  select(ID_t, starts_with("sport"), starts_with("treatment"))
+  dplyr::select(ID_t, starts_with("sport"), starts_with("treatment"))
 data_2 %>% subset(ID_t == 7001969) %>% 
-  select(ID_t, starts_with("sport"), starts_with("treatment"))
+  dplyr::select(ID_t, starts_with("sport"), starts_with("treatment"))
 data_2 %>% subset(ID_t == 7001977) %>% 
-  select(ID_t, starts_with("sport"), starts_with("treatment"))
+  dplyr::select(ID_t, starts_with("sport"), starts_with("treatment"))
 data_2 %>% subset(ID_t == 7002007) %>% 
-  select(ID_t, starts_with("sport"), starts_with("treatment"))
+  dplyr::select(ID_t, starts_with("sport"), starts_with("treatment"))
 
 # drop variables not needed anymore
-data_2 <- data_2 %>% select(-starts_with("sport"))
+data_2 <- data_2 %>% dplyr::select(-starts_with("sport"))
 
 # number of respondents
 length(unique(data_2$ID_t)) # should be unchanged
@@ -394,7 +396,7 @@ num_id_adj_2 <- length(unique(data_4$ID_t))
 drop_grade <- num_id_adj_1 - num_id_adj_2
 
 # drop grade variables
-data_4 <- data_4 %>% select(-starts_with("grade"))
+data_4 <- data_4 %>% dplyr::select(-starts_with("grade"))
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
@@ -407,7 +409,7 @@ data_4 <- data_4 %>% select(-starts_with("grade"))
 data_4 <- data_4 %>% ungroup()
 
 # ensure that they are no missing values for treatment and outcome (except freq)
-colSums(is.na(data_4 %>% select(starts_with("treatment_s"), starts_with("outcome"))))
+colSums(is.na(data_4 %>% dplyr::select(starts_with("treatment_s"), starts_with("outcome"))))
 
 # check for duplicates
 sum(duplicated(data_4))
