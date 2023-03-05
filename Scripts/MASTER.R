@@ -204,7 +204,7 @@ df_inputs_dml <- df_inputs_dml %>%
 
 
 # define variables for baseline model
-vars_baseline <- 'select(
+vars_baseline <- 'dplyr::select(
 group, starts_with("outcome"), starts_with("treatment"),
 
 interview_start_year_num, interview_end_year_num,
@@ -306,7 +306,7 @@ for (cohort_prep_sel in unique(na.omit(df_inputs$cohort_prep))) {
 # Prepare CATI and CAWI: iteration over cohort_prep and treatment_repl
 # Note: generated data sets differ across treatment_repl but number of students,
 # rows and columns only differ across cohort_prep
-df_inputs_indiv <- df_inputs %>% select(cohort_prep, treatment_repl) %>% distinct()
+df_inputs_indiv <- df_inputs %>% dplyr::select(cohort_prep, treatment_repl) %>% distinct()
 
 for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
   
@@ -400,7 +400,7 @@ for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
 # Prepare treatment and outcome 
 # Here I iterate over all combinations except extracurricular activity
 df_inputs_indiv <- df_inputs %>% 
-  select(cohort_prep, treatment_repl, treatment_def) %>% 
+  dplyr::select(cohort_prep, treatment_repl, treatment_def) %>% 
   distinct()
 
 for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
@@ -434,7 +434,7 @@ for (prep_sel_num in 1:nrow(df_inputs)) {
   source("Scripts/06_Sample_Selection.R") 
   eval(parse(text = keep_after_file_run))
   
-  print(paste0("FINISHED COMBINATION", prep_sel_num, " FROM ", nrow(df_inputs)))
+  print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs)))
   gc()
 }
 

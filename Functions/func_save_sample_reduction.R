@@ -23,7 +23,7 @@ func_save_sample_reduction <- function(data, outcome) {
     data <- data %>% mutate(data_prep_step_2 = NA)
   }
   
-  data <- data %>% select(
+  data <- data %>% dplyr::select(
     data_prep_step, data_prep_step_2, data_prep_choice_cohort, data_prep_treatment_repl,
     data_prep_treatment_def, data_prep_extraact, num_id, num_rows, num_cols, time_stamp
     )
@@ -45,8 +45,8 @@ func_save_sample_reduction <- function(data, outcome) {
   }
   
   df_excel_save_hist <- df_excel_save_hist %>% 
-    select(data_prep_step, data_prep_step_2, data_prep_choice_cohort, data_prep_treatment_repl,
-           data_prep_treatment_def, data_prep_extraact, num_id, num_rows, num_cols, time_stamp)
+    dplyr::select(data_prep_step, data_prep_step_2, data_prep_choice_cohort, data_prep_treatment_repl,
+                  data_prep_treatment_def, data_prep_extraact, num_id, num_rows, num_cols, time_stamp)
   
   
   # append current data frame

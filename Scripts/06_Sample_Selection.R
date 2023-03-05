@@ -90,7 +90,7 @@ data_sub_1 <- data_raw
 
 # select column names containing info of extracurricular activity
 colnames_extra <- data_sub_1 %>%
-  select(matches("extracurricular_") & !ends_with("freq"), "interest_music_play") %>%
+  dplyr::select(matches("extracurricular_") & !ends_with("freq"), "interest_music_play") %>%
   colnames()
 
 # generate new data frame
@@ -99,21 +99,21 @@ data_count <- data.frame()
 # sum extracurricular activities
 data_count <- data_sub_1 %>%
   ungroup() %>%
-  select(ID_t, treatment_period, all_of(colnames_extra)) %>%
+  dplyr::select(ID_t, treatment_period, all_of(colnames_extra)) %>%
   # recode involved and not involved to number to sum up
   #mutate_at(vars(colnames_count_1), ~ recode(., "involved" = 1, "not involved" = 0)) %>%
   # ensure that values are numeric
   mutate_at(vars(colnames_extra), ~ as.integer(.)) %>%
   # sum up how often individual has "involved" (or rather 1)
   # ignore NAs (handled in next step)
-  mutate(extracurricular_num = rowSums(select(., all_of(colnames_extra)), na.rm = TRUE)) %>%
+  mutate(extracurricular_num = rowSums(dplyr::select(., all_of(colnames_extra)), na.rm = TRUE)) %>%
   # sum up NA in extracurricular activity
-  mutate(sum_na = rowSums(is.na(select(., all_of(colnames_extra))))) %>%
+  mutate(sum_na = rowSums(is.na(dplyr::select(., all_of(colnames_extra))))) %>%
   # only if all are NA, then "extracurricular_num" variable is set to NA instead of 0
   mutate(extracurricular_num = case_when(sum_na == length(colnames_extra) ~ as.double(NA), 
                                          TRUE ~ extracurricular_num)) %>%
   # keep only variables of interest
-  select(ID_t, treatment_period, extracurricular_num) %>%
+  dplyr::select(ID_t, treatment_period, extracurricular_num) %>%
   # fill missing values up and down
   arrange(ID_t, treatment_period) %>%
   group_by(ID_t) %>% fill(extracurricular_num, .direction = "down") %>% ungroup() %>%
@@ -168,7 +168,7 @@ left_join(
 
 # extract frequency columns
 colnames_extra_freq <- data_sub_2 %>%
-  select(matches("extracurricular_") & ends_with("freq"), "interest_music_play_freq") %>%
+  dplyr::select(matches("extracurricular_") & ends_with("freq"), "interest_music_play_freq") %>%
   colnames()
 
 # recode interest_music_play_freq variable (asked per month)
@@ -198,9 +198,9 @@ table(data_sub_2$interest_music_play_freq)
 # highest
 data_freq <- data_sub_2 %>%
   ungroup() %>%
-  select(ID_t, treatment_period, all_of(colnames_extra_freq)) %>%
+  dplyr::select(ID_t, treatment_period, all_of(colnames_extra_freq)) %>%
   mutate(extracurricular_freq = pmax(!!!rlang::syms(colnames_extra_freq), na.rm = TRUE)) %>%
-  select(ID_t, treatment_period, extracurricular_freq) %>%
+  dplyr::select(ID_t, treatment_period, extracurricular_freq) %>%
   mutate(extracurricular_freq = case_when(
     extracurricular_freq == 1 ~ "daily",
     extracurricular_freq == 2 ~ "several times a week",
@@ -212,7 +212,7 @@ data_freq <- data_sub_2 %>%
   group_by(ID_t) %>% fill(extracurricular_freq, .direction = "down") %>% ungroup()
     
 table(data_freq$extracurricular_freq, useNA = "always")
-sum(duplicated(data_freq %>% select(ID_t, treatment_period)))
+sum(duplicated(data_freq %>% dplyr::select(ID_t, treatment_period)))
 
 
 # merge to other data frame
@@ -231,15 +231,15 @@ cols_extra_uni <- c("extracurricular_association", "extracurricular_committee",
                     "extracurricular_political")#, "extracurricular_other")
 
 df_extracurricular_uni <- data_sub_2 %>% 
-  select(ID_t, treatment_period, all_of(cols_extra_uni)) %>%
-  mutate(check_uni = rowSums(select(., all_of(cols_extra_uni)), na.rm = TRUE)) %>%
-  mutate(check_uni_sum_na = rowSums(is.na(select(., all_of(cols_extra_uni))))) %>%
+  dplyr::select(ID_t, treatment_period, all_of(cols_extra_uni)) %>%
+  mutate(check_uni = rowSums(dplyr::select(., all_of(cols_extra_uni)), na.rm = TRUE)) %>%
+  mutate(check_uni_sum_na = rowSums(is.na(dplyr::select(., all_of(cols_extra_uni))))) %>%
   mutate(extracurricular_uni = case_when(
     check_uni_sum_na == length(cols_extra_uni) ~ as.double(NA), 
     check_uni == 0 & check_uni_sum_na != length(cols_extra_uni) ~ 0, 
     TRUE ~ 1)) %>%
-  select(-c(check_uni, check_uni_sum_na)) %>%
-  select(ID_t, treatment_period, extracurricular_uni) %>%
+  dplyr::select(-c(check_uni, check_uni_sum_na)) %>%
+  dplyr::select(ID_t, treatment_period, extracurricular_uni) %>%
   group_by(ID_t) %>% fill(extracurricular_uni, .direction = "down") %>% ungroup() 
 
 data_sub_2 <- left_join(data_sub_2, df_extracurricular_uni, 
@@ -247,17 +247,17 @@ data_sub_2 <- left_join(data_sub_2, df_extracurricular_uni,
 
 
 # outside
-cols_extra_uni_no <- data_sub_2 %>% select(matches("extracurricular_leisure") & !ends_with("freq")) %>% colnames()
+cols_extra_uni_no <- data_sub_2 %>% dplyr::select(matches("extracurricular_leisure") & !ends_with("freq")) %>% colnames()
 
 df_extracurricular_uni_no <- data_sub_2 %>% 
-  select(ID_t, treatment_period, all_of(cols_extra_uni_no)) %>%
-  mutate(check_uni = rowSums(select(., all_of(cols_extra_uni_no)), na.rm = TRUE)) %>%
-  mutate(check_uni_sum_na = rowSums(is.na(select(., all_of(cols_extra_uni_no))))) %>%
+  dplyr::select(ID_t, treatment_period, all_of(cols_extra_uni_no)) %>%
+  mutate(check_uni = rowSums(dplyr::select(., all_of(cols_extra_uni_no)), na.rm = TRUE)) %>%
+  mutate(check_uni_sum_na = rowSums(is.na(dplyr::select(., all_of(cols_extra_uni_no))))) %>%
   mutate(extracurricular_uni_no = case_when(
     check_uni_sum_na == length(cols_extra_uni_no) ~ as.double(NA), 
     check_uni == 0 & check_uni_sum_na != length(cols_extra_uni) ~ 0, TRUE ~ 1)) %>%
-  select(-c(check_uni, check_uni_sum_na)) %>%
-  select(ID_t, treatment_period, extracurricular_uni_no) %>%
+  dplyr::select(-c(check_uni, check_uni_sum_na)) %>%
+  dplyr::select(ID_t, treatment_period, extracurricular_uni_no) %>%
   group_by(ID_t) %>% fill(extracurricular_uni_no, .direction = "down") %>% ungroup() 
 
 data_sub_2 <- left_join(data_sub_2, df_extracurricular_uni_no, 
@@ -278,23 +278,23 @@ table(data_sub_2$extracurricular_music, useNA = "always")
 
 # checks
 check_uni <- data_sub_2 %>%
-  select(ID_t, treatment_period, all_of(cols_extra_uni), extracurricular_uni)
+  dplyr::select(ID_t, treatment_period, all_of(cols_extra_uni), extracurricular_uni)
 
 check_uni_no <- data_sub_2 %>%
-  select(ID_t, treatment_period, all_of(cols_extra_uni_no), extracurricular_uni_no) 
+  dplyr::select(ID_t, treatment_period, all_of(cols_extra_uni_no), extracurricular_uni_no) 
 
 check_music <- data_sub_2 %>%
-  select(ID_t, treatment_period, interest_music_play, extracurricular_music) 
+  dplyr::select(ID_t, treatment_period, interest_music_play, extracurricular_music) 
 
 check_freq <- data_sub_2 %>%
-  select(ID_t, treatment_period, matches("extracurricular_.*_freq"), interest_music_play_freq, extracurricular_freq)
+  dplyr::select(ID_t, treatment_period, matches("extracurricular_.*_freq"), interest_music_play_freq, extracurricular_freq)
 
 check_num <- data_sub_2 %>%
-  select(ID_t, treatment_period, starts_with("extracurricular") & !ends_with("_freq"), interest_music_play, extracurricular_num)
+  dplyr::select(ID_t, treatment_period, starts_with("extracurricular") & !ends_with("_freq"), interest_music_play, extracurricular_num)
 
 
 # drop all extracurricular variables not needed anymore
-colnames_extra <- data_sub_2 %>% select(starts_with("extracurricular")) %>% colnames()
+colnames_extra <- data_sub_2 %>% dplyr::select(starts_with("extracurricular")) %>% colnames()
 colnames_extra_keep <- c("extracurricular_freq", "extracurricular_num", 
                          "extracurricular_uni", "extracurricular_uni_no", "extracurricular_music")
 colnames_extra_drop <- colnames_extra[!colnames_extra %in% colnames_extra_keep]
@@ -302,7 +302,7 @@ colnames_extra_drop <- colnames_extra[!colnames_extra %in% colnames_extra_keep]
 
 data_sub_2 <- data_sub_2 %>%
   ungroup() %>%
-  select(-(all_of(colnames_extra_drop)))
+  dplyr::select(-(all_of(colnames_extra_drop)))
 
 
 
@@ -355,7 +355,7 @@ data_sub_3 <- data_sub_3 %>% ungroup() %>% arrange(ID_t, treatment_period)
 
 # check for duplicates
 sum(duplicated(data_sub_3))
-sum(duplicated(data_sub_3 %>% select(ID_t, treatment_period)))
+sum(duplicated(data_sub_3 %>% dplyr::select(ID_t, treatment_period)))
 
 # number of respondents, number of rows, and number of columns before sample selection
 print(paste("Number of respondents before sample selection:", id_num_start))
