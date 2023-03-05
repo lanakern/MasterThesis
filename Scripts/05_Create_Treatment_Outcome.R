@@ -6,11 +6,9 @@
 # by Lana Kern
 #++++
 # In this file, the treatment and outcome variables are generated.
-# -> Outcome: current average grade
+# -> Outcome: current average grade.
 # -> Treatment: sport participation as binary variable (0,1) and multiple
-# treatment variable considering the frequency (daily + weekly, monthly + less, never).
-# For the sport frequency variable, the categories are aggregated due to small
-# sample sizes.
+# treatment variable considering the frequency.
 #++++
 # 1.) Treatment
 # -> Binary and multivalued treatment indicator: binary considers simply sport
