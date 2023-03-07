@@ -1,6 +1,6 @@
-#%%%%%%%%%%%%%%%%%%%#
-#### MASTER FILE ####
-#%%%%%%%%%%%%%%%%%%%#
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### MASTER FILE: PERSONALITY AS OUTCOME ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 #+++
 # by Lana Kern
@@ -103,6 +103,15 @@ library(janitor)  # for remove_constant() (-> dropping constant variables)
 if (!require("pROC")) install.packages("pROC")
 library(pROC) # for multiclass AUC
 
+if (!require("purrr")) install.packages("purrr")
+library(purrr) # for reduce function (union of variables)
+
+if (!require("MASS")) install.packages("MASS")
+# NOT LOADED AS IT MAKES TROUBLE WITH SELECT
+# library(MASS) # for ginv() function (-> weights for covariate balancing)
+
+# if (!require("cobalt")) install.packages("cobalt")
+# library(cobalt) # for bal.tab() function (covariate balance assessment)
 
 # set language for dates and times to German, since the NEPS month names
 # are written in German; otherwise date/time functions are not working
@@ -135,30 +144,18 @@ main_model_controls <- "no_lags"
 # generate all possible combinations of user inputs (to iterate over it below)
 df_inputs <- data.frame(
   # for interview data preparation
-  "cohort_prep" = c("controls_bef_outcome", "controls_same_outcome", NA), 
+  "cohort_prep" = c("controls_bef_outcome", rep("controls_same_outcome", 5)), 
   # for treatment and outcome missing value replacement
-  "treatment_repl" = c("down", "onelag", "no"),
+  "treatment_repl" = c("down", "down", "down", "down", "onelag", "no"),
   # for treatment generation
-  "treatment_def" = c("weekly", "all", NA),
+  "treatment_def" = c("weekly", "all", "weekly", "weekly", "weekly", "weekly"),
   # for sample selection: only keeping respondents with extracurricular activity
-  "extra_act" = c("yes", "no", NA)
-)
-
-df_inputs <- df_inputs %>% tidyr::expand(cohort_prep, treatment_repl, treatment_def, extra_act) %>% na.omit()
-
-# only 5 combinations are considered; otherwise it is a too high computational burden
-df_inputs <- df_inputs %>% filter(
-  (cohort_prep == "controls_bef_outcome" & treatment_repl == main_treatment_repl & treatment_def == main_treatment_def & extra_act == main_extra_act) |
-    (cohort_prep == "controls_same_outcome" & treatment_repl == main_treatment_repl & treatment_def == main_treatment_def & extra_act == main_extra_act) |
-    (cohort_prep == "controls_same_outcome" & treatment_repl == main_treatment_repl & treatment_def == main_treatment_def & extra_act == "no") |
-    (cohort_prep == "controls_same_outcome" & treatment_repl == "no" & treatment_def == main_treatment_def & extra_act == main_extra_act) |
-    (cohort_prep == "controls_same_outcome" & treatment_repl == main_treatment_repl & treatment_def == "all" & extra_act == main_extra_act)
+  "extra_act" = c("yes", "yes", "no", "yes", "yes", "yes")
 )
 
 # aggregation of variables
 aggr_vars <- "pca" # "mean" (not used anymore)
 cronbach_a <- "yes" # "no" (not used anymore)
-
 
 # all possible DML combinations
 # df_inputs_dml <- data.frame(
@@ -193,7 +190,7 @@ df_inputs_dml <- df_inputs_dml %>%
 
 
 # define variables for baseline model
-vars_baseline <- 'select(
+vars_baseline <- 'dplyr::select(
 group, starts_with("outcome"), starts_with("treatment"),
 
 interview_start_year_num, interview_end_year_num,
@@ -255,6 +252,7 @@ for (func_load in load_function) {
 
 
 
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 #### RUN DATA PREPARATION ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -265,7 +263,7 @@ for (func_load in load_function) {
 
 # Load all data files and make basic preparations like renaming variables and
 # recoding missing values as NA
-source("Scripts/01_Load_Data.R")
+source("Scripts/Personality/01_Load_Data_Personality.R")
 eval(parse(text = keep_after_file_run))
 
 
@@ -273,7 +271,7 @@ eval(parse(text = keep_after_file_run))
 #++++++++++++++++++++#
 
 # Prepare episode / life course data, i.e., educational history of each respondents
-source("Scripts/02_a_Prep_Data_Life_Course.R")
+source("Scripts/Personality/02_a_Prep_Data_Life_Course_Personality.R")
 eval(parse(text = keep_after_file_run))
 
 
@@ -284,7 +282,7 @@ eval(parse(text = keep_after_file_run))
 for (cohort_prep_sel in unique(na.omit(df_inputs$cohort_prep))) {
   cohort_prep <- cohort_prep_sel
   print(cohort_prep)
-  source("Scripts/02_C_Prep_Data_Interview_Participation_Personality.R")
+  source("Scripts/Personality/02_b_Prep_Data_Interview_Participation_Personality.R")
   eval(parse(text = keep_after_file_run))
 }
 
@@ -296,22 +294,84 @@ for (cohort_prep_sel in unique(na.omit(df_inputs$cohort_prep))) {
 # Note: generated data sets differ across treatment_repl but number of students,
 # rows and columns only differ across cohort_prep
 
-# df_inputs_indiv <- df_inputs %>% select(cohort_prep, treatment_repl) %>% distinct()
-# 
-# for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
-#   
-#   # select data preparation possibilities
-#   df_inputs_sel <- df_inputs_indiv[prep_sel_num, ] # subset data
-#   cohort_prep <- df_inputs_sel$cohort_prep # select cohort prep preparation
-#   treatment_repl <- df_inputs_sel$treatment_repl # select treatment/outcome replacement
-#   
-#   # Prepare individual data sets
-#   source("Scripts/03_g_Prep_Cati_Personality.R") # CATI
-#   eval(parse(text = keep_after_file_run))
-#   
-#   source("Scripts/03_b_Prep_Cawi.R") # CAWI
-#   eval(parse(text = keep_after_file_run))
-#   
-#   print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs_indiv)))
-#   gc()
-# }
+df_inputs_indiv <- df_inputs %>% dplyr::select(cohort_prep, treatment_repl) %>% distinct()
+
+for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
+
+  # select data preparation possibilities
+  df_inputs_sel <- df_inputs_indiv[prep_sel_num, ] # subset data
+  cohort_prep <- df_inputs_sel$cohort_prep # select cohort prep preparation
+  treatment_repl <- df_inputs_sel$treatment_repl # select treatment/outcome replacement
+
+  # Prepare individual data sets
+  source("Scripts/Personality/03_a_Prep_Cati_Personality.R") # CATI
+  eval(parse(text = keep_after_file_run))
+
+  source("Scripts/Personality/03_b_Prep_Cawi_Personality.R") # CAWI
+  eval(parse(text = keep_after_file_run))
+
+  print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs_indiv)))
+  gc()
+}
+
+
+#### Other individual data sets ####
+#++++++++++++++++++++++++++++++++++#
+
+# Prepare all other individual data sets: only iteration over cohort_prep 
+# THE INDIVIDUAL DATA SETS ARE INDEPENDENTLY PREPARED FROM CATI & CAWI
+# DURING THE MERGE PROCESS THE NUMBER OF OBS IS ADJUSTED
+
+for (cohort_prep_sel in unique(na.omit(df_inputs$cohort_prep))) {
+  
+  # select cohort prep
+  cohort_prep <- cohort_prep_sel # select cohort prep preparation
+  
+  print(cohort_prep)
+  
+  # Prepare individual data sets
+  source("Scripts/Personality/03_c_Prep_Sibling_personality.R") # Sibling
+  eval(parse(text = keep_after_file_run))
+  
+  source("Scripts/Personality/03_d_Prep_Child_personality.R") # Child
+  eval(parse(text = keep_after_file_run))
+  
+  source("Scripts/Personality/03_e_Prep_Partner_personality.R") # Partner
+  eval(parse(text = keep_after_file_run))
+  
+  source("Scripts/Personality/03_f_Prep_Competencies_personality.R") # Competencies
+  eval(parse(text = keep_after_file_run))
+  
+  gc()
+}
+
+
+#### Merge ####
+#+++++++++++++#
+
+# Merge all individual data sets: iterate over cohort_prep and treatment_repl
+# Note: generated data sets differ across treatment_repl but number of students,
+# rows and columns only differ across cohort_prep
+
+for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
+  
+  print(paste0("START COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs_indiv)))
+  
+  # select data preparation possibilities
+  df_inputs_sel <- df_inputs_indiv[prep_sel_num, ] # subset data
+  cohort_prep <- df_inputs_sel$cohort_prep # select cohort prep preparation
+  treatment_repl <- df_inputs_sel$treatment_repl # select treatment/outcome replacement
+  
+  # Merge 
+  source("Scripts/04_a_Merge_CATI_CAWI_Personality.R") # merge CATI & CAWI
+  eval(parse(text = keep_after_file_run))
+  
+  source("Scripts/04_b_Merge_Prepare_Episode_Personality.R") # add episode data
+  eval(parse(text = keep_after_file_run))
+  
+  source("Scripts/04_c_Merge_All_Personality.R") # add all other data sets
+  eval(parse(text = keep_after_file_run))
+  
+  print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs_indiv)))
+  gc()
+}
