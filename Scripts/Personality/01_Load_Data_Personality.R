@@ -1,6 +1,8 @@
-#%%%%%%%%%%%%%%%%%%%%%%%%#
-#### LOAD DATA FILES ####
-#%%%%%%%%%%%%%%%%%%%%%%%%#
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### LOAD DATA FILES FOR PERSONALITY ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+## IDENTICAL TO GRADES!
 
 #++++
 # by Lana Kern
@@ -147,9 +149,9 @@ data_cohort_profile <- data_cohort_profile %>%
          data_available_institution = tx80524,
          first_participation = tx80107
          ) %>%
-  select(ID_t, wave, starts_with("interview"), starts_with("competence"),
-         participation, data_available_student, data_available_institution, 
-         first_participation)
+  dplyr::select(ID_t, wave, starts_with("interview"), starts_with("competence"),
+                participation, data_available_student, data_available_institution, 
+                first_participation)
 
 
 # number of respondents, rows and columns
@@ -213,7 +215,7 @@ for (i in 1:length(cati_label_col_name_raw)) {
   ## define variables which should be labelled; some such as ID_t and numeric
   ## variables (especially those which are aggregated later) are dropped. 
 vars_label_cati <- data_target_cati %>%
-  select(-c(ID_t, t67809a, t67809b, t67809e, t67809f, t67809h, t67810a, t67810b,
+  dplyr::select(-c(ID_t, t67809a, t67809b, t67809e, t67809f, t67809h, t67810a, t67810b,
             t67810d, t67810e, t67810h, t66003a, t66003b, t66003c, t66003d, t66003e,
             t66003f, t66003g, t66003h, t66003i, t66003j, tg15001,
             tg15003, tg15002, tg15004, t31300a, t31300b, t31300c, t31300d,
@@ -535,10 +537,10 @@ data_target_cati <- data_target_cati %>%
 # this is all variables which are not renamed, i.e., starting with t#, ts, tf, th, tx, and tg
 # and the ID_i variable
 data_target_cati <- data_target_cati %>%
-  select(-c(starts_with("tg"), starts_with("ts"), starts_with("tf"), 
-            starts_with("th"), starts_with("tx"), starts_with("Version"))) %>%
-  select(-(matches("^t[0-9].*"))) %>%
-  select(-c(ID_i))
+  dplyr::select(-c(starts_with("tg"), starts_with("ts"), starts_with("tf"), 
+                   starts_with("th"), starts_with("tx"), starts_with("Version"))) %>%
+  dplyr::select(-(matches("^t[0-9].*"))) %>%
+  dplyr::select(-c(ID_i))
 
 # number of rows, columns and respondents
 length(unique(data_target_cati$ID_t)) # 17909
@@ -600,7 +602,7 @@ for (i in 1:length(cawi_label_col_name_raw)) {
 vars_label_cawi <- data_target_cawi %>%
   # drop variables which will make trouble such as ID_t and grades (tg52020)
   # also variables which will be aggregated should not take on any label
-  select(-c(ID_t, tg52020, t67001a, t67001b, t67001c, t67001d, t67001e,
+  dplyr::select(-c(ID_t, tg52020, t67001a, t67001b, t67001c, t67001d, t67001e,
             t67000a, t67000b, t67000c, t67000d, t67000e, t320410, t320406, t320405,
             t320106, t320105, t320110, t241001, t241002, t241003,
             t241004, t241005, t241006, t241007, t241008, t241009, t241000, t242001,
@@ -921,10 +923,10 @@ data_target_cawi <- data_target_cawi %>%
 
 # drop variables not needed
 data_target_cawi <- data_target_cawi %>%
-  select(-c(starts_with("tg"), starts_with("ts"), starts_with("tf"), 
-            starts_with("th"), starts_with("tx"), starts_with("Version"))) %>%
-  select(-(matches("^t[0-9].*"))) %>%
-  select(-c(ID_i))
+  dplyr::select(-c(starts_with("tg"), starts_with("ts"), starts_with("tf"), 
+                   starts_with("th"), starts_with("tx"), starts_with("Version"))) %>%
+  dplyr::select(-(matches("^t[0-9].*"))) %>%
+  dplyr::select(-c(ID_i))
 
 
 # number of respondents, rows, and columns
@@ -973,7 +975,7 @@ data_school <- data_school %>%
 
 # keep only variables of interest
 data_school <- data_school %>%
-  select(ID_t, splink, wave, starts_with("educ_"))
+  dplyr::select(ID_t, splink, wave, starts_with("educ_"))
 
 
 # number of respondents, rows, and columns
@@ -1009,7 +1011,7 @@ data_education <- data_education %>%
 
 # only keep variables needed
 data_education <- data_education %>%
-  select(ID_t, splink, educ_highest_degree_casmin, educ_highest_degree_isced)
+  dplyr::select(ID_t, splink, educ_highest_degree_casmin, educ_highest_degree_isced)
 
 # remove duplicates
 sum(duplicated(data_education))
@@ -1040,7 +1042,7 @@ data_voc_prep <- data_voc_prep %>%
 
 # keep only variables of interest
 data_voc_prep <- data_voc_prep %>%
-  select(ID_t, splink, educ_voc_prep)
+  dplyr::select(ID_t, splink, educ_voc_prep)
 
 # number of respondents, rows, and columns
 length(unique(data_voc_prep$ID_t)) # 370
@@ -1086,7 +1088,7 @@ data_voc_train <- data_voc_train %>%
 
 # keep only variables of interest
 data_voc_train <- data_voc_train %>%
-  select(ID_t, splink, starts_with("educ_"))
+  dplyr::select(ID_t, splink, starts_with("educ_"))
 
 
 # number of respondents, rows, and columns
@@ -1121,7 +1123,7 @@ data_voc_break <- data_voc_break %>%
     educ_uni_break_deregist_temp = tg2419b, 
     educ_uni_break_deregist_nform = tg2419c
   ) %>%
-  select(ID_t, splink, starts_with("educ_uni")) %>%
+  dplyr::select(ID_t, splink, starts_with("educ_uni")) %>%
   distinct(ID_t, splink, .keep_all = TRUE) %>%
   mutate(educ_uni_break = 1) # indicator for making a break in general
 
@@ -1162,7 +1164,7 @@ data_internship <- data_internship %>%
 # keep only variables of interest
 # and create dummy for internsip
 data_internship <- data_internship %>%
-  select(ID_t, splink, intern_type, intern_study_rel) %>%
+  dplyr::select(ID_t, splink, intern_type, intern_study_rel) %>%
   mutate(intern = 1)
 
 
@@ -1188,7 +1190,7 @@ data_military <- data_military %>%
 # hence, only ID_t, and splink are are kept as well as an indicator
 data_military <- data_military %>%
   mutate(military = 1) %>%
-  select(ID_t, splink, military)
+  dplyr::select(ID_t, splink, military)
 
 # number of respondents, rows, and columns
 length(unique(data_military$ID_t)) # 4,562
@@ -1217,7 +1219,7 @@ data_gap <- data_gap %>%
 # create dummy for gap
 data_gap <- data_gap %>%
   rename(gap_type = ts29101) %>% 
-  select(ID_t, splink, gap_type) %>%
+  dplyr::select(ID_t, splink, gap_type) %>%
   mutate(gap = 1)
 
 # number of respondents, rows, and columns
@@ -1261,7 +1263,7 @@ data_emp <- data_emp %>%
 
 # keep only variables of interest
 data_emp <- data_emp %>%
-  select(ID_t, splink, starts_with("emp_")) %>%
+  dplyr::select(ID_t, splink, starts_with("emp_")) %>%
   mutate(emp = 1)
 
 # number of respondents, rows, and columns
@@ -1302,7 +1304,7 @@ data_sibling <- data_sibling %>%
 
 # keep only variables of interest
 data_sibling <- data_sibling %>% 
-  select(ID_t, wave, starts_with("sibling"))
+  dplyr::select(ID_t, wave, starts_with("sibling"))
 
 # number of respondents, rows, and columns
 length(unique(data_sibling$ID_t)) # 15,602
@@ -1361,7 +1363,7 @@ data_partner <- data_partner %>%
 
 # keep only variables of interest
 data_partner <- data_partner %>%
-  select(ID_t, wave, starts_with("partner_"))
+  dplyr::select(ID_t, wave, starts_with("partner_"))
 
 # number of respondents, rows, and columns
 length(unique(data_partner$ID_t)) # 13,411
@@ -1404,7 +1406,7 @@ data_child <- data_child %>%
 
 # keep only variables of interest
 data_child <- data_child %>%
-  select(ID_t, wave, starts_with("child"))
+  dplyr::select(ID_t, wave, starts_with("child"))
 
 # number of respondents, rows, and columns
 length(unique(data_child$ID_t)) # 2,575
@@ -1424,7 +1426,7 @@ data_competencies <- read.dta13("Data/Raw/SC5_xTargetCompetencies_D_16-0-0.dta",
 
 
 # set labels for variables needed
-vars_label_comp <- data_competencies %>% select(starts_with("wave")) %>% colnames()
+vars_label_comp <- data_competencies %>% dplyr::select(starts_with("wave")) %>% colnames()
 for (var_sel in vars_label_comp) {
   data_competencies[, var_sel] <- 
     set.label(data_competencies, var_sel, lang = "en")
@@ -1455,7 +1457,7 @@ data_competencies <- data_competencies %>%
     comp_read_assess_share_w12 = mps12re_sc6, 
     comp_english_assess_share_w12 = mps12ef_sc6
   ) %>%
-  select(ID_t, starts_with("wave"), starts_with("comp_")) 
+  dplyr::select(ID_t, starts_with("wave"), starts_with("comp_")) 
 
 
 # number of respondents, rows, and columns
@@ -1495,7 +1497,7 @@ remove(dfs_list, dfs_list_adj)
 
 # remove columns only containing missing values
 func_drop_NA_cols <- function(data) {
-  return(data %>% select_if(~sum(!is.na(.)) > 0))
+  return(data %>% dplyr::select_if(~sum(!is.na(.)) > 0))
 }
 dfs_list <- Filter(function(x) is(x, "data.frame"), mget(ls()))
 dfs_list_adj <- lapply(dfs_list, func_drop_NA_cols)
@@ -1557,24 +1559,24 @@ remove(dfs_list, dfs_list_adj_charac, dfs_list_adj_spec, dfs_list_adj_yesno)
 #%%%%%%%%%%%%#
 
 # data frames
-saveRDS(data_bio, "Data/Prep_1/prep_1_biography.rds")
-saveRDS(data_cohort_profile, "Data/Prep_1/prep_1_cohort_profile.rds")
-saveRDS(data_target_cati, "Data/Prep_1/prep_1_target_cati.rds")
-saveRDS(data_target_cawi, "Data/Prep_1/prep_1_target_cawi.rds")
-saveRDS(data_school, "Data/Prep_1/prep_1_school.rds")
-saveRDS(data_education, "Data/Prep_1/prep_1_educ.rds")
-saveRDS(data_voc_prep, "Data/Prep_1/prep_1_vocprep.rds")
-saveRDS(data_voc_train, "Data/Prep_1/prep_1_voctrain.rds")
-saveRDS(data_voc_break, "Data/Prep_1/prep_1_vocbreak.rds")
-saveRDS(data_gap, "Data/Prep_1/prep_1_gap.rds")
-saveRDS(data_emp, "Data/Prep_1/prep_1_emp.rds")
-saveRDS(data_internship, "Data/Prep_1/prep_1_internship.rds")
-saveRDS(data_military, "Data/Prep_1/prep_1_military.rds")
-saveRDS(data_sibling, "Data/Prep_1/prep_1_sibling.rds")
-saveRDS(data_partner, "Data/Prep_1/prep_1_partner.rds")
-saveRDS(data_child, "Data/Prep_1/prep_1_child.rds")
-saveRDS(data_competencies, "Data/Prep_1/prep_1_competencies.rds")
+saveRDS(data_bio, "Data/Personality/Prep_1/prep_1_biography_personality.rds")
+saveRDS(data_cohort_profile, "Data/Personality/Prep_1/prep_1_cohort_profile_personality.rds")
+saveRDS(data_target_cati, "Data/Personality/Prep_1/prep_1_target_cati_personality.rds")
+saveRDS(data_target_cawi, "Data/Personality/Prep_1/prep_1_target_cawi_personality.rds")
+saveRDS(data_school, "Data/Personality/Prep_1/prep_1_school_personality.rds")
+saveRDS(data_education, "Data/Personality/Prep_1/prep_1_educ_personality.rds")
+saveRDS(data_voc_prep, "Data/Personality/Prep_1/prep_1_vocprep_personality.rds")
+saveRDS(data_voc_train, "Data/Personality/Prep_1/prep_1_voctrain_personality.rds")
+saveRDS(data_voc_break, "Data/Personality/Prep_1/prep_1_vocbreak_personality.rds")
+saveRDS(data_gap, "Data/Personality/Prep_1/prep_1_gap_personality.rds")
+saveRDS(data_emp, "Data/Personality/Prep_1/prep_1_emp_personality.rds")
+saveRDS(data_internship, "Data/Personality/Prep_1/prep_1_internship_personality.rds")
+saveRDS(data_military, "Data/Personality/Prep_1/prep_1_military_personality.rds")
+saveRDS(data_sibling, "Data/Personality/Prep_1/prep_1_sibling_personality.rds")
+saveRDS(data_partner, "Data/Personality/Prep_1/prep_1_partner_personality.rds")
+saveRDS(data_child, "Data/Personality/Prep_1/prep_1_child_personality.rds")
+saveRDS(data_competencies, "Data/Personality/Prep_1/prep_1_competencies_personality.rds")
 
 # label lists
-saveRDS(list_cawi_labels, "Data/Prep_1/prep_1_target_cawi_list.rds")
-saveRDS(list_cati_labels, "Data/Prep_1/prep_1_target_cati_list.rds")
+saveRDS(list_cawi_labels, "Data/Personality/Prep_1/prep_1_target_cawi_list_personality.rds")
+saveRDS(list_cati_labels, "Data/Personality/Prep_1/prep_1_target_cati_list_personality.rds")
