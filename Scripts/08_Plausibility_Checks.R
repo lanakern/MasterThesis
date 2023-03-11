@@ -57,16 +57,16 @@ for (mice_data_sel in 1:5) {
   # find all numeric columns (except dummy variables)
   vars_dummy <- 
     df_plausi %>%  ungroup() %>%
-    select_if(~ all(. %in% (0:1) | is.na(.))) %>%
+    dplyr::select_if(~ all(. %in% (0:1) | is.na(.))) %>%
     colnames()
   
   vars_numeric <- 
-    df_plausi %>% ungroup() %>% select_if(is.numeric) %>% colnames()
+    df_plausi %>% ungroup() %>% dplyr::select_if(is.numeric) %>% colnames()
   
   vars_numeric <- vars_numeric[!vars_numeric %in% vars_dummy]
   
   # summary statistics
-  df_plausi %>% select(all_of(vars_numeric)) %>% select(-id_t) %>% summary()
+  df_plausi %>% dplyr::select(all_of(vars_numeric)) %>% dplyr::select(-id_t) %>% summary()
   
   
   ## YEARS OF EDUCATION ##
@@ -114,7 +114,7 @@ for (mice_data_sel in 1:5) {
   test <- df_plausi %>%
     mutate(uni_time_all = uni_time_childcare + uni_time_courses + 
              uni_time_household + uni_time_study + uni_time_studyact) %>%
-    select(id_t, starts_with("uni_time"))
+    dplyr::select(id_t, starts_with("uni_time"))
   
   summary(test$uni_time_all)
   
@@ -218,7 +218,7 @@ for (mice_data_sel in 1:5) {
   
   
   # all other variables are zero for individuals who do not work
-  df_plausi %>% select(starts_with("emp")) %>% filter(emp_current == 0) %>% distinct() %>% pull()
+  df_plausi %>% dplyr::select(starts_with("emp")) %>% filter(emp_current == 0) %>% distinct() %>% pull()
   
   
   ## TREATMENT PERIODS ##
@@ -227,7 +227,7 @@ for (mice_data_sel in 1:5) {
   # check if treatment periods are enumerated correctly
   df_plausi <- df_plausi %>% group_by(id_t) %>% mutate(treatment_period_check = row_number())
   sum(df_plausi$treatment_period != df_plausi$treatment_period_check)
-  df_plausi <- df_plausi %>% select(-treatment_period_check)
+  df_plausi <- df_plausi %>% dplyr::select(-treatment_period_check)
   
   
   ## BIRTH COUNTRY ##
@@ -295,22 +295,22 @@ for (mice_data_sel in 1:5) {
   
   # if no ECTS points are awared in degree programm, uni_ects_total
   # and uni_ects_current should be zero
-  df_plausi %>% filter(uni_ects_degree == 0) %>% select(starts_with("uni_ects")) %>% distinct()
+  df_plausi %>% filter(uni_ects_degree == 0) %>% dplyr::select(starts_with("uni_ects")) %>% distinct()
   
   # hence, change dummy
   df_plausi <- df_plausi %>%
     mutate(uni_ects_degree = case_when(uni_ects_degree == 0 & (uni_ects_current > 0 | uni_ects_total > 0) ~ 1,
                                        TRUE ~ uni_ects_degree))
-  df_plausi %>% filter(uni_ects_degree == 0) %>% select(starts_with("uni_ects")) %>% distinct()
+  df_plausi %>% filter(uni_ects_degree == 0) %>% dplyr::select(starts_with("uni_ects")) %>% distinct()
   table(df_plausi$uni_ects_degree)
   
   # hence variable is dropped
-  df_plausi <- df_plausi %>% select(-uni_ects_degree)
+  df_plausi <- df_plausi %>% dplyr::select(-uni_ects_degree)
   
   # uni_ects_current is allowed to be larger than uni_ects_total
   # because one can obtain more credits than needed
   sum(df_plausi$uni_ects_current > df_plausi$uni_ects_total)
-  df_plausi %>% filter(uni_ects_current > uni_ects_total) %>% select(starts_with("uni_ects"))
+  df_plausi %>% filter(uni_ects_current > uni_ects_total) %>% dplyr::select(starts_with("uni_ects"))
   
   summary(df_plausi$uni_ects_total)
   summary(df_plausi$uni_ects_current)
