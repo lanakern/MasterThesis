@@ -322,6 +322,10 @@ data_2 %>% subset(ID_t == 7002007) %>%
   dplyr::select(ID_t, starts_with("sport"), starts_with("treatment"))
 
 # drop variables not needed anymore
+data_2 <- data_2 %>% rename(
+  treatment_sport_source = sport_source, 
+  treatment_sport_freq_source = sport_freq_source
+)
 data_2 <- data_2 %>% dplyr::select(-starts_with("sport"))
 
 # number of respondents
