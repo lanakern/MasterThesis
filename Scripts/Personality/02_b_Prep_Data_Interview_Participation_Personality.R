@@ -33,58 +33,19 @@
 #++++
 
 
-
-#%%%%%%%%%#
-## SETUP ##
-#%%%%%%%%%#
-
-
-# clear workspace
-# rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", "treatment_def", "df_inputs")))
-
-# # install packages; if needed, load packages
-# if (!require("dplyr")) install.packages("dplyr")
-# library(dplyr)  # to manipulate data
-# 
-# if (!require("readstata13")) install.packages("readstata13")
-# library(readstata13)  # to import stata (.dta) file into R (see data manual why this function is used)
-# 
-# if (!require("lubridate")) install.packages("lubridate")
-# library(lubridate)  # to transform time data and work with dates
-# 
-# if (!require("tidyr")) install.packages("tidyr")
-# library(tidyr)  # to work with missing values
-# 
-# if (!require("stringr")) install.packages("stringr")
-# library(stringr)  # for string manipulations
-# 
-# if (!require("xlsx")) install.packages("xlsx")
-# library(xlsx)  # for loading and saving excel
-# 
-# # set language for dates and times to German, since the NEPS month names
-# # are written in German; otherwise date/time functions are not working
-# # for German language
-# Sys.setlocale("LC_TIME", "German")
-# 
-# # decide on data preparation:
-# #cohort_prep <- "controls_bef_outcome"
-# cohort_prep <- "controls_same_outcome" 
-
-
-
 #%%%%%%%%%%%%%%%%%#
 #### Load Data ####
 #%%%%%%%%%%%%%%%%#
 
 
 # load data 
-data_cohort_profile_raw <- readRDS("Data/Personality/Prep_1/prep_1_cohort_profile.rds")
+data_cohort_profile_raw <- readRDS("Data/Personality/Prep_1/prep_1_cohort_profile_personality.rds")
 
 # number of respondents
 num_id_start <- length(unique(data_cohort_profile_raw$ID_t)) # 17,909
 
 # keep only respondents who have observations in episode data
-data_life_course <- readRDS("Data/Personality/Prep_2/prep_2_life_course.rds")
+data_life_course <- readRDS("Data/Personality/Prep_2/prep_2_life_course_personality.rds")
 id_keep <- unique(data_life_course$ID_t) # 17,740
 
 data_cohort_profile_raw <- data_cohort_profile_raw %>%
