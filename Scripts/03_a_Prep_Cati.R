@@ -140,7 +140,7 @@ if (treatment_repl == "downup") { # NOT USED ANYMORE BECAUSE UNREALISTIC
 # merge cati data to cohort date -> only respondents which are 
 # also in cohort data are kept (also ensured above)
 data_cati <- inner_join(
-  data_target_cati, data_cohort_profile %>% select(-c(starts_with("competence"))),
+  data_target_cati, data_cohort_profile %>% dplyr::select(-c(starts_with("competence"))),
   by = c("ID_t", "wave")
 ) 
 

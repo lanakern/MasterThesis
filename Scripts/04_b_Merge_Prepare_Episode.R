@@ -331,8 +331,8 @@ check <- data_cati_cawi_eps_all_2 %>%
     spell_length_current_Uni
     )
   ## check if all spell_length are positive
-check %>% ungroup() %>% select(starts_with("spell_length_cum_")) %>% summarize(sum(. < 0))
-check %>% ungroup() %>% select(starts_with("spell_length_cum_")) %>% summarize(summary(.))
+check %>% ungroup() %>% dplyr::select(starts_with("spell_length_cum_")) %>% summarize(sum(. < 0))
+check %>% ungroup() %>% dplyr::select(starts_with("spell_length_cum_")) %>% summarize(summary(.))
 
 # drop variables which are not of interest anymore
 # order data frame

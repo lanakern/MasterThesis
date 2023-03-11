@@ -196,7 +196,7 @@ if (cohort_prep == "controls_same_outcome") {
 } else if (cohort_prep == "controls_bef_outcome") {
   
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-  #### Preparation 2; Outcome after Controls ####
+  #### Preparation 2: Outcome after Controls ####
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
   
   # because control variables are taken from an earlier interview than the
@@ -205,14 +205,13 @@ if (cohort_prep == "controls_same_outcome") {
   ## Outcome and Treatment ##
   
   # select treatment and outcome variables
-  data_treatment_outcome <- data_cawi %>%
-    dplyr::select(ID_t, interview_date, treatment_ends,
-                  sport_uni, sport_uni_freq, grade_current) %>%
+  data_outcome <- data_cawi %>%
+    dplyr::select(ID_t, interview_date, treatment_ends, grade_current) %>%
     subset(!is.na(treatment_ends)) %>% 
     rename(treatment_period = treatment_ends, interview_date_end = interview_date)
 
   
-  length(unique(data_treatment_outcome$ID_t))
+  length(unique(data_outcome$ID_t))
   
   
   
@@ -221,7 +220,7 @@ if (cohort_prep == "controls_same_outcome") {
   # keep only variables which are used for start of treatment period
   # drop outcome and treatment variables
   data_controls <- data_cawi %>%
-    dplyr::select(-c(sport_uni, sport_uni_freq, grade_current, treatment_ends, wave)) %>%
+    dplyr::select(-c(grade_current, treatment_ends, wave)) %>%
     subset(!is.na(treatment_starts)) %>%
     rename(treatment_period = treatment_starts, interview_date_start = interview_date)
   
@@ -231,22 +230,22 @@ if (cohort_prep == "controls_same_outcome") {
   ## Merge ##
   
   # treatment-outcome and control variable data frames are merged via treatment_period
-  # data_treatment_outcome has less observations because data_controls contains
+  # data_outcome has less observations because data_controls contains
   # treatment starts for which no treatment ends exists
   data_cawi %>% subset(ID_t == 7036384) %>% dplyr::select(ID_t, wave, starts_with("treatment"))
   data_cawi %>% subset(ID_t == 7002171) %>% dplyr::select(ID_t, wave, starts_with("treatment"))
   
   
   data_cawi <- inner_join(
-    data_treatment_outcome, data_controls, by = c("ID_t", "treatment_period")
+    data_outcome, data_controls, by = c("ID_t", "treatment_period")
   )
   
   # examples
-  data_treatment_outcome %>% subset(ID_t == 7036384) %>% dplyr::select(ID_t, starts_with("treatment"))
+  data_outcome %>% subset(ID_t == 7036384) %>% dplyr::select(ID_t, starts_with("treatment"))
   data_controls %>% subset(ID_t == 7036384) %>% dplyr::select(ID_t, starts_with("treatment"))
   data_cawi %>% subset(ID_t == 7036384) %>% dplyr::select(ID_t, starts_with("treatment"))
   
-  data_treatment_outcome %>% subset(ID_t == 7002171) %>% dplyr::select(ID_t, starts_with("treatment"))
+  data_outcome %>% subset(ID_t == 7002171) %>% dplyr::select(ID_t, starts_with("treatment"))
   data_controls %>% subset(ID_t == 7002171) %>% dplyr::select(ID_t, starts_with("treatment"))
   data_cawi %>% subset(ID_t == 7002171) %>% dplyr::select(ID_t, starts_with("treatment"))
   
