@@ -32,35 +32,6 @@
 # -> Panel data set
 #++++
 
-#%%%%%%%%%#
-## SETUP ##
-#%%%%%%%%%#
-
-
-# clear workspace
-# rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", "treatment_def", "df_inputs", "prep_sel_num")))
-
-# # install packages if needed, load packages
-# if (!require("dplyr")) install.packages("dplyr")
-# library(dplyr)  # to manipulate data
-# 
-# if (!require("tidyr")) install.packages("tidyr")
-# library(tidyr)  # to manipulate data, e.g. replace_na, spread() etc.
-# 
-# if (!require("sqldf")) install.packages("sqldf")
-# library(sqldf)  # for sql syntax
-# 
-# if (!require("xlsx")) install.packages("xlsx")
-# library(xlsx)  # for excel file
-# 
-# # define inputs
-#   ## selection on cohort preparation
-# #cohort_prep <- "controls_bef_outcome" 
-# cohort_prep <- "controls_same_outcome"
-#   ## treatment replacement
-# treatment_repl <- "downup" # (only used for saving)
-
-
 
 #%%%%%%%%%%%%%%%%%#
 #### LOAD DATA ####
@@ -155,11 +126,11 @@ id_drop_uni_spell <- num_id_adj_1 - num_id_adj_2
 
 # first, the date closest to the interview_end_date is identified
 # this date is used to calculate (or rather adjust) the spell length)
-  ## for "controls_bef_outcome" this is interview_date_CATI
+  ## for "controls_bef_outcome" this is interview_date_CAWI
   ## for "controls_same_outcome" this is interview_date_start
 if (cohort_prep == "controls_bef_outcome") {
   data_cati_cawi_eps <- data_cati_cawi_eps %>%
-    mutate(interview_date_spell = interview_date_CATI)
+    mutate(interview_date_spell = interview_date_CAWI)
 } else if (cohort_prep == "controls_same_outcome") {
   data_cati_cawi_eps <- data_cati_cawi_eps %>%
     mutate(interview_date_spell = interview_date_start)
