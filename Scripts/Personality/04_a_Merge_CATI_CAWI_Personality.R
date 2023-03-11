@@ -2,8 +2,6 @@
 #### MERGE CATI & CAWI FOR PERSONALITY ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-# IDENTICAL FOR GRADES
-
 #++++
 # by Lana Kern
 #++++
@@ -17,29 +15,6 @@
 # and CAWI as well as all control variables from the ptargetcati & ptargetcawi
 # scientific use file scripts.
 #++++
-
-
-#%%%%%%%%%#
-## SETUP ##
-#%%%%%%%%%#
-
-# clear workspace
-#rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", "treatment_def", "df_inputs", "prep_sel_num")))
-
-# # install packages if needed, load packages
-# if (!require("dplyr")) install.packages("dplyr")
-# library(dplyr)  # to manipulate data
-# 
-# if (!require("xlsx")) install.packages("xlsx")
-# library(xlsx)  # for saving excel file
-# 
-# # define inputs
-#   ## selection on cohort preparation
-# #cohort_prep <- "controls_bef_outcome" 
-# cohort_prep <- "controls_same_outcome"
-#   ## treatment replacement
-# treatment_repl <- "downup" # (only used for saving)
-
 
 
 #%%%%%%%%%%%%%%%%%#
