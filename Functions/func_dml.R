@@ -55,6 +55,8 @@
 #+++
 
 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
 func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tuning, S, mlalgo, 
                      trimming, save_trimming, probscore_separate = TRUE) {
   
@@ -138,11 +140,11 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
     # -> all except outcome, treatment, and group variable
     if (treatment_setting == "multi") {
       data_cols <- data %>% 
-        select(-c(all_of(outcome), all_of(treatment), group, starts_with("treatment_sport_freq") & !ends_with("na"))) %>% 
+        dplyr::select(-c(all_of(outcome), all_of(treatment), group, starts_with("treatment_sport_freq") & !ends_with("na"))) %>% 
         colnames()
     } else {
       data_cols <- data %>% 
-        select(-c(all_of(outcome), all_of(treatment), group)) %>% 
+        dplyr::select(-c(all_of(outcome), all_of(treatment), group)) %>% 
         colnames()
     }
     
@@ -228,13 +230,13 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
         # append tuning parameters to data frame
         data_param <- pls_ml$param
         data_param <- data_param %>% mutate(Fold = fold_sel, Repetition = S_rep) %>%
-          select(Repetition, Fold, everything())
+          dplyr::select(Repetition, Fold, everything())
         df_param_all <- rbind(df_param_all, data_param)
         
         # append non-zero coefficients to data frame
         data_coef <- pls_ml$coef
         data_coef <- data_coef %>% mutate(Fold = fold_sel, Repetition = S_rep) %>%
-          select(Repetition, Fold, everything())
+          dplyr::select(Repetition, Fold, everything())
         df_coef_all <- rbind(df_coef_all, data_coef)
         
       } else if (mlalgo == "lasso") {
@@ -257,13 +259,13 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
         # append tuning parameters to data frame
         data_param <- ls_ml$param
         data_param <- data_param %>% mutate(Fold = fold_sel, Repetition = S_rep) %>%
-          select(Repetition, Fold, everything())
+          dplyr::select(Repetition, Fold, everything())
         df_param_all <- rbind(df_param_all, data_param)
         
         # append non-zero coefficients to data frame
         data_coef <- ls_ml$coef
         data_coef <- data_coef %>% mutate(Fold = fold_sel, Repetition = S_rep) %>%
-          select(Repetition, Fold, everything())
+          dplyr::select(Repetition, Fold, everything())
         df_coef_all <- rbind(df_coef_all, data_coef)
         
       } else if (mlalgo == "xgboost") {
@@ -287,7 +289,7 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
         # append tuning parameters to data frame
         data_param <- xgb_ml$param
         data_param <- data_param %>% mutate(Fold = fold_sel, Repetition = S_rep) %>%
-          select(Repetition, Fold, everything())
+          dplyr::select(Repetition, Fold, everything())
         df_param_all <- rbind(df_param_all, data_param)
         
         
@@ -306,7 +308,7 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
         # append tuning parameters to data frame
         data_param <- rf_ml$param
         data_param <- data_param %>% mutate(Fold = fold_sel, Repetition = S_rep) %>%
-          select(Repetition, Fold, everything())
+          dplyr::select(Repetition, Fold, everything())
         df_param_all <- rbind(df_param_all, data_param)
         
         
@@ -356,11 +358,11 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
         
         # data frame for covariate balance assessment with only controls
         # selected in post-lasso
-        data_cov_bal_pred <- data_pred %>% select(-starts_with("num"))
+        data_cov_bal_pred <- data_pred %>% dplyr::select(-starts_with("num"))
         data_cov_bal_x <- data_test %>% 
-          select(all_of(pls_coef_keep)) %>%
+          dplyr::select(all_of(pls_coef_keep)) %>%
           mutate(Fold = fold_sel, Repetition = S_rep) %>%
-          select(Repetition, Fold, everything())
+          dplyr::select(Repetition, Fold, everything())
         
         data_cov_bal_fold[[fold_sel]] <- list("pred" = data_cov_bal_pred, "controls" = data_cov_bal_x)
       }
@@ -520,11 +522,11 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
   # detailed output
   df_result_all_detailed <- df_result_all_detailed %>% 
     mutate(ML_algo = mlalgo) %>%
-    select(ML_algo, everything())
+    dplyr::select(ML_algo, everything())
 
   # final output: take mean and median across folds
   df_result_all <- df_result_all_detailed %>%
-    select(Treatment, Type, ML_algo, Treatment_Effect, Standard_Error) %>%
+    dplyr::select(Treatment, Type, ML_algo, Treatment_Effect, Standard_Error) %>%
     group_by(Treatment, Type) %>% 
     mutate(
       theta_mean = mean(Treatment_Effect),
@@ -540,7 +542,7 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
       CI_lower_median_95 = theta_median - qt(0.95, df = N - 1)^-1 * (1 - 0.95 / 2) * se_median / sqrt(N),
       CI_upper_median_95 = theta_median + qt(0.95, df = N - 1)^-1 * (1 - 0.95 / 2) * se_median / sqrt(N)
     ) %>%
-    select(-c(Treatment_Effect, Standard_Error)) %>% distinct()
+    dplyr::select(-c(Treatment_Effect, Standard_Error)) %>% distinct()
     
   
   # trimming: sum over folds
@@ -551,7 +553,7 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
   
   
   # number of predictors
-  df_predictors_all <- df_pred_all %>% select(Repetition, Fold, starts_with("num_pred")) %>% distinct()
+  df_predictors_all <- df_pred_all %>% dplyr::select(Repetition, Fold, starts_with("num_pred")) %>% distinct()
   
   # covariate balance
   df_cov_bal_all[[mice_data_sel]] <- data_cov_bal_rep

@@ -20,7 +20,7 @@ func_recode_specified <- function(data) {
   
   # identify variables with specified
   vars_recode <- data %>%
-    select_if(~ any(. == "specified")) %>%
+    dplyr::select_if(~ any(. == "specified")) %>%
     colnames()
   
   # for some data sets no variable includes specified. In this case, skip

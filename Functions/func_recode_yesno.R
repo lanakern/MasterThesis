@@ -21,8 +21,8 @@ func_recode_yesno <- function(data) {
   # identify variables with "yes" and "no" values
   vars_recode <- data %>%
     ungroup() %>%
-    select_if(~ all(. %in% c("yes", "no") | is.na(.))) %>%
-    select_if(~ any(. %in% c("yes", "no"))) %>%
+    dplyr::select_if(~ all(. %in% c("yes", "no") | is.na(.))) %>%
+    dplyr::select_if(~ any(. %in% c("yes", "no"))) %>%
     colnames()
   
   # for some data sets no variable includes "yes"-"no" In this case, skip

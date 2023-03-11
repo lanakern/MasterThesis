@@ -24,6 +24,10 @@
 # predictions for selected lambda.
 #++++
 
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+
 func_ml_postlasso_tuning_binary <- function(
     outcome, treatment, X_controls, data_train, data_train_g0, data_train_g1, 
     K,  K_folds_inner_m, K_folds_inner_g0, K_folds_inner_g1, lambda) {
@@ -173,12 +177,12 @@ func_ml_postlasso_tuning_binary <- function(
       # lasso_best_param_m <- lasso_best_param_m$penalty
       # 
       
-      data_train_final_m <- data_tuning_train_m %>% select(all_of(treatment), all_of(coef_tuning_all))
-      data_train_final_g0 <-  data_tuning_train_g0 %>% select(all_of(outcome), all_of(coef_tuning_all))
-      data_train_final_g1 <- data_tuning_train_g1 %>% select(all_of(outcome), all_of(coef_tuning_all))
+      data_train_final_m <- data_tuning_train_m %>% dplyr::select(all_of(treatment), all_of(coef_tuning_all))
+      data_train_final_g0 <-  data_tuning_train_g0 %>% dplyr::select(all_of(outcome), all_of(coef_tuning_all))
+      data_train_final_g1 <- data_tuning_train_g1 %>% dplyr::select(all_of(outcome), all_of(coef_tuning_all))
       
-      data_test_final_m <- data_tuning_test %>% select(all_of(treatment), all_of(coef_tuning_all))
-      data_test_final_g <- data_tuning_test %>% select(all_of(outcome), all_of(coef_tuning_all))
+      data_test_final_m <- data_tuning_test %>% dplyr::select(all_of(treatment), all_of(coef_tuning_all))
+      data_test_final_g <- data_tuning_test %>% dplyr::select(all_of(outcome), all_of(coef_tuning_all))
       
       model_m <- glm(paste(treatment, "~ ."), family = binomial(link = "logit"), data = data_train_final_m)
       lasso_pred_m <- unname(predict(model_m, data_test_final_m, type = "response")) # return probability
@@ -205,17 +209,17 @@ func_ml_postlasso_tuning_binary <- function(
       
       auc_tuning <- 
         yardstick::roc_auc(data = df_pred_tuning, truth = treatment, estimate = m) %>% 
-        select(.estimate) %>% pull() 
+        dplyr::select(.estimate) %>% pull() 
       
       rmse_0_tuning <-
         yardstick::rmse(data = df_pred_tuning %>% filter(treatment == 0),
                         truth = outcome, estimate = g0) %>%
-        select(.estimate) %>% pull() 
+        dplyr::select(.estimate) %>% pull() 
       
       rmse_1_tuning <-
         yardstick::rmse(data = df_pred_tuning %>% filter(treatment == 1),
                         truth = outcome, estimate = g1) %>%
-        select(.estimate) %>% pull() 
+        dplyr::select(.estimate) %>% pull() 
       
       df_tuning_fold <- 
         data.frame(fold = fold_sel, AUC = auc_tuning, RMSE_0 = rmse_0_tuning, RMSE_1 = rmse_1_tuning)

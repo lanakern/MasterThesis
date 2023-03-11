@@ -41,6 +41,8 @@
 #++++
 
 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
 func_ml_xgboost <- function(treatment_setting, data_train, data_test, outcome, treatment, group, K, xgb_grid,
                             probscore_separate = TRUE, probscore_normalize = TRUE) {
   
@@ -82,7 +84,8 @@ func_ml_xgboost <- function(treatment_setting, data_train, data_test, outcome, t
     
     # generate recipe: define outcome and predictors
     ## confounding factors / predictors: all variables except treatment, outcome, and group
-    X_controls <- data_train %>% select(-c(all_of(outcome), all_of(treatment), all_of(group))) %>% colnames()
+    X_controls <- data_train %>% 
+      dplyr::select(-c(all_of(outcome), all_of(treatment), all_of(group))) %>% colnames()
     ## m(x)
     xgb_recipe_m <- 
       data_train %>%
@@ -345,8 +348,8 @@ func_ml_xgboost <- function(treatment_setting, data_train, data_test, outcome, t
       # generate recipe: define outcome and predictors
         ## confounding factors / predictors: all variables except variables including treatment information, outcome, and group
       X_controls <- data_train %>% 
-        select(-c(all_of(outcome), starts_with(treatment) & !ends_with("na"), 
-                  all_of(group))) %>% colnames()
+        dplyr::select(-c(all_of(outcome), starts_with(treatment) & !ends_with("na"), 
+                         all_of(group))) %>% colnames()
         ## m(x) for each treatment category
       xgb_recipe_m1 <- 
         data_train %>%
@@ -699,7 +702,7 @@ func_ml_xgboost <- function(treatment_setting, data_train, data_test, outcome, t
         df_pred <- df_pred %>%
           mutate(m_sum = m1 + m2 + m3) %>%
           mutate(m1 = m1 / m_sum, m2 = m2 / m_sum, m3 = m3 / m_sum) %>%
-          select(-m_sum)
+          dplyr::select(-m_sum)
         # df_pred %>% mutate(m_sum = m1 + m2 + m3) %>% pull(m_sum) %>% unique() # check
       } else {
         df_pred <- df_pred
@@ -715,8 +718,8 @@ func_ml_xgboost <- function(treatment_setting, data_train, data_test, outcome, t
     } else {
       
       # remove treatment dummys
-      data_train <- data_train %>% select(-(starts_with(paste0(treatment, "_")) & !ends_with("na"))) 
-      data_test <- data_test %>% select(-(starts_with(paste0(treatment, "_")) & !ends_with("na"))) 
+      data_train <- data_train %>% dplyr::select(-(starts_with(paste0(treatment, "_")) & !ends_with("na"))) 
+      data_test <- data_test %>% dplyr::select(-(starts_with(paste0(treatment, "_")) & !ends_with("na"))) 
       
       # ensure that treatment variable is factor
       data_train <- data_train %>% mutate({{treatment}} := as.factor(!!sym(treatment))) 
@@ -744,7 +747,8 @@ func_ml_xgboost <- function(treatment_setting, data_train, data_test, outcome, t
       
       # generate recipe: define outcome and predictors
         ## confounding factors / predictors: all variables except treatment, outcome, and group
-      X_controls <- data_train %>% select(-c(all_of(outcome), all_of(treatment), all_of(group))) %>% colnames()
+      X_controls <- data_train %>% 
+        dplyr::select(-c(all_of(outcome), all_of(treatment), all_of(group))) %>% colnames()
         ## m(x)
       xgb_recipe_m <- 
         data_train %>%

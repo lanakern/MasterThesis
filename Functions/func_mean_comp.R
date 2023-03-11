@@ -29,13 +29,13 @@ func_mean_comp <- function(df, y_variables, treatment_setting){
     
     # calculate mean and standard error across treatment groups
     data_comp_mean_se <- left_join(
-      df %>% select(treatment_sport, all_of(y_variables)),
+      df %>% dplyr::select(treatment_sport, all_of(y_variables)),
       df %>% group_by(treatment_sport)  %>% summarize(num_obs = n()),
       by = "treatment_sport"
     ) 
     
     data_comp_mean_se_all <- df %>% 
-      select(all_of(y_variables)) %>% 
+      dplyr::select(all_of(y_variables)) %>% 
       mutate(num_obs = df %>% summarize(num_obs = n()) %>% pull())
 
     # by group
@@ -61,7 +61,7 @@ func_mean_comp <- function(df, y_variables, treatment_setting){
                variable = sub('_[^_]*$', '', variable)) %>%
         spread(variable_2, value) %>%
         mutate(treatment_sport = as.character(treatment_sport)) %>%
-        select(variable, treatment_sport, num_obs, mean, se)
+        dplyr::select(variable, treatment_sport, num_obs, mean, se)
     } else {
       data_se <- data_se %>%
         mutate(treatment_sport = as.character(treatment_sport),
@@ -73,7 +73,7 @@ func_mean_comp <- function(df, y_variables, treatment_setting){
     data_se_all <- left_join(
       # se
       data_comp_mean_se_all %>%
-        select(y_variables, num_obs) %>%
+        dplyr::select(y_variables, num_obs) %>%
         mutate(across(y_variables, ~ func_se(., num_obs))) %>%
         distinct() %>%
         rename_with(~ str_c(., "_se"), everything()) %>%
@@ -93,7 +93,7 @@ func_mean_comp <- function(df, y_variables, treatment_setting){
                variable = sub('_[^_]*$', '', variable)) %>%
         spread(variable_2, value) %>%
         mutate(treatment_sport = as.character(treatment_sport)) %>%
-        select(variable, treatment_sport, num_obs, mean, se)
+        dplyr::select(variable, treatment_sport, num_obs, mean, se)
     } else {
       data_se_all <- data_se_all %>%
         mutate(treatment_sport = as.character(treatment_sport),
@@ -128,9 +128,9 @@ func_mean_comp <- function(df, y_variables, treatment_setting){
         t_value = case_when(treatment_sport == "all" ~ as.numeric(NA), TRUE ~ t_value)
         ) %>% 
       rename_with(~ str_replace(., ".*_se$", "se")) %>%
-      select(variable, cohort_prep, treatment_repl, treatment_def, extra_act_save, 
-             treatment_sport, num_obs, ends_with("mean"), ends_with("se"), 
-             ends_with("p_value"), ends_with("t_value"), time_stamp, everything()) %>%
+      dplyr::select(variable, cohort_prep, treatment_repl, treatment_def, extra_act_save, 
+                    treatment_sport, num_obs, ends_with("mean"), ends_with("se"), 
+                    ends_with("p_value"), ends_with("t_value"), time_stamp, everything()) %>%
       as.data.frame() 
     
     return(df_result)
@@ -148,13 +148,13 @@ func_mean_comp <- function(df, y_variables, treatment_setting){
     
     # calculate mean and standard error across treatment groups
     data_comp_mean_se <- left_join(
-      df %>% select(treatment_sport_freq, all_of(y_variables)),
+      df %>% dplyr::select(treatment_sport_freq, all_of(y_variables)),
       df %>% group_by(treatment_sport_freq)  %>% summarize(num_obs = n()),
       by = "treatment_sport_freq"
     ) 
     
     data_comp_mean_se_all <- df %>% 
-      select(all_of(y_variables)) %>% 
+      dplyr::select(all_of(y_variables)) %>% 
       mutate(num_obs = df %>% summarize(num_obs = n()) %>% pull())
     
     # by group
@@ -180,7 +180,7 @@ func_mean_comp <- function(df, y_variables, treatment_setting){
                variable = sub('_[^_]*$', '', variable)) %>%
         spread(variable_2, value) %>%
         mutate(treatment_sport_freq = as.character(treatment_sport_freq)) %>%
-        select(variable, treatment_sport_freq, num_obs, mean, se)
+        dplyr::select(variable, treatment_sport_freq, num_obs, mean, se)
     } else {
       data_se <- data_se %>%
         mutate(treatment_sport_freq = as.character(treatment_sport_freq),
@@ -192,7 +192,7 @@ func_mean_comp <- function(df, y_variables, treatment_setting){
     data_se_all <- left_join(
       # se
       data_comp_mean_se_all %>%
-        select(y_variables, num_obs) %>%
+        dplyr::select(y_variables, num_obs) %>%
         mutate(across(y_variables, ~ func_se(., num_obs))) %>%
         distinct() %>%
         rename_with(~ str_c(., "_se"), everything()) %>%
@@ -212,7 +212,7 @@ func_mean_comp <- function(df, y_variables, treatment_setting){
                variable = sub('_[^_]*$', '', variable)) %>%
         spread(variable_2, value) %>%
         mutate(treatment_sport_freq = as.character(treatment_sport_freq)) %>%
-        select(variable, treatment_sport_freq, num_obs, mean, se)
+        dplyr::select(variable, treatment_sport_freq, num_obs, mean, se)
     } else {
       data_se_all <- data_se_all %>%
         mutate(treatment_sport_freq = as.character(treatment_sport_freq),
@@ -241,15 +241,15 @@ func_mean_comp <- function(df, y_variables, treatment_setting){
       df_multi_ttest_1 <- df %>% filter(treatment_sport_freq != "never")
       multi_ttest_1 <- t.test(formula = eval(exp1), data = df_multi_ttest_1)
       
-      df_multi_ttest_2 <- df %>% filter(treatment_sport_freq != "daily + weekly")
+      df_multi_ttest_2 <- df %>% filter(treatment_sport_freq != "weekly_atleast")
       multi_ttest_2 <- t.test(formula = eval(exp1), data = df_multi_ttest_2)
       
-      df_multi_ttest_3 <- df %>% filter(treatment_sport_freq != "monthly + less")
+      df_multi_ttest_3 <- df %>% filter(treatment_sport_freq != "monthly_less")
       multi_ttest_3 <- t.test(formula = eval(exp1), data = df_multi_ttest_3)
       
       df_ttest_sub <- data.frame(
         variable = rep(y_variable, 4),
-        treatment_sport_freq = c("daily + weekly", "monthly + less", "never", "all"),
+        treatment_sport_freq = c("weekly_atleast", "monthly_less", "never", "all"),
         t_value_daily = c(NA, unname(multi_ttest_1$statistic), unname(multi_ttest_3$statistic), NA),
         t_value_monthly = c(unname(multi_ttest_1$statistic), NA, unname(multi_ttest_2$statistic), NA),
         p_value_daily = c(NA, multi_ttest_1$p.value, multi_ttest_3$p.value, NA),
@@ -262,9 +262,9 @@ func_mean_comp <- function(df, y_variables, treatment_setting){
     # combine: ttest and mean, se
     df_result <- left_join(data_mean_se, df_ttest, by = c("treatment_sport_freq", "variable")) %>%
       rename_with(~ str_replace(., ".*_se$", "se")) %>%
-      select(variable, cohort_prep, treatment_repl, treatment_def, extra_act_save, 
-             treatment_sport_freq, num_obs, ends_with("mean"), ends_with("se"), 
-             ends_with("p_value"), ends_with("t_value"), time_stamp, everything()) %>%
+      dplyr::select(variable, cohort_prep, treatment_repl, treatment_def, extra_act_save, 
+                    treatment_sport_freq, num_obs, ends_with("mean"), ends_with("se"), 
+                    ends_with("p_value"), ends_with("t_value"), time_stamp, everything()) %>%
       as.data.frame() 
     
     return(df_result)

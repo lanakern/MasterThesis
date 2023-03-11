@@ -26,6 +26,7 @@
 # -> "coef":  non-zero coefficients (only for binary treatment setting)
 #++++
 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome, treatment, group, K, lambda_val) {
   
@@ -69,7 +70,8 @@ func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome, tre
     
     # generate recipe: define outcome and predictors
     ## confounding factors / predictors: all variables except treatment, outcome, and group
-    X_controls <- data_train %>% select(-c(all_of(outcome), all_of(treatment), all_of(group))) %>% colnames()
+    X_controls <- data_train %>% 
+      dplyr::select(-c(all_of(outcome), all_of(treatment), all_of(group))) %>% colnames()
     ## m(x)
     lasso_recipe_m <- 
       data_train %>%
@@ -226,14 +228,14 @@ func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome, tre
     
     # extract coefficients for treatment prediction
     lasso_coef_m <- tidy(lasso_fit_final_m) %>% as.data.frame()
-    lasso_coef_m <- lasso_coef_m %>% filter(estimate > 0) %>% mutate(model = "m") %>% select(-penalty)
+    lasso_coef_m <- lasso_coef_m %>% filter(estimate > 0) %>% mutate(model = "m") %>% dplyr::select(-penalty)
     
     # extract coefficients for outcome prediction
     lasso_coef_g0 <- tidy(lasso_fit_final_g0) %>% as.data.frame()
-    lasso_coef_g0 <- lasso_coef_g0 %>% filter(estimate > 0) %>% mutate(model = "g0") %>% select(-penalty)
+    lasso_coef_g0 <- lasso_coef_g0 %>% filter(estimate > 0) %>% mutate(model = "g0") %>% dplyr::select(-penalty)
     
     lasso_coef_g1 <- tidy(lasso_fit_final_g1) %>% as.data.frame()
-    lasso_coef_g1 <- lasso_coef_g1 %>% filter(estimate > 0) %>% mutate(model = "g1") %>% select(-penalty)
+    lasso_coef_g1 <- lasso_coef_g1 %>% filter(estimate > 0) %>% mutate(model = "g1") %>% dplyr::select(-penalty)
     
     
     # append extracted coefficients to final data frame
@@ -312,7 +314,7 @@ func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome, tre
     # generate recipe: define outcome and predictors
     ## confounding factors / predictors: all variables except variables including treatment information, outcome, and group
     X_controls <- data_train %>% 
-      select(-c(all_of(outcome), starts_with(treatment) & !ends_with("na"), all_of(group))) %>% colnames()
+      dplyr::select(-c(all_of(outcome), starts_with(treatment) & !ends_with("na"), all_of(group))) %>% colnames()
     ## m(x) for each treatment category
     lasso_recipe_m1 <- 
       data_train %>%
@@ -560,23 +562,23 @@ func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome, tre
     
     # extract coefficients for treatment prediction
     lasso_coef_m1 <- tidy(lasso_fit_final_m1) %>% as.data.frame()
-    lasso_coef_m1 <- lasso_coef_m1 %>% filter(estimate > 0) %>% mutate(model = "m1") %>% select(-penalty)
+    lasso_coef_m1 <- lasso_coef_m1 %>% filter(estimate > 0) %>% mutate(model = "m1") %>% dplyr::select(-penalty)
     
     lasso_coef_m2 <- tidy(lasso_fit_final_m2) %>% as.data.frame()
-    lasso_coef_m2 <- lasso_coef_m2 %>% filter(estimate > 0) %>% mutate(model = "m2") %>% select(-penalty)
+    lasso_coef_m2 <- lasso_coef_m2 %>% filter(estimate > 0) %>% mutate(model = "m2") %>% dplyr::select(-penalty)
     
     lasso_coef_m3 <- tidy(lasso_fit_final_m3) %>% as.data.frame()
-    lasso_coef_m3 <- lasso_coef_m3 %>% filter(estimate > 0) %>% mutate(model = "m3") %>% select(-penalty)
+    lasso_coef_m3 <- lasso_coef_m3 %>% filter(estimate > 0) %>% mutate(model = "m3") %>% dplyr::select(-penalty)
     
     # extract coefficients for outcome prediction
     lasso_coef_g1 <- tidy(lasso_fit_final_g1) %>% as.data.frame()
-    lasso_coef_g1 <- lasso_coef_g1 %>% filter(estimate > 0) %>% mutate(model = "g1") %>% select(-penalty)
+    lasso_coef_g1 <- lasso_coef_g1 %>% filter(estimate > 0) %>% mutate(model = "g1") %>% dplyr::select(-penalty)
     
     lasso_coef_g2 <- tidy(lasso_fit_final_g2) %>% as.data.frame()
-    lasso_coef_g2 <- lasso_coef_g2 %>% filter(estimate > 0) %>% mutate(model = "g2") %>% select(-penalty)
+    lasso_coef_g2 <- lasso_coef_g2 %>% filter(estimate > 0) %>% mutate(model = "g2") %>% dplyr::select(-penalty)
     
     lasso_coef_g3 <- tidy(lasso_fit_final_g3) %>% as.data.frame()
-    lasso_coef_g3 <- lasso_coef_g3 %>% filter(estimate > 0) %>% mutate(model = "g3") %>% select(-penalty)
+    lasso_coef_g3 <- lasso_coef_g3 %>% filter(estimate > 0) %>% mutate(model = "g3") %>% dplyr::select(-penalty)
     
     
     # append extracted coefficients to final data frame
@@ -635,7 +637,7 @@ func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome, tre
     df_pred <- df_pred %>%
       mutate(m_sum = m1 + m2 + m3) %>%
       mutate(m1 = m1 / m_sum, m2 = m2 / m_sum, m3 = m3 / m_sum) %>%
-      select(-m_sum)
+      dplyr::select(-m_sum)
  
     
     # return data frame with predictions

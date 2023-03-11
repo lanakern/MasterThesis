@@ -24,6 +24,8 @@
 # -> APO_*: APO for individuals with treatment status *
 #++++
 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
 func_dml_theta_score <- function(treatment_setting, data_pred, data_test, outcome, treatment) {
   
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#

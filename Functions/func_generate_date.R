@@ -35,7 +35,7 @@ func_generate_date <- function(data, day = NULL, month, year, varname){
   if (is.null(day)) {
     data$day <- "1"
   } else {
-    data$day <- data %>% select({{day}}) %>% pull()
+    data$day <- data %>% dplyr::select({{day}}) %>% pull()
   }
   
   # recode month variable

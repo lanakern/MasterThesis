@@ -48,6 +48,10 @@
 # repetition.
 #+++
 
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+
 func_ml_error_metrics <- function(treatment_setting, data_pred, S_rep, fold_sel, probscore_separate = TRUE) {
   
   if (!treatment_setting %in% c("binary", "multi")) {
@@ -89,7 +93,7 @@ func_ml_error_metrics <- function(treatment_setting, data_pred, S_rep, fold_sel,
     # Area under the curve
     m_auc <- yardstick::roc_auc(data_pred %>% mutate(m_0 = 1 - m), truth = treatment, 
                                 # 1-m to get probability for class 0 (first class is taken as positive class in roc_auc)
-                                estimate = m_0) %>% select(.estimate) %>% pull()
+                                estimate = m_0) %>% dplyr::select(.estimate) %>% pull()
     
     # combine data set
     df_error_class <- data.frame(
@@ -150,13 +154,13 @@ func_ml_error_metrics <- function(treatment_setting, data_pred, S_rep, fold_sel,
       
       # AUC
       AUC_m1 <- yardstick::roc_auc(data_pred %>% mutate(m_0 = 1 - m1), truth = m1_treatment, 
-                                   estimate = m_0) %>% select(.estimate) %>% pull()
+                                   estimate = m_0) %>% dplyr::select(.estimate) %>% pull()
       
       AUC_m2 <- yardstick::roc_auc(data_pred %>% mutate(m_0 = 1 - m2), truth = m2_treatment, 
-                                   estimate = m_0) %>% select(.estimate) %>% pull()
+                                   estimate = m_0) %>% dplyr::select(.estimate) %>% pull()
       
       AUC_m3 <- yardstick::roc_auc(data_pred %>% mutate(m_0 = 1 - m3), truth = m3_treatment, 
-                                   estimate = m_0) %>% select(.estimate) %>% pull()
+                                   estimate = m_0) %>% dplyr::select(.estimate) %>% pull()
       
       # combine in one data frame
       df_error_class <- data.frame(
@@ -232,14 +236,14 @@ func_ml_error_metrics <- function(treatment_setting, data_pred, S_rep, fold_sel,
     g1_rmse <- sqrt(g1_mse)
     ## MAE
     g0_mae <- yardstick::mae(data_pred %>% filter(treatment == 0), truth = outcome, estimate = g0) %>%
-      select(.estimate) %>% pull()
+      dplyr::select(.estimate) %>% pull()
     g1_mae <- yardstick::mae(data_pred  %>% filter(treatment == 1), truth = outcome, estimate = g1) %>%
-      select(.estimate) %>% pull()
+      dplyr::select(.estimate) %>% pull()
     ## MAPE
     g0_mape <- yardstick::mape(data_pred %>% filter(treatment == 0), truth = outcome, estimate = g0) %>%
-      select(.estimate) %>% pull()
+      dplyr::select(.estimate) %>% pull()
     g1_mape <- yardstick::mape(data_pred %>% filter(treatment == 1), truth = outcome, estimate = g1) %>%
-      select(.estimate) %>% pull()
+      dplyr::select(.estimate) %>% pull()
     
     # Report results in one data frame
     df_error_reg <- data.frame(
@@ -259,18 +263,18 @@ func_ml_error_metrics <- function(treatment_setting, data_pred, S_rep, fold_sel,
     g3_rmse <- sqrt(g3_mse)
     ## MAE
     g1_mae <- yardstick::mae(data_pred  %>% filter(treatment == 1), truth = outcome, estimate = g1) %>%
-      select(.estimate) %>% pull()
+      dplyr::select(.estimate) %>% pull()
     g2_mae <- yardstick::mae(data_pred %>% filter(treatment == 2), truth = outcome, estimate = g2) %>%
-      select(.estimate) %>% pull()
+      dplyr::select(.estimate) %>% pull()
     g3_mae <- yardstick::mae(data_pred %>% filter(treatment == 3), truth = outcome, estimate = g3) %>%
-      select(.estimate) %>% pull()
+      dplyr::select(.estimate) %>% pull()
     ## MAPE
     g1_mape <- yardstick::mape(data_pred %>% filter(treatment == 1), truth = outcome, estimate = g1) %>%
-      select(.estimate) %>% pull()
+      dplyr::select(.estimate) %>% pull()
     g2_mape <- yardstick::mape(data_pred %>% filter(treatment == 2), truth = outcome, estimate = g2) %>%
-      select(.estimate) %>% pull()
+      dplry::select(.estimate) %>% pull()
     g3_mape <- yardstick::mape(data_pred %>% filter(treatment == 3), truth = outcome, estimate = g3) %>%
-      select(.estimate) %>% pull()
+      dplyr::select(.estimate) %>% pull()
     
     # Report results in one data frame
     df_error_reg <- data.frame(

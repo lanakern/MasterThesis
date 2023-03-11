@@ -2,11 +2,17 @@
 #### FUNCTION: GENERATE NA DUMMIES ##
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
+# NOT USED ANYMORE
 
-# this function generated NA dummies:
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
+
+# by Lana Kern
+# this function generates NA dummies:
 # input data: data frame ("data") containing variable ("variable_NA_dummy")
 # which should be converted to a NA dummy
 # output: data frame with NA dummy
+
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 
 func_generate_NA_dummies <- function(data, variable_NA_dummy) {
   varname_NA <- paste0(variable_NA_dummy, "_NA")

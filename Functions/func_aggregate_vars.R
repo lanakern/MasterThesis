@@ -50,12 +50,12 @@ func_aggregate_vars <- function(data, varsel_prefix, cr_alpha, method) {
   if (cr_alpha == "yes" & method %in% c("mean", "pca")) {
     # calculate cronbach's alpha to ensure that variables really measure the
     # same thing; do so only if 2-20 items are selected, otherwise all items are kept.
-    varsel_prefix_length <- data %>% select(matches(paste0("^", varsel_prefix))) %>% colnames() %>% length()
+    varsel_prefix_length <- data %>% dplyr::select(matches(paste0("^", varsel_prefix))) %>% colnames() %>% length()
     
     if (varsel_prefix_length >= 2 & varsel_prefix_length <= 20) {
       
       # calculate alpha
-      df_alpha <- psych::alpha(data %>% select(matches(paste0("^", varsel_prefix))), check.keys = TRUE)
+      df_alpha <- psych::alpha(data %>% dplyr::select(matches(paste0("^", varsel_prefix))), check.keys = TRUE)
       
       # extract total alpha
       alpha_total <- df_alpha$total$raw_alpha
@@ -64,7 +64,7 @@ func_aggregate_vars <- function(data, varsel_prefix, cr_alpha, method) {
       if (alpha_total >= 0.7) {
         # only keep variables for which total alpha would decrease if they would be
         # excluded
-        alpha_indiv <- df_alpha$alpha.drop %>% as.data.frame() %>% select(raw_alpha)
+        alpha_indiv <- df_alpha$alpha.drop %>% as.data.frame() %>% dplyr::select(raw_alpha)
         alpha_indiv$vars_keep <- rownames(alpha_indiv)
         vars_keep <- alpha_indiv[alpha_indiv < alpha_total, "vars_keep"]
         vars_keep <- str_remove_all(vars_keep, "-")
@@ -76,10 +76,10 @@ func_aggregate_vars <- function(data, varsel_prefix, cr_alpha, method) {
     } else {
       # if less than two or more than 20 variables are kept, all variables are kept and
       # no selected based on cronbach's alpha is made
-      vars_keep <- data %>% select(matches(paste0("^", varsel_prefix))) %>% colnames()
+      vars_keep <- data %>% dplyr::select(matches(paste0("^", varsel_prefix))) %>% colnames()
     }
   } else {
-    vars_keep <- data %>% select(matches(paste0("^", varsel_prefix))) %>% colnames()
+    vars_keep <- data %>% dplyr::select(matches(paste0("^", varsel_prefix))) %>% colnames()
   }
   
 
@@ -121,9 +121,9 @@ func_aggregate_vars <- function(data, varsel_prefix, cr_alpha, method) {
       data_final <- data %>% 
         mutate(
           {{new_column_name}} := round(
-            rowMeans(select(data, all_of(vars_keep)), na.rm = TRUE))
+            rowMeans(dplyr::select(data, all_of(vars_keep)), na.rm = TRUE))
         ) %>%
-        select(-matches(column_names_drop))
+        dplyr::select(-matches(column_names_drop))
       
       
     ## SUM ##
@@ -133,9 +133,9 @@ func_aggregate_vars <- function(data, varsel_prefix, cr_alpha, method) {
       data_final <- data %>% 
         mutate(
           {{new_column_name}} := round(
-            rowSums(select(data, all_of(vars_keep)), na.rm = TRUE))
+            rowSums(dplyr::select(data, all_of(vars_keep)), na.rm = TRUE))
         ) %>%
-        select(-matches(column_names_drop))
+        dplyr::select(-matches(column_names_drop))
       
       
     ## PCA ##
@@ -147,7 +147,7 @@ func_aggregate_vars <- function(data, varsel_prefix, cr_alpha, method) {
       if (length(vars_keep) > 1) {
         # select variables for PCA
         data_pca <- data %>%
-          select(all_of(vars_keep)) 
+          dplyr::select(all_of(vars_keep)) 
         # calculate PCA
         pca_result <- prcomp(data_pca, center = TRUE, scale. = TRUE)
         # calculate eigenvalues
@@ -158,10 +158,10 @@ func_aggregate_vars <- function(data, varsel_prefix, cr_alpha, method) {
         if (pca_keep == 1) {
           data_final <- data %>%
             mutate({{new_column_name}} := pca_result$x[, 1]) %>% 
-            select(-matches(column_names_drop))
+            dplyr::select(-matches(column_names_drop))
         } else {
           # for more than two components, variables are enumerated
-          data_final <- data %>% select(-matches(column_names_drop))
+          data_final <- data %>% dplyr::select(-matches(column_names_drop))
           for (comp_sel in 1:pca_keep) {
             new_column_name_sel <- paste0(new_column_name, "_", comp_sel)
             data_final <- data_final %>%
@@ -175,7 +175,7 @@ func_aggregate_vars <- function(data, varsel_prefix, cr_alpha, method) {
         # -> variable is labelled later (hence, stored in vars_not_aggr)
         data_final <- data %>%
           mutate({{new_column_name}} := !!sym(vars_keep)) %>% 
-          select(-matches(column_names_drop))
+          dplyr::select(-matches(column_names_drop))
         
         vars_not_aggr <- new_column_name
       }
@@ -196,7 +196,7 @@ func_aggregate_vars <- function(data, varsel_prefix, cr_alpha, method) {
             TRUE ~ as.double(NA)
           )
         ) %>%
-        select(-matches(column_names_drop))
+        dplyr::select(-matches(column_names_drop))
     }
     
     # replace all NaN with NA

@@ -18,6 +18,8 @@
 # -> "error": mean error metrics across the MICE data sets
 #+++
 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
 func_dml_pool_mice <- function(dml_result, N, mice_num) {
   
   # store final estimates of each mice data set in one data frame
@@ -27,7 +29,7 @@ func_dml_pool_mice <- function(dml_result, N, mice_num) {
       dml_final <- rbind(
         dml_final,
         dml_result[[mice_data_sel]] %>% mutate(MICE = mice_data_sel) %>%
-          select(MICE, everything())
+          dplyr::select(MICE, everything())
       )
     }
   } else {
@@ -35,7 +37,7 @@ func_dml_pool_mice <- function(dml_result, N, mice_num) {
       dml_final <- rbind(
         dml_final,
         dml_result[[mice_data_sel]]$final %>% mutate(MICE = mice_data_sel) %>%
-          select(MICE, everything())
+          dplyr::select(MICE, everything())
       )
     }
   }
@@ -47,7 +49,7 @@ func_dml_pool_mice <- function(dml_result, N, mice_num) {
       dml_error <- rbind(
         dml_error,
         dml_result[[mice_data_sel]]$error %>% mutate(MICE = mice_data_sel) %>%
-          select(MICE, everything())
+          dplyr::select(MICE, everything())
       )
     }
   }
@@ -59,7 +61,7 @@ func_dml_pool_mice <- function(dml_result, N, mice_num) {
       dml_pred <- rbind(
         dml_pred,
         dml_result[[mice_data_sel]]$predictors %>% mutate(MICE = mice_data_sel) %>%
-          select(MICE, everything())
+          dplyr::select(MICE, everything())
       )
     }
   }
@@ -71,7 +73,7 @@ func_dml_pool_mice <- function(dml_result, N, mice_num) {
   # confidence interval is calculated again
   dml_final_estimation <-
     dml_final %>%
-    select(Treatment, Type, starts_with("theta"), starts_with("se"), matches(".*value")) %>%
+    dplyr::select(Treatment, Type, starts_with("theta"), starts_with("se"), matches(".*value")) %>%
     group_by(Treatment, Type) %>%
     summarize(
       theta_mean = mean(theta_mean), theta_median = median(theta_median),
@@ -115,7 +117,7 @@ func_dml_pool_mice <- function(dml_result, N, mice_num) {
   if (exists("dml_error")) {
     
     dml_final_error <- dml_error %>% 
-      select(-c(MICE, Repetition, Fold)) %>% 
+      dplyr::select(-c(MICE, Repetition, Fold)) %>% 
       summarise_if(is.numeric, mean) 
 
     # return results

@@ -17,6 +17,7 @@
 # OUTPUT: Plot
 #+++
 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 func_dml_common_support <- function(treatment_setting, data_pred, min_trimming, max_trimming) {
   

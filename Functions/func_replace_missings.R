@@ -9,14 +9,6 @@
 
 # In this file a function is generated which replaces missing values.
 # This function is applied to all individual data sets in file 01.
-
-#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
-
-
-## WRITE FUNCTION ##
-#++++++++++++++++++#
-
-# create function
   ## input: d
   ## -> dataframe: data frame for which missing values should be replaced
   ## -> vec_missings_num: numeric vector containing all numeric values which
@@ -27,6 +19,9 @@
   ## (because of special characters it is less error prone to define them
   ## inside the script using instead within the function.
   ## output: data frame with correctly identified missing values
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
+
+
 func_replace_missings <- function(dataframe, vec_missings_num, vec_missings_char){
   
   # extract numeric variable columns

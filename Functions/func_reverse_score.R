@@ -41,10 +41,3 @@ func_reverse_score <- function(data, data_reverse) {
   return(data)
 }
 
-
-# test
-# data_vars <- data %>% select(uni_termination_4, stress_3, satisfaction_study_2)
-# data_reverse_vars <- df_reverse_vars %>% 
-#   subset(vars_reverse %in% c("uni_termination_4", "stress_3", "satisfaction_study_2"))
-# 
-# func_reverse_score(data_vars, data_reverse_vars)

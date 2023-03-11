@@ -24,6 +24,8 @@
 # -> "coef": non-zero coefficients
 #++++
 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
 
 func_ml_postlasso <- function(treatment_setting, data_train, data_test, outcome, treatment, group, K, lambda_val) {
   
@@ -50,7 +52,7 @@ func_ml_postlasso <- function(treatment_setting, data_train, data_test, outcome,
     
     # generate vector with control variable names
     X_controls <- data_train %>% 
-      select(-c(all_of(outcome), all_of(treatment), all_of(group))) %>% colnames()
+      dplyr::select(-c(all_of(outcome), all_of(treatment), all_of(group))) %>% colnames()
     
     # specify the models: lasso regression with penalty as tuning parameter
     lasso_spec_m <- 
@@ -179,14 +181,14 @@ func_ml_postlasso <- function(treatment_setting, data_train, data_test, outcome,
     
     # extract coefficients for treatment prediction
     lasso_coef_m <- tidy(lasso_fit_final_m) %>% as.data.frame()
-    lasso_coef_m <- lasso_coef_m %>% filter(estimate > 0) %>% mutate(model = "m") %>% select(-penalty)
+    lasso_coef_m <- lasso_coef_m %>% filter(estimate > 0) %>% mutate(model = "m") %>% dplyr::select(-penalty)
     
     # extract coefficients for outcome prediction
     lasso_coef_g0 <- tidy(lasso_fit_final_g0) %>% as.data.frame()
-    lasso_coef_g0 <- lasso_coef_g0 %>% filter(estimate > 0) %>% mutate(model = "g0") %>% select(-penalty)
+    lasso_coef_g0 <- lasso_coef_g0 %>% filter(estimate > 0) %>% mutate(model = "g0") %>% dplyr::select(-penalty)
     
     lasso_coef_g1 <- tidy(lasso_fit_final_g1) %>% as.data.frame()
-    lasso_coef_g1 <- lasso_coef_g1 %>% filter(estimate > 0) %>% mutate(model = "g1") %>% select(-penalty)
+    lasso_coef_g1 <- lasso_coef_g1 %>% filter(estimate > 0) %>% mutate(model = "g1") %>% dplyr::select(-penalty)
     
     
     lasso_coef_all <- union(union(lasso_coef_g0$term, lasso_coef_g1$term), lasso_coef_m$term)
@@ -205,13 +207,13 @@ func_ml_postlasso <- function(treatment_setting, data_train, data_test, outcome,
     # NOTE: short version here yields exactly the same result as using the
     # tidymodels framework
     
-    data_train_final <- data_train %>% select(all_of(outcome), all_of(treatment), all_of(lasso_coef_all))
-    data_train_final_m <- data_train_final %>% select(-all_of(outcome))
-    data_train_final_g0 <- data_train_final %>% filter(treatment_sport == 0) %>% select(-all_of(treatment))
-    data_train_final_g1 <- data_train_final %>% filter(treatment_sport == 1) %>% select(-all_of(treatment))
+    data_train_final <- data_train %>% dplyr::select(all_of(outcome), all_of(treatment), all_of(lasso_coef_all))
+    data_train_final_m <- data_train_final %>% dplyr::select(-all_of(outcome))
+    data_train_final_g0 <- data_train_final %>% filter(treatment_sport == 0) %>% dplyr::select(-all_of(treatment))
+    data_train_final_g1 <- data_train_final %>% filter(treatment_sport == 1) %>% dplyr::select(-all_of(treatment))
     
-    data_test_final_m <- data_test %>% select(all_of(treatment), all_of(lasso_coef_all))
-    data_test_final_g <- data_test %>% select(all_of(outcome), all_of(lasso_coef_all))
+    data_test_final_m <- data_test %>% dplyr::select(all_of(treatment), all_of(lasso_coef_all))
+    data_test_final_g <- data_test %>% dplyr::select(all_of(outcome), all_of(lasso_coef_all))
     
     model_m <- glm(paste(treatment, "~ ."), family = binomial(link = "logit"), data = data_train_final_m)
     lasso_pred_m <- unname(predict(model_m, data_test_final_m, type = "response")) # return probability
@@ -277,7 +279,7 @@ func_ml_postlasso <- function(treatment_setting, data_train, data_test, outcome,
     # generate recipe: define outcome and predictors
     ## confounding factors / predictors: all variables except variables including treatment information, outcome, and group
     X_controls <- data_train %>% 
-      select(-c(all_of(outcome), starts_with(treatment) & !ends_with("na"), all_of(group))) %>% colnames()
+      dplyr::select(-c(all_of(outcome), starts_with(treatment) & !ends_with("na"), all_of(group))) %>% colnames()
     ## m(x) for each treatment category
     lasso_recipe_m1 <- 
       data_train %>%
@@ -480,23 +482,23 @@ func_ml_postlasso <- function(treatment_setting, data_train, data_test, outcome,
     
     # extract coefficients for treatment prediction
     lasso_coef_m1 <- tidy(lasso_fit_final_m1) %>% as.data.frame()
-    lasso_coef_m1 <- lasso_coef_m1 %>% filter(estimate > 0) %>% mutate(model = "m1") %>% select(-penalty)
+    lasso_coef_m1 <- lasso_coef_m1 %>% filter(estimate > 0) %>% mutate(model = "m1") %>% dplyr::select(-penalty)
     
     lasso_coef_m2 <- tidy(lasso_fit_final_m2) %>% as.data.frame()
-    lasso_coef_m2 <- lasso_coef_m2 %>% filter(estimate > 0) %>% mutate(model = "m2") %>% select(-penalty)
+    lasso_coef_m2 <- lasso_coef_m2 %>% filter(estimate > 0) %>% mutate(model = "m2") %>% dplyr::select(-penalty)
     
     lasso_coef_m3 <- tidy(lasso_fit_final_m3) %>% as.data.frame()
-    lasso_coef_m3 <- lasso_coef_m3 %>% filter(estimate > 0) %>% mutate(model = "m3") %>% select(-penalty)
+    lasso_coef_m3 <- lasso_coef_m3 %>% filter(estimate > 0) %>% mutate(model = "m3") %>% dplyr::select(-penalty)
     
     # extract coefficients for outcome prediction
     lasso_coef_g1 <- tidy(lasso_fit_final_g1) %>% as.data.frame()
-    lasso_coef_g1 <- lasso_coef_g1 %>% filter(estimate > 0) %>% mutate(model = "g1") %>% select(-penalty)
+    lasso_coef_g1 <- lasso_coef_g1 %>% filter(estimate > 0) %>% mutate(model = "g1") %>% dplyr::select(-penalty)
     
     lasso_coef_g2 <- tidy(lasso_fit_final_g2) %>% as.data.frame()
-    lasso_coef_g2 <- lasso_coef_g2 %>% filter(estimate > 0) %>% mutate(model = "g1") %>% select(-penalty)
+    lasso_coef_g2 <- lasso_coef_g2 %>% filter(estimate > 0) %>% mutate(model = "g1") %>% dplyr::select(-penalty)
     
     lasso_coef_g3 <- tidy(lasso_fit_final_g3) %>% as.data.frame()
-    lasso_coef_g3 <- lasso_coef_g3 %>% filter(estimate > 0) %>% mutate(model = "g1") %>% select(-penalty)
+    lasso_coef_g3 <- lasso_coef_g3 %>% filter(estimate > 0) %>% mutate(model = "g1") %>% dplyr::select(-penalty)
     
     
     # union of coefficients
@@ -522,17 +524,17 @@ func_ml_postlasso <- function(treatment_setting, data_train, data_test, outcome,
     # NOTE: short version here yields exactly the same result as using the
     # tidymodels framework
     
-    data_train_final_m1 <- data_train %>% select(treatment_sport_freq_weekly_atleast, all_of(lasso_coef_all))
-    data_train_final_m2 <- data_train %>% select(treatment_sport_freq_monthly_less, all_of(lasso_coef_all))
-    data_train_final_m3 <- data_train %>% select(treatment_sport_freq_never, all_of(lasso_coef_all))
-    data_train_final_g1 <- data_train %>% filter(treatment_sport_freq == 1) %>% select(all_of(outcome), all_of(lasso_coef_all))
-    data_train_final_g2 <- data_train %>% filter(treatment_sport_freq == 2) %>% select(all_of(outcome), all_of(lasso_coef_all))
-    data_train_final_g3 <- data_train %>% filter(treatment_sport_freq == 3) %>% select(all_of(outcome), all_of(lasso_coef_all))
+    data_train_final_m1 <- data_train %>% dplyr::select(treatment_sport_freq_weekly_atleast, all_of(lasso_coef_all))
+    data_train_final_m2 <- data_train %>% dplyr::select(treatment_sport_freq_monthly_less, all_of(lasso_coef_all))
+    data_train_final_m3 <- data_train %>% dplyr::select(treatment_sport_freq_never, all_of(lasso_coef_all))
+    data_train_final_g1 <- data_train %>% filter(treatment_sport_freq == 1) %>% dplyr::select(all_of(outcome), all_of(lasso_coef_all))
+    data_train_final_g2 <- data_train %>% filter(treatment_sport_freq == 2) %>% dplyr::select(all_of(outcome), all_of(lasso_coef_all))
+    data_train_final_g3 <- data_train %>% filter(treatment_sport_freq == 3) %>% dplyr::select(all_of(outcome), all_of(lasso_coef_all))
     
-    data_test_final_m1 <- data_test %>% select(treatment_sport_freq_weekly_atleast, all_of(lasso_coef_all))
-    data_test_final_m2 <- data_test %>% select(treatment_sport_freq_monthly_less, all_of(lasso_coef_all))
-    data_test_final_m3 <- data_test %>% select(treatment_sport_freq_never, all_of(lasso_coef_all))
-    data_test_final_g <- data_test %>% select(all_of(outcome), all_of(lasso_coef_all))
+    data_test_final_m1 <- data_test %>% dplyr::select(treatment_sport_freq_weekly_atleast, all_of(lasso_coef_all))
+    data_test_final_m2 <- data_test %>% dplyr::select(treatment_sport_freq_monthly_less, all_of(lasso_coef_all))
+    data_test_final_m3 <- data_test %>% dplyr::select(treatment_sport_freq_never, all_of(lasso_coef_all))
+    data_test_final_g <- data_test %>% dplyr::select(all_of(outcome), all_of(lasso_coef_all))
 
     
     model_m1 <- glm(paste("treatment_sport_freq_weekly_atleast", "~ ."), family = binomial(link = "logit"), data = data_train_final_m1)

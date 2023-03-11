@@ -30,6 +30,7 @@
 # final model training
 #++++
 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 func_ml_rf <- function(treatment_setting, data_train, data_test, outcome, treatment, group, K, rf_grid) {
   
@@ -68,7 +69,7 @@ func_ml_rf <- function(treatment_setting, data_train, data_test, outcome, treatm
     
     # generate recipe: define outcome and predictors
     ## confounding factors / predictors: all variables except treatment, outcome, and group
-    X_controls <- data_train %>% select(-c(all_of(outcome), all_of(treatment), all_of(group))) %>% colnames()
+    X_controls <- data_train %>% dplyr::select(-c(all_of(outcome), all_of(treatment), all_of(group))) %>% colnames()
     ## m(x)
     rf_recipe_m <- 
       data_train %>%
@@ -118,7 +119,7 @@ func_ml_rf <- function(treatment_setting, data_train, data_test, outcome, treatm
     # only conducted if K > 1
     if (K > 1) {
       # remove trees from grid as trees are not tuned
-      rf_grid <- rf_grid %>% select(-trees) %>% distinct()
+      rf_grid <- rf_grid %>% dplyr::select(-trees) %>% distinct()
       
       
       # parameter tuning via 5-fold CV
@@ -325,8 +326,8 @@ func_ml_rf <- function(treatment_setting, data_train, data_test, outcome, treatm
     # generate recipe: define outcome and predictors
     ## confounding factors / predictors: all variables except variables including treatment information, outcome, and group
     X_controls <- data_train %>% 
-      select(-c(all_of(outcome), starts_with(treatment) & !ends_with("na"), 
-                all_of(group))) %>% colnames()
+      dplyr::select(-c(all_of(outcome), starts_with(treatment) & !ends_with("na"), 
+                       all_of(group))) %>% colnames()
     ## m(x) for each treatment category
     rf_recipe_m1 <- 
       data_train %>%
@@ -432,7 +433,7 @@ func_ml_rf <- function(treatment_setting, data_train, data_test, outcome, treatm
       
       # conduct parameter tuning
       ## m(X)
-      rf_grid <- rf_grid %>% select(-trees)
+      rf_grid <- rf_grid %>% dplyr::select(-trees)
       
       rf_grid_search_m1 <- 
         rf_workflow_m1 %>%
@@ -662,7 +663,7 @@ func_ml_rf <- function(treatment_setting, data_train, data_test, outcome, treatm
     df_pred <- df_pred %>%
       mutate(m_sum = m1 + m2 + m3) %>%
       mutate(m1 = m1 / m_sum, m2 = m2 / m_sum, m3 = m3 / m_sum) %>%
-      select(-m_sum)
+      dplyr::select(-m_sum)
     
     # return data frame with predictions
     return(list("pred" = df_pred, "param" = df_best_param))

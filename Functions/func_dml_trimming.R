@@ -26,6 +26,8 @@
 # -> "max_trimming": maximum trimming threshold (used for plot) -> especially relevant for "min-max" selection
 #+++
 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
 func_dml_trimming <- function(treatment_setting, data_pred, data_test, trimming) {
   
   
@@ -87,14 +89,14 @@ func_dml_trimming <- function(treatment_setting, data_pred, data_test, trimming)
       
     } else if (treatment_setting == "multi") {
       # identify smallest and largest propensity score per treatment status
-      df_select_trimming <- data_pred %>% select(m1, m2, m3) %>%
+      df_select_trimming <- data_pred %>% dplyr::select(m1, m2, m3) %>%
         mutate(min_m = pmin(m1, m2, m3), max_m = pmax(m1, m2, m3)) %>%
         summarize(min_m = max(min_m), max_m = min(max_m))
       
       df_select_trimming <- rbind(
-        data_pred %>% filter(treatment == 1) %>% select(m1) %>% summarize(min_m = min(m1), max_m = max(m1)),
-        data_pred %>% filter(treatment == 2) %>% select(m2) %>% summarize(min_m = min(m2), max_m = max(m2)),
-        data_pred %>% filter(treatment == 3) %>% select(m3) %>% summarize(min_m = min(m3), max_m = max(m3))) 
+        data_pred %>% filter(treatment == 1) %>% dplyr::select(m1) %>% summarize(min_m = min(m1), max_m = max(m1)),
+        data_pred %>% filter(treatment == 2) %>% dplyr::select(m2) %>% summarize(min_m = min(m2), max_m = max(m2)),
+        data_pred %>% filter(treatment == 3) %>% dplyr::select(m3) %>% summarize(min_m = min(m3), max_m = max(m3))) 
       
       # trimming thresholds
       min_trimming <- max(df_select_trimming$min_m) # maximum of minimum

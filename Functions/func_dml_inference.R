@@ -90,7 +90,7 @@ func_dml_inference <- function(treatment_setting, effect, theta, score, N, S_rep
     # row names as column
     df_result <- df_result %>%
       mutate(Treatment = rownames(df_result)) %>%
-      select(Treatment, everything())
+      dplyr::select(Treatment, everything())
     rownames(df_result) <- NULL
     
     # return result
