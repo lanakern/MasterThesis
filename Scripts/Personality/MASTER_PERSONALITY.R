@@ -107,8 +107,7 @@ if (!require("purrr")) install.packages("purrr")
 library(purrr) # for reduce function (union of variables)
 
 if (!require("MASS")) install.packages("MASS")
-# NOT LOADED AS IT MAKES TROUBLE WITH SELECT
-# library(MASS) # for ginv() function (-> weights for covariate balancing)
+library(MASS) # for ginv() function (-> weights for covariate balancing)
 
 # if (!require("cobalt")) install.packages("cobalt")
 # library(cobalt) # for bal.tab() function (covariate balance assessment)
@@ -157,77 +156,9 @@ df_inputs <- data.frame(
 aggr_vars <- "pca" # "mean" (not used anymore)
 cronbach_a <- "yes" # "no" (not used anymore)
 
-# all possible DML combinations
-# df_inputs_dml <- data.frame(
-#   model_treatment = c("binary", NA, NA, NA),
-#   model_type = c("base", NA, NA, NA),
-#   model_algo = c("lasso", "postlasso", "randomforests", "xgboost"),
-#   model_k = c(5, NA, NA, NA),
-#   model_k_tuning = c(5, NA, NA, NA),
-#   model_s_rep = c(2, NA, NA, NA),
-#   model_trimming = c(0.01, 0.1, "min-max", NA),
-#   model_outcome = c("level", "stand", NA, NA),
-#   model_controls = c("all", "no_lags", NA, NA)
-# )
-
-df_inputs_dml <- data.frame(
-  model_treatment = c("binary", NA, NA, NA),
-  model_type = c("all", NA, NA, NA),
-  model_algo = c("lasso", "postlasso", "randomforests", "xgboost"),
-  model_k = c(4, NA, NA, NA),
-  model_k_tuning = c(2, NA, NA, NA),
-  model_s_rep = c(2, NA, NA, NA),
-  model_trimming = c(0.01, NA, NA, NA),
-  model_outcome = c("stand", NA, NA, NA),
-  model_controls = c("no_lags", NA, NA, NA)
-)
-
-df_inputs_dml <- df_inputs_dml %>% 
-  tidyr::expand(model_treatment, model_type, model_algo, model_k, model_k_tuning,
-                model_s_rep, model_trimming, model_outcome, model_controls) %>% na.omit()
-
-
-
-
-# define variables for baseline model
-vars_baseline <- 'dplyr::select(
-group, starts_with("outcome"), starts_with("treatment"),
-
-interview_start_year_num, interview_end_year_num,
-
-gender_male, age, birth_year_num, birth_country_ger, birth_ger_eastwest_west,
-migration, childhood_biological_parents, religion_christian,
-bilingual, kindergarden,
-
-starts_with("health"),
-
-educ_years_total, educ_years_current_uni, starts_with("educ_school_degree"),
-starts_with("educ_school_grade"), educ_school_rep_grade,
-
-starts_with("motivation_degree"), starts_with("uni_degree_importance_well"), starts_with("uni_major"),
-starts_with("uni_fear"), starts_with("uni_quali"), starts_with("uni_time"), uni_type_uni_general, 
-
-starts_with("interest_art_muesum"), interest_math, interest_music_play, interest_politics, interest_reading_leisure, 
-
-starts_with("comp_"), 
-emp_current, emp_current_act_work_hours, 
-
-starts_with("mother_degree_highest"), starts_with("father_degree_highest"), mother_emp_bef_15y, father_emp_bef_15y, 
-starts_with("mother_emp_prof_"), starts_with("father_emp_prof_"), starts_with("parents"),
-starts_with("friends_study_share"), 
-
-starts_with("personality"), starts_with("bigfive"), 
-
-starts_with("satisfaction_life"), starts_with("satisfaction_study"), starts_with("social_integr"), 
-
-sibling_total, partner_current, child, living_alone, living_hh_size, starts_with("place_residence")
-
-)'
-
 
 # define variables which may be endogenous
 vars_endogenous <- c("educ_school_grade_math", "educ_school_grade_ger", "educ_school_grade_final")
-
 
 
 # define variables to keep after deleting environment
@@ -363,15 +294,162 @@ for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
   treatment_repl <- df_inputs_sel$treatment_repl # select treatment/outcome replacement
   
   # Merge 
-  source("Scripts/04_a_Merge_CATI_CAWI_Personality.R") # merge CATI & CAWI
+  source("Scripts/Personality/04_a_Merge_CATI_CAWI_Personality.R") # merge CATI & CAWI
   eval(parse(text = keep_after_file_run))
   
-  source("Scripts/04_b_Merge_Prepare_Episode_Personality.R") # add episode data
+  source("Scripts/Personality/04_b_Merge_Prepare_Episode_Personality.R") # add episode data
   eval(parse(text = keep_after_file_run))
   
-  source("Scripts/04_c_Merge_All_Personality.R") # add all other data sets
+  source("Scripts/Personality/04_c_Merge_All_Personality.R") # add all other data sets
   eval(parse(text = keep_after_file_run))
   
   print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs_indiv)))
   gc()
 }
+
+
+#### Treatment and Outcome ####
+#+++++++++++++++++++++++++++++#
+
+# Prepare treatment and outcome 
+# Here I iterate over all combinations except extracurricular activity
+df_inputs_indiv <- df_inputs %>% 
+  dplyr::select(cohort_prep, treatment_repl, treatment_def) %>% 
+  distinct()
+
+for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
+  df_inputs_sel <- df_inputs_indiv[prep_sel_num, ]
+  cohort_prep <- df_inputs_sel$cohort_prep
+  treatment_repl <- df_inputs_sel$treatment_repl
+  treatment_def <- df_inputs_sel$treatment_def
+  
+  # Prepare treatment and outcome
+  source("Scripts/Personality/05_Create_Treatment_Outcome_Personality.R") 
+  eval(parse(text = keep_after_file_run))
+  
+  print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs_indiv)))
+  gc()
+}
+
+
+#### Sample Selection ####
+#++++++++++++++++++++++++#
+
+# Conduct sample selection
+# Here I iterate over all combinations
+for (prep_sel_num in 1:nrow(df_inputs)) {
+  df_inputs_sel <- df_inputs[prep_sel_num, ]
+  cohort_prep <- df_inputs_sel$cohort_prep
+  treatment_repl <- df_inputs_sel$treatment_repl
+  treatment_def <- df_inputs_sel$treatment_def
+  extra_act <- df_inputs_sel$extra_act
+  
+  # Sample selection
+  source("Scripts/Personality/06_Sample_Selection_Personality.R") 
+  eval(parse(text = keep_after_file_run))
+  
+  print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs)))
+  gc()
+}
+
+
+
+#### Create Variables ####
+#++++++++++++++++++++++++#
+
+# now set language for dates and times to English
+Sys.setlocale("LC_TIME", "English")
+
+
+# perform further steps without sample selection reduction
+for (prep_sel_num in 1:nrow(df_inputs)) {
+  
+  df_inputs_sel <- df_inputs[prep_sel_num, ]
+  cohort_prep <- df_inputs_sel$cohort_prep
+  treatment_repl <- df_inputs_sel$treatment_repl
+  treatment_def <- df_inputs_sel$treatment_def
+  extra_act <- df_inputs_sel$extra_act
+  
+  # Prepare control variables
+  eval(parse(text = keep_after_file_run))
+  source("Scripts/Personality/07_Create_Control_Variables_Personality.R") 
+  
+  print(paste0("FINISHED COMBINATION", prep_sel_num, " FROM ", nrow(df_inputs)))
+  gc()
+}
+
+
+
+#### Plausibility analysis ####
+#+++++++++++++++++++++++++++++#
+
+for (prep_sel_num in 1:nrow(df_inputs)) {
+  
+  print(paste0("START COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs)))
+  
+  df_inputs_sel <- df_inputs[prep_sel_num, ]
+  cohort_prep <- df_inputs_sel$cohort_prep
+  treatment_repl <- df_inputs_sel$treatment_repl
+  treatment_def <- df_inputs_sel$treatment_def
+  extra_act <- df_inputs_sel$extra_act
+  
+  # Prepare control variables
+  source("Scripts/Personality/08_Plausibility_Checks_Personality.R") 
+  
+  print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs)))
+  eval(parse(text = keep_after_file_run))
+  gc()
+}
+
+
+#### Descriptive Statistics ####
+#++++++++++++++++++++++++++++++#
+
+gc()
+eval(parse(text = keep_after_file_run))
+
+# only for main model
+cohort_prep <- main_cohort_prep
+treatment_repl <- main_treatment_repl
+treatment_def <- main_treatment_def
+extra_act <- main_extra_act
+source("Scripts/Personality/09_Descriptive_Statistics_Personality.R") 
+
+
+
+#### Final Estimation Samples ####
+#++++++++++++++++++++++++++++++++#
+
+for (prep_sel_num in 1:nrow(df_inputs)) {
+  
+  print(paste0("START COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs)))
+  
+  df_inputs_sel <- df_inputs[prep_sel_num, ]
+  cohort_prep <- df_inputs_sel$cohort_prep
+  treatment_repl <- df_inputs_sel$treatment_repl
+  treatment_def <- df_inputs_sel$treatment_def
+  extra_act <- df_inputs_sel$extra_act
+  
+  # Prepare control variables
+  source("Scripts/Personality/10_Estimation_Sample_Personality.R") 
+  
+  print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs)))
+  eval(parse(text = keep_after_file_run))
+  gc()
+}
+
+
+#### Show Sample Reduction ####
+#+++++++++++++++++++++++++++++#
+
+read.xlsx("Output/SAMPLE_REDUCTION_STEPS_PERSONALITY.xlsx", sheetName = "Sheet1")
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+
+#%%%%%%%%%%%%%%%#
+#### RUN DML ####
+#%%%%%%%%%%%%%%%#
+
+
