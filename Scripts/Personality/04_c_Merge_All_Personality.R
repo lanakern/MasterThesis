@@ -2,8 +2,6 @@
 #### MERGE REMAINING DATA SETS FOR PERSONALITY  ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-# IDENTICAL FOR GRADES
-
 #++++
 # by Lana Kern
 #++++
@@ -30,35 +28,6 @@
 #++++
 
 
-#%%%%%%%%%#
-## SETUP ##
-#%%%%%%%%%#
-
-
-# clear workspace
-# rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", "treatment_def", "df_inputs", "prep_sel_num")))
-
-# # install packages if needed, load packages
-# if (!require("dplyr")) install.packages("dplyr")
-# library(dplyr)  # to manipulate data
-# 
-# if (!require("tidyr")) install.packages("tidyr")
-# library(tidyr)  # to manipulate data, e.g. replace_na, spread() etc.
-# 
-# if (!require("lubridate")) install.packages("lubridate")
-# library(lubridate)  # for working with dates
-# 
-# if (!require("xlsx")) install.packages("xlsx")
-# library(xlsx)  # for excel file
-# 
-# # define inputs
-#   ## selection on cohort preparation
-# #cohort_prep <- "controls_bef_outcome" 
-# cohort_prep <- "controls_same_outcome"
-#   ## only for saving
-# treatment_repl <- "downup" 
-
-
 
 #%%%%%%%%%%%%%%%%%#
 #### LOAD DATA ####
@@ -74,7 +43,12 @@ if (cohort_prep == "controls_same_outcome") {
 }
 
 # Sibling information (time-invariant)
-data_sibling <- readRDS("Data/Personality/Prep_3/prep_3_sibling_personality.rds")
+if (cohort_prep == "controls_same_outcome") {
+  data_sibling <- readRDS("Data/Personality/Prep_3/prep_3_sibling_personality.rds")
+} else if (cohort_prep == "controls_bef_outcome") {
+  data_sibling <- readRDS("Data/Personality/Prep_3/prep_3_sibling_personality_robustcheck.rds")
+}
+
 
 # child data (time-variant)
 if (cohort_prep == "controls_same_outcome") {
@@ -256,30 +230,17 @@ length(id_child)
 if (cohort_prep == "controls_bef_outcome") {
   id_cati_cawi_eps_child <- 
     inner_join(data_merge_1, data_child, 
-               by = c("ID_t", "interview_date_CATI" = "interview_date")) %>%
+               by = c("ID_t", "interview_date_start" = "interview_date")) %>%
     pull(ID_t) %>% unique() 
   num_id_child_adj_1 <- length(id_cati_cawi_eps_child)
 } else if (cohort_prep == "controls_same_outcome") {
   id_cati_cawi_eps_child <- 
     inner_join(data_merge_1, data_child, 
-               by = c("ID_t", "interview_date_start" = "interview_date")) %>%
+               by = c("ID_t", "interview_date_end" = "interview_date")) %>%
     pull(ID_t) %>% unique() 
   num_id_child_adj_1 <- length(id_cati_cawi_eps_child)
 }
 
-
-# show difference
-setdiff(id_child, id_cati_cawi_eps_child)
-
-data_child %>% subset(ID_t == 7019629) %>% 
-  dplyr::select(ID_t, starts_with("interview_date"))
-data_merge_1 %>% subset(ID_t == 7019629) %>% 
-  dplyr::select(ID_t, starts_with("interview_date"))
-
-data_child %>% subset(ID_t == 7010555) %>% 
-  dplyr::select(ID_t, starts_with("interview_date"))
-data_merge_1 %>% subset(ID_t == 7010555) %>% 
-  dplyr::select(ID_t, starts_with("interview_date"))
 
 # keep only respondents in child who also have obsveration in other data set
 data_child <- data_child %>% subset(ID_t %in% id_cati_cawi_eps_child)
@@ -288,10 +249,10 @@ length(unique(data_child$ID_t))
 # information about each respondent's children is appended.
 if (cohort_prep == "controls_bef_outcome") {
   data_merge_2 <- left_join(data_merge_1, data_child, 
-                            by = c("ID_t", "interview_date_CATI" = "interview_date"))
+                            by = c("ID_t", "interview_date_start" = "interview_date"))
 } else if (cohort_prep == "controls_same_outcome") {
   data_merge_2 <- left_join(data_merge_1, data_child, 
-                            by = c("ID_t", "interview_date_start" = "interview_date"))
+                            by = c("ID_t", "interview_date_end" = "interview_date"))
 }
 
 # extract child columns
@@ -325,39 +286,29 @@ length(id_partner)
 if (cohort_prep == "controls_bef_outcome") {
   id_cati_cawi_eps_child_partner <- 
     inner_join(data_merge_2, data_partner, 
-               by = c("ID_t", "interview_date_CATI" = "interview_date")) %>%
+               by = c("ID_t", "interview_date_start" = "interview_date")) %>%
     pull(ID_t) %>% unique() 
   num_id_partner_adj_1 <- length(id_cati_cawi_eps_child_partner)
 } else if (cohort_prep == "controls_same_outcome") {
   id_cati_cawi_eps_child_partner <- 
     inner_join(data_merge_2, data_partner, 
-               by = c("ID_t", "interview_date_start" = "interview_date")) %>%
+               by = c("ID_t", "interview_date_end" = "interview_date")) %>%
     pull(ID_t) %>% unique() 
   num_id_partner_adj_1 <- length(id_cati_cawi_eps_child_partner)
 }
 
 
-# show difference
-setdiff(id_partner, id_cati_cawi_eps_child_partner)
-
-data_partner %>% subset(ID_t == 7002301) %>% 
-  dplyr::select(ID_t, starts_with("interview_date"))
-
-data_merge_2 %>% subset(ID_t == 7002301) %>% 
-  dplyr::select(ID_t, starts_with("interview_date"))
-
 # keep only respondents in partner  who also have observation in other data set
 data_partner <- data_partner %>% subset(ID_t %in% id_cati_cawi_eps_child_partner)
 length(unique(data_partner$ID_t))
 
-
 # information about each respondent's relationship is appended.
 if (cohort_prep == "controls_bef_outcome") {
   data_merge_3 <- left_join(data_merge_2, data_partner, 
-                            by = c("ID_t", "interview_date_CATI" = "interview_date"))
+                            by = c("ID_t", "interview_date_start" = "interview_date"))
 } else if (cohort_prep == "controls_same_outcome") {
   data_merge_3 <- left_join(data_merge_2, data_partner, 
-                            by = c("ID_t", "interview_date_start" = "interview_date"))
+                            by = c("ID_t", "interview_date_end" = "interview_date"))
 }
 
 # extract partner columns
@@ -397,23 +348,16 @@ length(id_comp)
 if (cohort_prep == "controls_bef_outcome") {
   id_cati_cawi_eps_child_partner_comp <- 
     inner_join(data_merge_3, data_competencies, 
-               by = c("ID_t", "interview_date_CATI" = "interview_date")) %>%
+               by = c("ID_t", "interview_date_start" = "interview_date")) %>%
     pull(ID_t) %>% unique() 
   num_id_comp_adj_1 <- length(id_cati_cawi_eps_child_partner_comp)
 } else if (cohort_prep == "controls_same_outcome") {
   id_cati_cawi_eps_child_partner_comp <- 
     inner_join(data_merge_3, data_competencies, 
-               by = c("ID_t", "interview_date_start" = "interview_date")) %>%
+               by = c("ID_t", "interview_date_end" = "interview_date")) %>%
     pull(ID_t) %>% unique() 
   num_id_comp_adj_1 <- length(id_cati_cawi_eps_child_partner_comp)
 }
-
-# analyse differences
-setdiff(id_cati_cawi_eps_child_partner, id_cati_cawi_eps_child_partner_comp)
-
-data_merge_3 %>% subset(ID_t == 7009318) %>% dplyr::select(ID_t, starts_with("interview_date"))
-data_competencies %>% subset(ID_t == 7009318)
-
 
 # keep only respondents who also have observation in other data set
 data_competencies <- data_competencies %>% subset(ID_t %in% id_cati_cawi_eps_child_partner_comp)
@@ -424,10 +368,10 @@ data_competencies %>% subset(ID_t == 7010580)
 # INNER JOIN TO KEEP ONLY RESPONDENTS WITH AT LEAST ONE COMPETENCE MEASURE?
 if (cohort_prep == "controls_bef_outcome") {
   data_merge_4 <- inner_join(data_merge_3, data_competencies, 
-                            by = c("ID_t", "interview_date_CATI" = "interview_date"))
+                            by = c("ID_t", "interview_date_start" = "interview_date"))
 } else if (cohort_prep == "controls_same_outcome") {
   data_merge_4 <- inner_join(data_merge_3, data_competencies, 
-                            by = c("ID_t", "interview_date_start" = "interview_date"))
+                            by = c("ID_t", "interview_date_end" = "interview_date"))
 }
 
 
