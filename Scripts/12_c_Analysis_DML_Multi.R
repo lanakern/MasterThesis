@@ -2,6 +2,8 @@
 #### DML IN THE MULTIVALUED TREATMENT SETTING ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
+# SAVING: ADD probscore_separate AS COLUMN INFO 
+
 #++++
 # by Lana Kern
 #++++
