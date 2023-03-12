@@ -107,13 +107,10 @@ if (!require("purrr")) install.packages("purrr")
 library(purrr) # for reduce function (union of variables)
 
 if (!require("MASS")) install.packages("MASS")
-# NOT LOADED AS IT MAKES TROUBLE WITH SELECT
-# library(MASS) # for ginv() function (-> weights for covariate balancing)
+library(MASS) # for ginv() function (-> weights for covariate balancing)
 
 # if (!require("cobalt")) install.packages("cobalt")
 # library(cobalt) # for bal.tab() function (covariate balance assessment)
-
-
 
 # set language for dates and times to German, since the NEPS month names
 # are written in German; otherwise date/time functions are not working
@@ -146,102 +143,22 @@ main_model_controls <- "no_lags"
 # generate all possible combinations of user inputs (to iterate over it below)
 df_inputs <- data.frame(
   # for interview data preparation
-  "cohort_prep" = c("controls_bef_outcome", "controls_same_outcome", NA), 
+  "cohort_prep" = c("controls_bef_outcome", rep("controls_same_outcome", 5)), 
   # for treatment and outcome missing value replacement
-  "treatment_repl" = c("down", "onelag", "no"),
+  "treatment_repl" = c("down", "down", "down", "down", "onelag", "no"),
   # for treatment generation
-  "treatment_def" = c("weekly", "all", NA),
+  "treatment_def" = c("weekly", "all", "weekly", "weekly", "weekly", "weekly"),
   # for sample selection: only keeping respondents with extracurricular activity
-  "extra_act" = c("yes", "no", NA)
+  "extra_act" = c("yes", "yes", "no", "yes", "yes", "yes")
 )
-
-df_inputs <- df_inputs %>% tidyr::expand(cohort_prep, treatment_repl, treatment_def, extra_act) %>% na.omit()
-
-# only 5 combinations are considered; otherwise it is a too high computational burden
-df_inputs <- df_inputs %>% filter(
-  (cohort_prep == "controls_bef_outcome" & treatment_repl == main_treatment_repl & treatment_def == main_treatment_def & extra_act == main_extra_act) |
-    (cohort_prep == "controls_same_outcome" & treatment_repl == main_treatment_repl & treatment_def == main_treatment_def & extra_act == main_extra_act) |
-      (cohort_prep == "controls_same_outcome" & treatment_repl == main_treatment_repl & treatment_def == main_treatment_def & extra_act == "no") |
-      (cohort_prep == "controls_same_outcome" & treatment_repl == "no" & treatment_def == main_treatment_def & extra_act == main_extra_act) |
-      (cohort_prep == "controls_same_outcome" & treatment_repl == main_treatment_repl & treatment_def == "all" & extra_act == main_extra_act)
-  )
 
 # aggregation of variables
 aggr_vars <- "pca" # "mean" (not used anymore)
 cronbach_a <- "yes" # "no" (not used anymore)
 
 
-# all possible DML combinations
-# df_inputs_dml <- data.frame(
-#   model_treatment = c("binary", NA, NA, NA),
-#   model_type = c("base", NA, NA, NA),
-#   model_algo = c("lasso", "postlasso", "randomforests", "xgboost"),
-#   model_k = c(5, NA, NA, NA),
-#   model_k_tuning = c(5, NA, NA, NA),
-#   model_s_rep = c(2, NA, NA, NA),
-#   model_trimming = c(0.01, 0.1, "min-max", NA),
-#   model_outcome = c("level", "stand", NA, NA),
-#   model_controls = c("all", "no_lags", NA, NA)
-# )
-
-df_inputs_dml <- data.frame(
-  model_treatment = c("binary", NA, NA, NA),
-  model_type = c("all", NA, NA, NA),
-  model_algo = c("lasso", "postlasso", "randomforests", "xgboost"),
-  model_k = c(4, NA, NA, NA),
-  model_k_tuning = c(2, NA, NA, NA),
-  model_s_rep = c(2, NA, NA, NA),
-  model_trimming = c(0.01, NA, NA, NA),
-  model_outcome = c("stand", NA, NA, NA),
-  model_controls = c("no_lags", NA, NA, NA)
-)
-
-df_inputs_dml <- df_inputs_dml %>% 
-  tidyr::expand(model_treatment, model_type, model_algo, model_k, model_k_tuning,
-                model_s_rep, model_trimming, model_outcome, model_controls) %>% na.omit()
-
-
-
-
-# define variables for baseline model
-vars_baseline <- 'dplyr::select(
-group, starts_with("outcome"), starts_with("treatment"),
-
-interview_start_year_num, interview_end_year_num,
-
-gender_male, age, birth_year_num, birth_country_ger, birth_ger_eastwest_west,
-migration, childhood_biological_parents, religion_christian,
-bilingual, kindergarden,
-
-starts_with("health"),
-
-educ_years_total, educ_years_current_uni, starts_with("educ_school_degree"),
-starts_with("educ_school_grade"), educ_school_rep_grade,
-
-starts_with("motivation_degree"), starts_with("uni_degree_importance_well"), starts_with("uni_major"),
-starts_with("uni_fear"), starts_with("uni_quali"), starts_with("uni_time"), uni_type_uni_general, 
-
-starts_with("interest_art_muesum"), interest_math, interest_music_play, interest_politics, interest_reading_leisure, 
-
-starts_with("comp_"), 
-emp_current, emp_current_act_work_hours, 
-
-starts_with("mother_degree_highest"), starts_with("father_degree_highest"), mother_emp_bef_15y, father_emp_bef_15y, 
-starts_with("mother_emp_prof_"), starts_with("father_emp_prof_"), starts_with("parents"),
-starts_with("friends_study_share"), 
-
-starts_with("personality"), starts_with("bigfive"), 
-
-starts_with("satisfaction_life"), starts_with("satisfaction_study"), starts_with("social_integr"), 
-
-sibling_total, partner_current, child, living_alone, living_hh_size, starts_with("place_residence")
-
-)'
-
-
 # define variables which may be endogenous
 vars_endogenous <- c("educ_school_grade_math", "educ_school_grade_ger", "educ_school_grade_final")
-
 
 
 # define variables to keep after deleting environment
@@ -251,8 +168,6 @@ keep_after_file_run <- 'rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl
  "keep_after_file_run", "vars_baseline", "model_type", "model_algo", 
 "model_k", "model_k_tuning", "model_s_rep", "model_trimming", "model_controls", 
 "model_outcome", "dml_num",  ls()[str_starts(ls(), "func_")], ls()[str_starts(ls(), "main_")])))'
-
-
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%#
