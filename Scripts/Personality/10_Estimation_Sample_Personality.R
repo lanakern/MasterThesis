@@ -86,11 +86,11 @@ for (mice_data_sel in 1:5) {
   #++++++++++++++++++++++#
   
   if (cohort_prep == "controls_same_outcome") {
-    saveRDS(binary, paste0(
+    saveRDS(data_binary, paste0(
       "Data/Personality/Prep_10/prep_10_dml_binary_all_", treatment_def, "_", 
       treatment_repl, extra_act_save, "_mice", mice_data_sel, "_personality.rds"))
   } else {
-    saveRDS(binary, paste0(
+    saveRDS(data_binary, paste0(
       "Data/Personality/Prep_10/prep_10_dml_binary_all_", treatment_def, "_", 
       treatment_repl, extra_act_save, "_robustcheck_mice", mice_data_sel, 
       "_personality.rds"))
@@ -126,8 +126,8 @@ for (mice_data_sel in 1:5) {
   #-- INTERACTION TERMS --#
 
   ## 1.) Drop treatment and outcome variables which are not used to generate interactions
-  df_interaction <- data_all_plus %>% dplyr::select(-c(starts_with("treatment"), 
-                                                       starts_with("bigfive")))
+  df_interaction <- data_all_plus %>% 
+    dplyr::select(-c(starts_with("treatment"), starts_with("bigfive"), group))
   ## 2.) Generate interactions
   # https://stackoverflow.com/questions/31905221/r-generate-all-possible-interaction-variables
   df_interaction <- do.call(cbind, combn(colnames(df_interaction), 2, FUN = function(x)
