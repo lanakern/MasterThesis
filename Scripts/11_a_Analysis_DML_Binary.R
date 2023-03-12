@@ -2,23 +2,11 @@
 #### DML IN THE BINARY TREATMENT SETTING ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-# LAGS müssen raus, da sonst kein common support
-
 # track time
 start_time <- Sys.time()
 
 # set seed for reproducible results
 set.seed(1234)
-
-# inputs
-# model_type <- c("base")
-# model_algo <-  c("lasso")
-# model_k <- 2
-# model_k_tuning <- 2
-# model_s_rep <- 2
-# model_trimming <- 0.01
-# model_outcome <- "level"
-# model_controls <- "all"
 
 # empty data frames and lists to store results
 df_ape_all <- data.frame()
@@ -37,23 +25,56 @@ for (mice_data_sel in 1:5) {
   } else {
     extra_act_save <- ""
   }
+    ## extract outcome
+  if (str_detect(outcome_var, "grade")) {
+    load_data_folder <- "Data/Grades/"
+    load_data_ending <- ".rds"
+  } else if (str_detect(outcome_var, "bigfive")) {
+    load_data_folder <- "Data/Personality/"
+    load_data_ending <- "_personality.rds"
+  } else {
+    stop("Please specify correct outcome variable")
+  }
+  
     ## cohort prep
   if (cohort_prep == "controls_same_outcome") {
     load_data <- 
-      paste0("Data/Prep_11/prep_11_dml_binary_", model_type, "_", treatment_def, 
-             "_", treatment_repl, extra_act_save, "_mice", mice_data_sel, ".rds")
+      paste0(load_data_folder, "Prep_10/prep_10_dml_binary_", model_type, "_", treatment_def, 
+             "_", treatment_repl, extra_act_save, "_mice", mice_data_sel, load_data_ending)
   } else {
     load_data <- 
-      paste0("Data/Prep_11/prep_11_dml_binary_", model_type, "_", treatment_def, 
-             "_", treatment_repl, extra_act_save, "robustcheck_mice", mice_data_sel, ".rds")
+      paste0(load_data_folder, "Prep_10/prep_10_dml_binary_", model_type, "_", treatment_def, 
+             "_", treatment_repl, extra_act_save, "robustcheck_mice", mice_data_sel, load_data_ending)
   }
   
   data_dml <- readRDS(load_data)
   
+  # drop lags if desired by user
   if (model_controls == "no_lags") {
-    data_dml <- data_dml %>% select(-c(ends_with("_lag"))) %>% as.data.frame()
+    # drop all lags
+    data_dml <- data_dml %>% dplyr::select(-c(ends_with("_lag"))) %>% as.data.frame()
+  } else if (model_controls == "no_to_lags") {
+    # drop only treatment and outcome lags
   } else {
+    # keep all lags
     data_dml <- data_dml %>% as.data.frame()
+  }
+  
+  # if personality is outcome further preparations are necessary
+  if (str_detect(outcome_var, "grade")) {
+    # for grades no further steps are necessary
+    data_dml <- data_dml
+  } else if (str_detect(outcome_var, "bigfive")) {
+    # for personality selected outcome variable needs to be declared
+    outcome_var_old <- outcome_var
+    outcome_var <- paste0("outcome_", outcome_var)
+    data_dml <- data_dml %>%
+      rename_with(~ outcome_var, all_of(outcome_var_old))
+    # lags for all other personality variables are dropped
+    colnames_bigfive_lag_drop <- data_dml %>% 
+      dplyr::select(starts_with("bigfive") & ends_with("lag") & !matches(outcome_var_old)) %>% colnames()
+    data_dml <- data_dml %>% 
+      dplyr::select(-all_of(colnames_bigfive_lag_drop))
   }
   
 
@@ -94,7 +115,8 @@ for (mice_data_sel in 1:5) {
     treatment_setting, data = data_dml, 
     outcome = outcome_var, treatment = "treatment_sport", group = "group", 
     K = model_k, K_tuning = model_k_tuning, S = model_s_rep, 
-    mlalgo = model_algo, trimming = model_trimming, save_trimming = save_trimming_sel
+    mlalgo = model_algo, trimming = model_trimming, save_trimming = save_trimming_sel,
+    mice_sel = mice_data_sel
   )
   
   # append APE
@@ -107,9 +129,16 @@ for (mice_data_sel in 1:5) {
 
 
 # save results
-save_dml <- 
-  paste0("Output/DML/binary_", model_algo, "_", model_type, "_", str_replace_all(cohort_prep, "_", ""),
+if (str_detect(outcome_var, "grade")) {
+  save_dml <- 
+    paste0("Output/DML/Grades/binary_", model_algo, "_", model_type, "_", 
+           str_replace_all(cohort_prep, "_", ""),
+           "_", treatment_def, "_", treatment_repl, extra_act_save, ".rds")
+} else if (str_detect(outcome_var, "bigfive")) {
+  paste0("Output/DML/Personality/binary_", model_algo, "_", model_type, "_", 
+         str_replace_all(cohort_prep, "_", ""),
          "_", treatment_def, "_", treatment_repl, extra_act_save, ".rds")
+}
 
 saveRDS(dml_result_all, save_dml)
 
@@ -121,6 +150,8 @@ dml_result_error <- dml_result_pooled_all[[2]]
 # append columns
 dml_result_save <- dml_result_pooled %>%
   mutate(
+    # append outcome
+    outcome = str_remove(outcome_var, "outcome_"),
     # append model selections
     cohort_prep = cohort_prep, treatment_repl = treatment_repl, treatment_def = treatment_def, 
     extra_act = extra_act, 
@@ -136,8 +167,8 @@ dml_result_save <- dml_result_pooled %>%
     time_elapsed = as.character(Sys.time() - start_time)) %>%
   cbind(dml_result_error) %>%
   # re-order columns
-  select(cohort_prep, treatment_repl, treatment_def, extra_act, starts_with("model"), 
-         n_treats_min, starts_with("num_pred"), everything()) %>%
+  dplyr::select(outcome, cohort_prep, treatment_repl, treatment_def, extra_act, starts_with("model"), 
+                n_treats_min, starts_with("num_pred"), everything()) %>%
   relocate(time_elapsed, time_stamp, .after = last_col()) # time-stamp is ordered last
 
 
@@ -148,7 +179,7 @@ if (file.exists("Output/DML/DML_BINARY_ESTIMATION_RESULTS.xlsx")) {
   dml_result_save_all <- read.xlsx("Output/DML/DML_BINARY_ESTIMATION_RESULTS.xlsx", sheetName = "Sheet1")
   dml_result_save_all <- rbind(dml_result_save_all, dml_result_save)
   cols_aggr <- dml_result_save_all %>%
-    select(cohort_prep, treatment_repl, treatment_def, starts_with("model")) %>%
+    dplyr::select(outcome, cohort_prep, treatment_repl, treatment_def, starts_with("model")) %>%
     colnames()
   dml_result_save_all <- dml_result_save_all %>%
     group_by(across(all_of(cols_aggr))) %>%
@@ -161,13 +192,3 @@ if (file.exists("Output/DML/DML_BINARY_ESTIMATION_RESULTS.xlsx")) {
   write.xlsx(dml_result_save, "Output/DML/DML_BINARY_ESTIMATION_RESULTS.xlsx", row.names = FALSE)
 }
 
-
-
-
-#%%%%%%%%%%%%#
-#### CATE ####
-#%%%%%%%%%%%%#
-
-# Conditional Average Treatment Effect (CATE)
-# "What is the expected treatment effect for somebody with characteristics X = x?"
-# Heterogeneous treatment effects?
