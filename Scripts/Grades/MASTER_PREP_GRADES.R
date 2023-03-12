@@ -1,6 +1,6 @@
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-#### MASTER FILE: PERSONALITY AS OUTCOME ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### MASTER FILE FOR DATA PREPARATION: GRADES AS OUTCOME ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 #+++
 # by Lana Kern
@@ -170,8 +170,6 @@ keep_after_file_run <- 'rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl
 "model_outcome", "dml_num",  ls()[str_starts(ls(), "func_")], ls()[str_starts(ls(), "main_")])))'
 
 
-
-
 #%%%%%%%%%%%%%%%%%%%%%%%%%%#
 #### LOAD ALL FUNCTIONS ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -180,7 +178,6 @@ load_function <- paste0("Functions/", list.files(path = "Functions/"))
 for (func_load in load_function) {
   source(func_load)
 }
-
 
 
 
@@ -194,7 +191,7 @@ for (func_load in load_function) {
 
 # Load all data files and make basic preparations like renaming variables and
 # recoding missing values as NA
-source("Scripts/Personality/01_Load_Data_Personality.R")
+source("Scripts/01_Load_Data.R")
 eval(parse(text = keep_after_file_run))
 
 
@@ -202,7 +199,7 @@ eval(parse(text = keep_after_file_run))
 #++++++++++++++++++++#
 
 # Prepare episode / life course data, i.e., educational history of each respondents
-source("Scripts/Personality/02_a_Prep_Data_Life_Course_Personality.R")
+source("Scripts/02_a_Prep_Data_Life_Course.R")
 eval(parse(text = keep_after_file_run))
 
 
@@ -213,7 +210,7 @@ eval(parse(text = keep_after_file_run))
 for (cohort_prep_sel in unique(na.omit(df_inputs$cohort_prep))) {
   cohort_prep <- cohort_prep_sel
   print(cohort_prep)
-  source("Scripts/Personality/02_b_Prep_Data_Interview_Participation_Personality.R")
+  source("Scripts/02_b_Prep_Data_Interview_Participation.R")
   eval(parse(text = keep_after_file_run))
 }
 
@@ -224,26 +221,28 @@ for (cohort_prep_sel in unique(na.omit(df_inputs$cohort_prep))) {
 # Prepare CATI and CAWI: iteration over cohort_prep and treatment_repl
 # Note: generated data sets differ across treatment_repl but number of students,
 # rows and columns only differ across cohort_prep
-
 df_inputs_indiv <- df_inputs %>% dplyr::select(cohort_prep, treatment_repl) %>% distinct()
 
 for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
-
+  
+  print(paste0("START COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs_indiv)))
+  
   # select data preparation possibilities
   df_inputs_sel <- df_inputs_indiv[prep_sel_num, ] # subset data
   cohort_prep <- df_inputs_sel$cohort_prep # select cohort prep preparation
   treatment_repl <- df_inputs_sel$treatment_repl # select treatment/outcome replacement
-
+  
   # Prepare individual data sets
-  source("Scripts/Personality/03_a_Prep_Cati_Personality.R") # CATI
+  source("Scripts/03_a_Prep_Cati.R") # CATI
   eval(parse(text = keep_after_file_run))
-
-  source("Scripts/Personality/03_b_Prep_Cawi_Personality.R") # CAWI
+  
+  source("Scripts/03_b_Prep_Cawi.R") # CAWI
   eval(parse(text = keep_after_file_run))
 
   print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs_indiv)))
   gc()
 }
+
 
 
 #### Other individual data sets ####
@@ -259,22 +258,23 @@ for (cohort_prep_sel in unique(na.omit(df_inputs$cohort_prep))) {
   cohort_prep <- cohort_prep_sel # select cohort prep preparation
   
   print(cohort_prep)
-  
+
   # Prepare individual data sets
-  source("Scripts/Personality/03_c_Prep_Sibling_personality.R") # Sibling
+  source("Scripts/03_c_Prep_Sibling.R") # Sibling
   eval(parse(text = keep_after_file_run))
   
-  source("Scripts/Personality/03_d_Prep_Child_personality.R") # Child
+  source("Scripts/03_d_Prep_Child.R") # Child
   eval(parse(text = keep_after_file_run))
   
-  source("Scripts/Personality/03_e_Prep_Partner_personality.R") # Partner
+  source("Scripts/03_e_Prep_Partner.R") # Partner
   eval(parse(text = keep_after_file_run))
   
-  source("Scripts/Personality/03_f_Prep_Competencies_personality.R") # Competencies
+  source("Scripts/03_f_Prep_Competencies.R") # Competencies
   eval(parse(text = keep_after_file_run))
   
   gc()
 }
+
 
 
 #### Merge ####
@@ -294,18 +294,19 @@ for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
   treatment_repl <- df_inputs_sel$treatment_repl # select treatment/outcome replacement
   
   # Merge 
-  source("Scripts/Personality/04_a_Merge_CATI_CAWI_Personality.R") # merge CATI & CAWI
+  source("Scripts/04_a_Merge_CATI_CAWI.R") # merge CATI & CAWI
   eval(parse(text = keep_after_file_run))
   
-  source("Scripts/Personality/04_b_Merge_Prepare_Episode_Personality.R") # add episode data
+  source("Scripts/04_b_Merge_Prepare_Episode.R") # add episode data
   eval(parse(text = keep_after_file_run))
   
-  source("Scripts/Personality/04_c_Merge_All_Personality.R") # add all other data sets
+  source("Scripts/04_c_Merge_All.R") # add all other data sets
   eval(parse(text = keep_after_file_run))
   
   print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs_indiv)))
   gc()
 }
+
 
 
 #### Treatment and Outcome ####
@@ -324,7 +325,7 @@ for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
   treatment_def <- df_inputs_sel$treatment_def
   
   # Prepare treatment and outcome
-  source("Scripts/Personality/05_Create_Treatment_Outcome_Personality.R") 
+  source("Scripts/05_Create_Treatment_Outcome.R") 
   eval(parse(text = keep_after_file_run))
   
   print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs_indiv)))
@@ -345,7 +346,7 @@ for (prep_sel_num in 1:nrow(df_inputs)) {
   extra_act <- df_inputs_sel$extra_act
   
   # Sample selection
-  source("Scripts/Personality/06_Sample_Selection_Personality.R") 
+  source("Scripts/06_Sample_Selection.R") 
   eval(parse(text = keep_after_file_run))
   
   print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs)))
@@ -372,12 +373,16 @@ for (prep_sel_num in 1:nrow(df_inputs)) {
   
   # Prepare control variables
   eval(parse(text = keep_after_file_run))
-  source("Scripts/Personality/07_Create_Control_Variables_Personality.R") 
+  source("Scripts/07_Create_Control_Variables.R") 
   
   print(paste0("FINISHED COMBINATION", prep_sel_num, " FROM ", nrow(df_inputs)))
   gc()
 }
 
+
+# load file showing sample reduction
+df_excel_save_hist <- read.xlsx("Output/SAMPLE_REDUCTION_STEPS.xlsx", sheetName = "Sheet1")
+df_excel_save_hist
 
 
 #### Plausibility analysis ####
@@ -394,7 +399,7 @@ for (prep_sel_num in 1:nrow(df_inputs)) {
   extra_act <- df_inputs_sel$extra_act
   
   # Prepare control variables
-  source("Scripts/Personality/08_Plausibility_Checks_Personality.R") 
+  source("Scripts/08_Plausibility_Checks.R") 
   
   print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs)))
   eval(parse(text = keep_after_file_run))
@@ -413,7 +418,7 @@ cohort_prep <- main_cohort_prep
 treatment_repl <- main_treatment_repl
 treatment_def <- main_treatment_def
 extra_act <- main_extra_act
-source("Scripts/Personality/09_Descriptive_Statistics_Personality.R") 
+source("Scripts/09_Descriptive_Statistics.R") 
 
 
 
@@ -431,7 +436,7 @@ for (prep_sel_num in 1:nrow(df_inputs)) {
   extra_act <- df_inputs_sel$extra_act
   
   # Prepare control variables
-  source("Scripts/Personality/10_Estimation_Sample_Personality.R") 
+  source("Scripts/11_Estimation_Sample.R") 
   
   print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs)))
   eval(parse(text = keep_after_file_run))
@@ -442,14 +447,11 @@ for (prep_sel_num in 1:nrow(df_inputs)) {
 #### Show Sample Reduction ####
 #+++++++++++++++++++++++++++++#
 
-read.xlsx("Output/SAMPLE_REDUCTION_STEPS_PERSONALITY.xlsx", sheetName = "Sheet1")
-
+read.xlsx("Output/SAMPLE_REDUCTION_STEPS_GRADES.xlsx", sheetName = "Sheet1")
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 
-#%%%%%%%%%%%%%%%#
-#### RUN DML ####
-#%%%%%%%%%%%%%%%#
+
 
 
