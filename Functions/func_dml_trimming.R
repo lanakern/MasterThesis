@@ -2,17 +2,23 @@
 #### FUNCTION: TRIMMING PROPENSITY SCORE ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
 #+++
 # by Lana Kern
 #+++
 # This functions trims the nuisance parameter predictions of the propensity score
-# according to the chosen trimming thresholds.
-# This function can be applied in the binary and multivalued treatment setting.
+# according to the chosen trimming thresholds after the outcome predictions
+# (see Knaus, 2018.
+# This function can be applied in the binary and multivalued treatment setting
+# as well as for all outcome variables considered in this analysis.
 #+++
 # INPUT:
 # -> "treatment_setting": binary treatment setting ("binary") or multivalued treatment setting ("multi")
-# -> "data_pred": data frame containing all nuisance parameter predictions and 
-# their true values. This data frame is the basis for conducting the trimming.
+# -> "data_pred": data frame containing all nuisance parameter predictions for the 
+# treatment equation (propensity score, denoted as m or rather m1, m2, m3) and 
+# their true values (denoted as "treatment"). This data frame is the basis for 
+# conducting the trimming.
 # -> "data_test": test data -> trimming is transferred to test data so that
 # only observations with enough overlap are used to estimate the treatment effects.
 # -> "trimming": trimming threshold -> numeric or "min-max" or "no" (no trimming)
@@ -30,9 +36,28 @@
 
 func_dml_trimming <- function(treatment_setting, data_pred, data_test, trimming) {
   
+  ## check inputs ##
+  #++++++++++++++++#
   
+    ## correct treatment setting selection
   if (!treatment_setting %in% c("binary", "multi")) {
     stop("Treatment setting: binary or multi")
+  }
+  
+    ## trimming
+  if (!(is.numeric(trimming) | trimming %in% c("min-max", "no"))) {
+    stop("Please choose correct trimming threshold: numeric value between 0 and 1 or 'min-max' or 'no'.")
+  }
+  
+    ## data_pred
+  if (treatment_setting == "binary") {
+    if (!"m" %in% colnames(data_pred)) {
+      stop("Predictions for propensity score need to be named 'm'.")
+    }
+  } else {
+    if (!c("m1", "m2", "m3") %in% colnames(data_pred)) {
+      stop("Predictions for propensity score need to be named 'm1','m2', 'm3'.")
+    }
   }
   
   ## NO TRIMMING ##
@@ -44,6 +69,7 @@ func_dml_trimming <- function(treatment_setting, data_pred, data_test, trimming)
     min_trimming <- 0
     max_trimming <- 1
   
+    
   ## TRIMMING WITH NUMERIC NUMBER ##
   #++++++++++++++++++++++++++++++++#
   
@@ -88,15 +114,18 @@ func_dml_trimming <- function(treatment_setting, data_pred, data_test, trimming)
       indices_keep <- which(between(data_pred$m, min_trimming, max_trimming)) 
       
     } else if (treatment_setting == "multi") {
+      
       # identify smallest and largest propensity score per treatment status
-      df_select_trimming <- data_pred %>% dplyr::select(m1, m2, m3) %>%
+      df_select_trimming <- data_pred %>% 
+        dplyr::select(m1, m2, m3) %>%
         mutate(min_m = pmin(m1, m2, m3), max_m = pmax(m1, m2, m3)) %>%
         summarize(min_m = max(min_m), max_m = min(max_m))
       
       df_select_trimming <- rbind(
         data_pred %>% filter(treatment == 1) %>% dplyr::select(m1) %>% summarize(min_m = min(m1), max_m = max(m1)),
         data_pred %>% filter(treatment == 2) %>% dplyr::select(m2) %>% summarize(min_m = min(m2), max_m = max(m2)),
-        data_pred %>% filter(treatment == 3) %>% dplyr::select(m3) %>% summarize(min_m = min(m3), max_m = max(m3))) 
+        data_pred %>% filter(treatment == 3) %>% dplyr::select(m3) %>% summarize(min_m = min(m3), max_m = max(m3))
+        ) 
       
       # trimming thresholds
       min_trimming <- max(df_select_trimming$min_m) # maximum of minimum
@@ -112,6 +141,7 @@ func_dml_trimming <- function(treatment_setting, data_pred, data_test, trimming)
     # subset
     data_pred <- data_pred[indices_keep, ] 
     data_test <- data_test[indices_keep, ] 
+    
   } else {
     stop("Please specify trimming threshold.")
   }

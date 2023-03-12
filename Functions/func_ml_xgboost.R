@@ -2,36 +2,37 @@
 #### FUNCTION: MACHINE LEARNING PREDICTION WITH XGBOOST ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
 #++++
 # by Lana Kern
 #++++
 # This function uses xgboost to predict the nuisance parameters m(D) and g(D, X).
 # This function can be applied in the binary and multivalued treatment setting.
-# For the multivalued treatment setting once can distinguish between separate
+# For the multivalued treatment setting one can distinguish between separate
 # logistic regression for m(D) or one multinominal logistic regression.
 #++++
 # INPUT:
 # -> "treatment_setting": binary treatment setting ("binary") or multivalued treatment setting ("multi")
-# -> "data_train": training data
-# -> "data_test": test data
-# -> "outcome": name of outcome variable included in data_train and data_test
-# -> "treatment": name of treatment variable included in data_train and data_test
+# -> "data_train": training data containing outcome, treatment, and all confounding factors
+# -> "data_test": test data containing same variables as data_train
+# -> "outcome": name of outcome variable included in data_train and data_test. Must start with "outcome_".
+# -> "treatment": name of treatment variable included in data_train and data_test. Must start with "treatment_".
 # -> "group": group variable included in data_train and data_test
-# -> "K": number of folds generated for parameter tuning
+# -> "K": number of folds generated for parameter tuning. Must be 2 or larger.
 # -> "xgb_grid": hyperparameter grid consisting of tree_depth, trees, learn_rate, mtry, min_n
 # All those parameters are tuned within this function. 
   # - "learn_rate": hyperparameter that is used to prevent overfitting by 
   # making the boosting process more conservative.  Low values makes the model more robust 
   # to overfitting but slower to compute. 0 < learn_rate < 1; default: 0.3.
   # - "trees": number of tress in the forest. Default: 15
-  # - "tree_depth": higher values make the model more likely to 
-  # overfit and complex. Default: 6. 
+  # - "tree_depth": higher values make the model more likely to overfit and complex. Default: 6. 
   # - "mtry": randomly selected predictors at each split. Default: p (all predictors)
   # - "min_n": minimal size of terminal node. Default: 1
-  # https://parsnip.tidymodels.org/reference/details_boost_tree_xgboost.html
-# -> "probscore_separate": by default propensity scores are estimated separately
+  # Source: https://parsnip.tidymodels.org/reference/details_boost_tree_xgboost.html
+# -> "probscore_separate": by default TRUE, i.e., propensity scores are estimated separately
 # per treatment status (otherwise multinominal logistic regression)
-# -> "probscore_normalize": by default propensity score estimates are normalized
+# -> "probscore_normalize": by default TRUE, propensity score estimates are normalized
 # to sum up to one within an individual (otherwise not normalized)
 #++++
 # OUTPUT:
@@ -46,10 +47,24 @@
 func_ml_xgboost <- function(treatment_setting, data_train, data_test, outcome, treatment, group, K, xgb_grid,
                             probscore_separate = TRUE, probscore_normalize = TRUE) {
   
-  
+  # check inputs
   if (!treatment_setting %in% c("binary", "multi")) {
     stop("Treatment setting: binary or multi")
   }
+  
+  if (K < 2) {
+    stop("For xgboost parameter tuning, K needs to be larger than 2.")
+  }
+  
+  if (nrow(xgb_grid) == 0) {
+    stop("Please specifcy xgboost parameter grid.")
+  }
+  
+  if (!colnames(xgb_grid) %in% c("learn_rate", "trees", "tree_depth", "mtry", "min_n")) {
+    stop("XGBoost parameter grid needs to include the following columsn: 
+    'learn_rate', 'trees', 'tree_depth', 'mtry', 'min_n'")
+  }
+  
   
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
   #### BINARY TREATMENT SETTING ####
@@ -66,8 +81,7 @@ func_ml_xgboost <- function(treatment_setting, data_train, data_test, outcome, t
     data_train_g0 <- data_train %>% filter(treatment_sport == 0)
     
     # specify the model
-    ## treatment is predicted via binary classification and outcome via regression
-    # specify the model
+    # treatment is predicted via binary classification and outcome via regression
     xgb_spec_m <- 
       boost_tree(tree_depth = tune(), trees = tune(), learn_rate = tune(),
                  mtry = tune(), min_n = tune()) %>% 
@@ -79,7 +93,6 @@ func_ml_xgboost <- function(treatment_setting, data_train, data_test, outcome, t
                  mtry = tune(), min_n = tune()) %>% 
       set_engine("xgboost") %>% 
       set_mode("regression")
-    
     
     
     # generate recipe: define outcome and predictors
@@ -130,9 +143,8 @@ func_ml_xgboost <- function(treatment_setting, data_train, data_test, outcome, t
     #### Parameter Tuning ####
     #%%%%%%%%%%%%%%%%%%%%%%%%#
     
-    
-    # parameter tuning via 5-fold CV
-    # this means that training data is again partitioned into 5 folds
+    # parameter tuning via K-fold CV
+    # this means that training data is again partitioned into K folds
     K_folds_inner_m <- rsample::group_vfold_cv(
       data = data_train, 
       v = K, group = group, strata = all_of(treatment), balance = "observations"
@@ -220,7 +232,7 @@ func_ml_xgboost <- function(treatment_setting, data_train, data_test, outcome, t
     
     xgb_spec_final_g0 <- 
       boost_tree(tree_depth = {{tree_depth_g0}}, trees = {{trees_g0}}, 
-                 learn_rate = {{learn_rate_g0}}, mtry = {{mtry_g0}},min_n = {{min_n_g0}}
+                 learn_rate = {{learn_rate_g0}}, mtry = {{mtry_g0}}, min_n = {{min_n_g0}}
       ) %>%
       set_engine("xgboost") %>% 
       set_mode("regression")
@@ -348,8 +360,9 @@ func_ml_xgboost <- function(treatment_setting, data_train, data_test, outcome, t
       # generate recipe: define outcome and predictors
         ## confounding factors / predictors: all variables except variables including treatment information, outcome, and group
       X_controls <- data_train %>% 
-        dplyr::select(-c(all_of(outcome), starts_with(treatment) & !ends_with("na"), 
-                         all_of(group))) %>% colnames()
+        dplyr::select(-c(all_of(outcome), starts_with(treatment), all_of(group))) %>% colnames()
+      X_controls <- c(X_controls, "treatment_sport_freq_na", "treatment_sport_freq_lag")
+      
         ## m(x) for each treatment category
       xgb_recipe_m1 <- 
         data_train %>%
@@ -718,17 +731,19 @@ func_ml_xgboost <- function(treatment_setting, data_train, data_test, outcome, t
     } else {
       
       # remove treatment dummys
-      data_train <- data_train %>% dplyr::select(-(starts_with(paste0(treatment, "_")) & !ends_with("na"))) 
-      data_test <- data_test %>% dplyr::select(-(starts_with(paste0(treatment, "_")) & !ends_with("na"))) 
+      data_train <- data_train %>% 
+        dplyr::select(-c(treatment_sport_freq_monthly_less, treatment_sport_freq_never, treatment_sport_freq_weekly_atleast)) 
+      data_test <- data_test %>% 
+        dplyr::select(-c(treatment_sport_freq_monthly_less, treatment_sport_freq_never, treatment_sport_freq_weekly_atleast)) 
       
       # ensure that treatment variable is factor
-      data_train <- data_train %>% mutate({{treatment}} := as.factor(!!sym(treatment))) 
-      data_test <- data_test %>% mutate({{treatment}} := as.factor(!!sym(treatment))) 
+      data_train <- data_train %>% mutate(treatment_sport_freq = as.factor(treatment_sport_freq)) 
+      data_test <- data_test %>% mutate(treatment_sport_freq = as.factor(treatment_sport_freq)) 
       
       # separate training data for g0 and g1 prediction
-      data_train_g1 <- data_train %>% filter(!!sym(treatment) == 1)
-      data_train_g2 <- data_train %>% filter(!!sym(treatment) == 2)
-      data_train_g3 <- data_train %>% filter(!!sym(treatment) == 3)
+      data_train_g1 <- data_train %>% filter(treatment_sport_freq == 1)
+      data_train_g2 <- data_train %>% filter(treatment_sport_freq == 2)
+      data_train_g3 <- data_train %>% filter(treatment_sport_freq == 3)
       
       # specify the model: treatment is predicted via multinominal classification 
       # and outcome via regression
@@ -748,7 +763,8 @@ func_ml_xgboost <- function(treatment_setting, data_train, data_test, outcome, t
       # generate recipe: define outcome and predictors
         ## confounding factors / predictors: all variables except treatment, outcome, and group
       X_controls <- data_train %>% 
-        dplyr::select(-c(all_of(outcome), all_of(treatment), all_of(group))) %>% colnames()
+        dplyr::select(-c(all_of(outcome), starts_with(treatment), all_of(group))) %>% colnames()
+      X_controls <- c(X_controls, "treatment_sport_freq_na", "treatment_sport_freq_lag")
         ## m(x)
       xgb_recipe_m <- 
         data_train %>%
@@ -994,18 +1010,14 @@ func_ml_xgboost <- function(treatment_setting, data_train, data_test, outcome, t
         "num_pred_g3" = ncol(xgb_fit_final_g3$pre$mold$predictors)
       )
       
-      # df_pred %>% mutate(m_sum = m1 + m2 + m3) %>% pull(m_sum) %>% unique()
-      
       # return data frame with predictions
       return(list("pred" = df_pred, "param" = df_best_param))
       
-    }
+    } # close else for probscore_separate = FALSE
     
     
   } else {
     stop("Please specify treatment setting")
   }
-  
- 
   
 } # close function() 

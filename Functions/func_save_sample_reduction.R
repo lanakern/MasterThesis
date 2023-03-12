@@ -31,7 +31,7 @@ func_save_sample_reduction <- function(data, outcome) {
   
   # load history
   if (outcome == "grade") {
-    df_excel_save_hist <- read.xlsx("Output/SAMPLE_REDUCTION_STEPS.xlsx", sheetName = "Sheet1")
+    df_excel_save_hist <- read.xlsx("Output/SAMPLE_REDUCTION_STEPS_GRADES.xlsx", sheetName = "Sheet1")
   } else {
     df_excel_save_hist <- read.xlsx("Output/SAMPLE_REDUCTION_STEPS_PERSONALITY.xlsx", sheetName = "Sheet1")
   }
@@ -62,7 +62,7 @@ func_save_sample_reduction <- function(data, outcome) {
 
   # save
   if (outcome == "grade") {
-    save_data <- "Output/SAMPLE_REDUCTION_STEPS.xlsx"
+    save_data <- "Output/SAMPLE_REDUCTION_STEPS_GRADES.xlsx"
   } else {
     save_data <- "Output/SAMPLE_REDUCTION_STEPS_PERSONALITY.xlsx"
   }

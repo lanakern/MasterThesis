@@ -1,17 +1,21 @@
-#%%%%%%%%%%%%%%%%%%%%%%%%%%#
-#### FUNCTION DOUBLE ML ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### WRAPPER FUNCTION FOR DML PROCEDURE ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 #+++
 # by Lana Kern
 #+++
 # This function performs the DML estimator in both the binary and multivalued
-# treatment setting. It is a wrapper function including multiple smaller 
+# treatment setting. Moreover, it can be used for both outcomes (grades and the
+# big five personality traits). It is a wrapper function including multiple smaller 
 # sub-functions which are needed to obtain the final result.
 #+++
 # In this file, the following subfunctions are used:
 # -> Functions for predicting the nuisance parameters: func_ml_lasso, func_ml_postlasso,
-# func_ml_postlasso_tuning, func_ml_xgboost, func_ml_rf
+# func_ml_postlasso_tuning_binary, func_ml_postlasso_tuning_multi, 
+# func_ml_xgboost, func_ml_rf
 # -> Function for trimming: func_dml_trimming
 # -> Function to plot common support: func_dml_common_support
 # -> Function for error metrics: func_dml_error_metrics
@@ -21,20 +25,23 @@
 # INPUTS:
 # -> "treatment_setting": binary treatment setting ("binary") or multivalued treatment setting ("multi")
 # -> data: data set containing outcome, treatment, and all confounding variables
-# -> outcome: string containing the name of the outcome variable in data
-# -> treatment: string containing the name of the treatment variable in data
+# -> outcome: string containing the name of the outcome variable in data. Must start with "outcome_".
+# -> treatment: string containing the name of the treatment variable in data. Must start with "treatment_".
 # -> group: string containing the variable of the grouping variable in data;
-# this is the same individual has the same number (user for k-fold cross-fitting)
-# -> K: Number of data partitions used for K-fold cross-fitting
-# -> K_tuning: Number of data partitions for parameter tuning
+# this is the same individual has the same number (used for k-fold cross-fitting)
+# -> K: Number of data partitions used for K-fold cross-fitting. Must be at least 2.
+# -> K_tuning: Number of data partitions for parameter tuning. Must be at least 2, for
+# random forests it can also be 1 (no parameter tuning is conducted).
 # -> S: Number of repetitions
 # -> mlalgo: Machine learning algorithm used for the prediction of the nuisance
-# parameters.
+# parameters. Choices are: "lasso", "postlasso", "xgboost", and "randomforests"
 # -> trimming: Trimming threshold to drop observations with an extreme propensity
 # score estimate. Possible selections: 0.01, 0.1, and min-max.
+# -> save_trimming: If common support plot is saved.
 # -> "probscore_separate": only relevant for multivalued treatment setting ->
 # if TRUE (default) multivalued treatment setting is split in binary treatment setting
 # and separate binary logistic regressions are performed. 
+# -> "mice_sel": mice data frame
 #+++
 # OUTPUT: List containing the following elements
 # -> "final": data frame with aggregated mean and median treatment effect,
@@ -45,20 +52,20 @@
 # -> "param": selected hyperparameters during K_tuning-CV for each K and S
 # -> "trimming": number of treatment periods after conducting trimming for each S
 # -> "predictors": number of predictors (X)
-# -> "coef": if lasso algorithm is selected, all non-zero coefficients are returned
+# -> "pred": nuisance parameter predictions
+# -> "coef": if (post-)lasso algorithm is selected, all non-zero coefficients are returned
+# -> "cov_balance": if post-lasso is selected covariate balance assessment is returned
 #+++
 # Further notes:
-# - If (post-)lasso is selected, all features (except the outcome and treatment)
-# are standardized, i.e., to have mean zero and unit variance.
-# Note: depending on the specification the outcome variable may already be
-# standardized in the original data set.
+# - The outcome variable is always standardized, i.e., to have mean zero and unit variance.
+# - If (post-)lasso is selected, all features are standardized by default. 
 #+++
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tuning, S, mlalgo, 
-                     trimming, save_trimming, probscore_separate = TRUE) {
+                     trimming, save_trimming, probscore_separate = TRUE, mice_sel) {
   
   
   ## FOR SAVING RESULTS ##
@@ -322,6 +329,9 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
       #### TRIMMING ####
       #++++++++++++++++#
       
+      # number of rows before trimming
+      num_row_bef_trimming <- nrow(data_pred)
+      
       # for sub-setting adjust row names / numbering of rows
       data_pred <- data.frame(data_pred)
       data_test <- data.frame(data_test)
@@ -341,7 +351,8 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
       df_trimming <- data.frame(
         "Repetition" = S_rep, "Fold" = fold_sel, 
         "min_trimming" = min_trimming, "max_trimming" = max_trimming,
-        "n_treats" = nrow(data_pred)
+        "n_treats_before" = num_row_bef_trimming, 
+        "n_treats_after" = nrow(data_pred)
         )
       df_trimming_all <- rbind(df_trimming_all, df_trimming)
       
@@ -439,8 +450,10 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
     # is wished to save (that is only for main model)
     if (S_rep == 1 & save_trimming == TRUE) {
       plot_common_support <- func_dml_common_support(treatment_setting, df_pred_all, min_trimming_all, max_trimming_all)
-      ggsave(paste0("Output/DML/dml_plot_common_support_", treatment_setting, "_", mlalgo, ".png"), plot_common_support)
-      
+      ggsave(paste0("Output/DML/Common_Support/dml_plot_common_support_", treatment_setting, "_", mlalgo, "_",
+                    str_remove_all(cohort_prep, "_"), "_", treatment_def, "_", treatment_repl, extra_act_save, 
+                    "_mice", mice_sel, ".png"), 
+             plot_common_support)
     }
     
     
@@ -548,8 +561,8 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
   # trimming: sum over folds
   df_trimming_all <- df_trimming_all %>%
     group_by(Repetition) %>%
-    summarize(n_treats = sum(n_treats), min_trimming = max(min_trimming), 
-              max_trimming = min(max_trimming))
+    summarize(n_treats_after = sum(n_treats_after), n_treats_before = sum(n_treats_before),
+              min_trimming = max(min_trimming), max_trimming = min(max_trimming))
   
   
   # number of predictors
