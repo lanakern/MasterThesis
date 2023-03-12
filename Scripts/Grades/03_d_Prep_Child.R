@@ -42,59 +42,23 @@
 #++++
 
 
-#%%%%%%%%%#
-## SETUP ##
-#%%%%%%%%%#
-
-
-# clear workspace
-# rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", "treatment_def", "df_inputs", "prep_sel_num")))
-# 
-# # install packages; if needed, load packages
-# if (!require("dplyr")) install.packages("dplyr")
-# library(dplyr)  # to manipulate data
-# 
-# if (!require("stringr")) install.packages("stringr")
-# library(stringr)  # for string manipulations
-# 
-# if (!require("lubridate")) install.packages("lubridate")
-# library(lubridate)  # to transform time data and work with dates
-# 
-# if (!require("tidyr")) install.packages("tidyr")
-# library(tidyr)  # to work with missing values
-# 
-# if (!require("purrr")) install.packages("purrr")
-# library(purrr) # for map_dfc() function
-# 
-# 
-# # set language for dates and times to German, since the NEPS month names
-# # are written in German; otherwise date/time functions are not working
-# # for German language
-# Sys.setlocale("LC_TIME", "German")
-# 
-# # define inputs: selection on cohort preparation
-# cohort_prep <- "controls_bef_outcome" 
-# #cohort_prep <- "controls_same_outcome"
-
-
-
 #%%%%%%%%%%%%%%%%%#
 #### LOAD DATA ####
 #%%%%%%%%%%%%%%%%%#
 
 # cohort data based on selection
 if (cohort_prep == "controls_same_outcome") {
-  data_cohort_profile <- readRDS("Data/Prep_2/prep_2_cohort_profile.rds") %>%
+  data_cohort_profile <- readRDS("Data/Grades/Prep_2/prep_2_cohort_profile.rds") %>%
     filter(wave_2 == "CATI") %>%
     dplyr::select(ID_t, wave, interview_date)
 } else if (cohort_prep == "controls_bef_outcome") {
-  data_cohort_profile <- readRDS("Data/Prep_2/prep_2_cohort_profile_robustcheck.rds") %>%
+  data_cohort_profile <- readRDS("Data/Grades/Prep_2/prep_2_cohort_profile_robustcheck.rds") %>%
     filter(wave_2 == "CATI") %>%
     dplyr::select(ID_t, wave, interview_date)
 }
 
 # child data
-data_child <- readRDS("Data/Prep_1/prep_1_child.rds") 
+data_child <- readRDS("Data/Grades/Prep_1/prep_1_child.rds") 
 
 # extract number of respondents having children
 num_child <- length(unique(data_child$ID_t)) # 2,575
@@ -456,19 +420,10 @@ print(paste("Number of columns", ncol(data_child_final)))
 
 # save data frame
 if (cohort_prep == "controls_same_outcome") {
-  data_child_save <- "Data/Prep_3/prep_3_child.rds"
+  data_child_save <- "Data/Grades/Prep_3/prep_3_child.rds"
 } else if (cohort_prep == "controls_bef_outcome") {
-  data_child_save <- "Data/Prep_3/prep_3_child_robustcheck.rds"
+  data_child_save <- "Data/Grades/Prep_3/prep_3_child_robustcheck.rds"
 }
 
 saveRDS(data_child_final, data_child_save)
-
-
-
-# checks
-# 7008191, 7010471, 7011560, 7002242, 7002426, 7017854
-# data_child %>% subset(ID_t == 7017854)
-# data_cohort_profile %>% subset(ID_t == 7017854)
-# check <- data_child_final %>% subset(ID_t == 7017854)
-
 

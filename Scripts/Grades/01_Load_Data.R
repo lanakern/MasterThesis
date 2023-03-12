@@ -43,35 +43,6 @@
 # which is used in further data preparation steps in the next scripts.
 
 
-#%%%%%%%%%#
-## SETUP ##
-#%%%%%%%%%#
-
-
-# clear workspace
-# rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", "treatment_def")))
-
-# install packages if needed, load packages
-# if (!require("readstata13")) install.packages("readstata13")
-# library(readstata13)  # to import stata (.dta) file into R (see data manual why this function is used)
-# 
-# if (!require("dplyr")) install.packages("dplyr")
-# library(dplyr)  # to manipulate data
-# 
-# if (!require("zoo")) install.packages("zoo")
-# library(zoo)  # to transform time data
-# 
-# if (!require("lubridate")) install.packages("lubridate")
-# library(lubridate)  # to create a date variable
-# 
-# if (!require("naniar")) install.packages("naniar")
-# library(naniar)  # to work with missing values
-# 
-# if (!require("stringr")) install.packages("stringr")
-# library(stringr)  # to work with strings
-
-
-
 #%%%%%%%%%%%%%%%%%%%#
 ## LOAD DATA FILES ##
 #%%%%%%%%%%%%%%%%%%%#
@@ -1557,24 +1528,24 @@ remove(dfs_list, dfs_list_adj_charac, dfs_list_adj_spec, dfs_list_adj_yesno)
 #%%%%%%%%%%%%#
 
 # data frames
-saveRDS(data_bio, "Data/Prep_1/prep_1_biography.rds")
-saveRDS(data_cohort_profile, "Data/Prep_1/prep_1_cohort_profile.rds")
-saveRDS(data_target_cati, "Data/Prep_1/prep_1_target_cati.rds")
-saveRDS(data_target_cawi, "Data/Prep_1/prep_1_target_cawi.rds")
-saveRDS(data_school, "Data/Prep_1/prep_1_school.rds")
-saveRDS(data_education, "Data/Prep_1/prep_1_educ.rds")
-saveRDS(data_voc_prep, "Data/Prep_1/prep_1_vocprep.rds")
-saveRDS(data_voc_train, "Data/Prep_1/prep_1_voctrain.rds")
-saveRDS(data_voc_break, "Data/Prep_1/prep_1_vocbreak.rds")
-saveRDS(data_gap, "Data/Prep_1/prep_1_gap.rds")
-saveRDS(data_emp, "Data/Prep_1/prep_1_emp.rds")
-saveRDS(data_internship, "Data/Prep_1/prep_1_internship.rds")
-saveRDS(data_military, "Data/Prep_1/prep_1_military.rds")
-saveRDS(data_sibling, "Data/Prep_1/prep_1_sibling.rds")
-saveRDS(data_partner, "Data/Prep_1/prep_1_partner.rds")
-saveRDS(data_child, "Data/Prep_1/prep_1_child.rds")
-saveRDS(data_competencies, "Data/Prep_1/prep_1_competencies.rds")
+saveRDS(data_bio, "Data/Grades/Prep_1/prep_1_biography.rds")
+saveRDS(data_cohort_profile, "Data/Grades/Prep_1/prep_1_cohort_profile.rds")
+saveRDS(data_target_cati, "Data/Grades/Prep_1/prep_1_target_cati.rds")
+saveRDS(data_target_cawi, "Data/Grades/Prep_1/prep_1_target_cawi.rds")
+saveRDS(data_school, "Data/Grades/Prep_1/prep_1_school.rds")
+saveRDS(data_education, "Data/Grades/Prep_1/prep_1_educ.rds")
+saveRDS(data_voc_prep, "Data/Grades/Prep_1/prep_1_vocprep.rds")
+saveRDS(data_voc_train, "Data/Grades/Prep_1/prep_1_voctrain.rds")
+saveRDS(data_voc_break, "Data/Grades/Prep_1/prep_1_vocbreak.rds")
+saveRDS(data_gap, "Data/Grades/Prep_1/prep_1_gap.rds")
+saveRDS(data_emp, "Data/Grades/Prep_1/prep_1_emp.rds")
+saveRDS(data_internship, "Data/Grades/Prep_1/prep_1_internship.rds")
+saveRDS(data_military, "Data/Grades/Prep_1/prep_1_military.rds")
+saveRDS(data_sibling, "Data/Grades/Prep_1/prep_1_sibling.rds")
+saveRDS(data_partner, "Data/Grades/Prep_1/prep_1_partner.rds")
+saveRDS(data_child, "Data/Grades/Prep_1/prep_1_child.rds")
+saveRDS(data_competencies, "Data/Grades/Prep_1/prep_1_competencies.rds")
 
 # label lists
-saveRDS(list_cawi_labels, "Data/Prep_1/prep_1_target_cawi_list.rds")
-saveRDS(list_cati_labels, "Data/Prep_1/prep_1_target_cati_list.rds")
+saveRDS(list_cawi_labels, "Data/Grades/Prep_1/prep_1_target_cawi_list.rds")
+saveRDS(list_cati_labels, "Data/Grades/Prep_1/prep_1_target_cati_list.rds")

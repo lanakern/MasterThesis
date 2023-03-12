@@ -37,53 +37,22 @@
 # --> FINAL DATA FRAME IS A PANEL DATA SET (one row for each respondent-wave combination).
 
 
-#%%%%%%%%%#
-## SETUP ##
-#%%%%%%%%%#
-
-# clear workspace
-# rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", "treatment_def", "df_inputs", "prep_sel_num")))
-
-# # install packages; if needed, load packages
-# if (!require("dplyr")) install.packages("dplyr")
-# library(dplyr)  # to manipulate data
-# 
-# if (!require("lubridate")) install.packages("lubridate")
-# library(lubridate)  # to transform time data and work with dates
-# 
-# if (!require("stringr")) install.packages("stringr")
-# library(stringr)  # to work with strings
-# 
-# if (!require("tidyr")) install.packages("tidyr")
-# library(tidyr)  # for fill() function
-# 
-# # set language for dates and times to German, since the NEPS month names
-# # are written in German; otherwise date/time functions are not working
-# # for German language
-# Sys.setlocale("LC_TIME", "German")
-
-
-# # define inputs: selection on cohort preparation
-# #cohort_prep <- "controls_bef_outcome" 
-# cohort_prep <- "controls_same_outcome"
-
-
 #%%%%%%%%%%%%%%%%%#
 #### Load Data ####
 #%%%%%%%%%%%%%%%%%#
 
 # competencies
-data_competencies <- readRDS("Data/Prep_1/prep_1_competencies.rds")
+data_competencies <- readRDS("Data/Grades/Prep_1/prep_1_competencies.rds")
 num_id_comp <- length(unique(data_competencies$ID_t))
 
 # cohort profile
 # cohort data based on selection
 if (cohort_prep == "controls_same_outcome") {
-  data_cohort_profile <- readRDS("Data/Prep_2/prep_2_cohort_profile.rds") %>%
+  data_cohort_profile <- readRDS("Data/Grades/Prep_2/prep_2_cohort_profile.rds") %>%
     filter(wave_2 == "CATI") %>%
     dplyr::select(ID_t, wave, interview_date)
 } else if (cohort_prep == "controls_bef_outcome") {
-  data_cohort_profile <- readRDS("Data/Prep_2/prep_2_cohort_profile_robustcheck.rds") %>%
+  data_cohort_profile <- readRDS("Data/Grades/Prep_2/prep_2_cohort_profile_robustcheck.rds") %>%
     filter(wave_2 == "CATI") %>%
     dplyr::select(ID_t, wave, interview_date)
 }
@@ -273,9 +242,9 @@ print(paste("Number of columns", ncol(data_competencies_final)))
 
 # save prepared competence data
 if (cohort_prep == "controls_same_outcome") {
-  data_comp_save <- "Data/Prep_3/prep_3_competencies.rds"
+  data_comp_save <- "Data/Grades/Prep_3/prep_3_competencies.rds"
 } else if (cohort_prep == "controls_bef_outcome") {
-  data_comp_save <- "Data/Prep_3/prep_3_competencies_robustcheck.rds"
+  data_comp_save <- "Data/Grades/Prep_3/prep_3_competencies_robustcheck.rds"
 }
 
 saveRDS(data_competencies_final, data_comp_save)

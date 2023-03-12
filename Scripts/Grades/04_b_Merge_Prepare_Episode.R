@@ -66,13 +66,15 @@
 
 # CATI and CAWI
 if (cohort_prep == "controls_same_outcome") {
-  data_cati_cawi <- readRDS(paste0("Data/Prep_4/prep_4_merge_cati_cawi_treat", treatment_repl, ".rds"))
+  data_cati_cawi <- readRDS(paste0("Data/Grades/Prep_4/prep_4_merge_cati_cawi_treat", 
+                                   treatment_repl, ".rds"))
 } else if (cohort_prep == "controls_bef_outcome") {
-  data_cati_cawi <- readRDS(paste0("Data/Prep_4/prep_4_merge_cati_cawi_treat", treatment_repl, "_robustcheck.rds"))
+  data_cati_cawi <- readRDS(paste0("Data/Grades/Prep_4/prep_4_merge_cati_cawi_treat", 
+                                   treatment_repl, "_robustcheck.rds"))
 }
 
 # Episode data
-data_life_course <- readRDS("Data/Prep_2/prep_2_life_course.rds")
+data_life_course <- readRDS("Data/Grades/Prep_2/prep_2_life_course.rds")
 
 
 # number of respondents in different data sets
@@ -463,9 +465,11 @@ print(paste("Number of columns after merge process:", ncol(data_cati_cawi_unispe
 
 # save data frame
 if (cohort_prep == "controls_same_outcome") {
-  data_cati_cawi_eps_save <- paste0("Data/Prep_4/prep_4_merge_cati_cawi_eps_treat", treatment_repl, ".rds") 
+  data_cati_cawi_eps_save <- paste0("Data/Grades/Prep_4/prep_4_merge_cati_cawi_eps_treat", 
+                                    treatment_repl, ".rds") 
 } else if (cohort_prep == "controls_bef_outcome") {
-  data_cati_cawi_eps_save <- paste0("Data/Prep_4/prep_4_merge_cati_cawi_eps_treat", treatment_repl, "_robustcheck.rds")  
+  data_cati_cawi_eps_save <- paste0("Data/Grades/Prep_4/prep_4_merge_cati_cawi_eps_treat", 
+                                    treatment_repl, "_robustcheck.rds")  
 }
 saveRDS(data_cati_cawi_unispell_emp, data_cati_cawi_eps_save)
 

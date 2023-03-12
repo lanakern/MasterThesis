@@ -35,35 +35,37 @@
 
 # CATI and CAWI
 if (cohort_prep == "controls_same_outcome") {
-  data_cati_cawi_eps <- readRDS(paste0("Data/Prep_4/prep_4_merge_cati_cawi_eps_treat", treatment_repl, ".rds")  )
+  data_cati_cawi_eps <- readRDS(paste0("Data/Grades/Prep_4/prep_4_merge_cati_cawi_eps_treat", 
+                                       treatment_repl, ".rds")  )
 } else if (cohort_prep == "controls_bef_outcome") {
-  data_cati_cawi_eps <- readRDS(paste0("Data/Prep_4/prep_4_merge_cati_cawi_eps_treat", treatment_repl, "_robustcheck.rds")  )
+  data_cati_cawi_eps <- readRDS(paste0("Data/Grades/Prep_4/prep_4_merge_cati_cawi_eps_treat", 
+                                       treatment_repl, "_robustcheck.rds")  )
 }
 
 # Sibling information (time-invariant)
-data_sibling <- readRDS("Data/Prep_3/prep_3_sibling.rds")
+data_sibling <- readRDS("Data/Grades/Prep_3/prep_3_sibling.rds")
 
 # child data (time-variant)
 if (cohort_prep == "controls_same_outcome") {
-  data_child <- readRDS("Data/Prep_3/prep_3_child.rds")
+  data_child <- readRDS("Data/Grades/Prep_3/prep_3_child.rds")
 } else if (cohort_prep == "controls_bef_outcome") {
-  data_child <- readRDS("Data/Prep_3/prep_3_child_robustcheck.rds")
+  data_child <- readRDS("Data/Grades/Prep_3/prep_3_child_robustcheck.rds")
 }
 
 
 # partner information (time-variant)
 if (cohort_prep == "controls_same_outcome") {
-  data_partner <- readRDS("Data/Prep_3/prep_3_partner.rds")
+  data_partner <- readRDS("Data/Grades/Prep_3/prep_3_partner.rds")
 } else if (cohort_prep == "controls_bef_outcome") {
-  data_partner <- readRDS("Data/Prep_3/prep_3_partner_robustcheck.rds")
+  data_partner <- readRDS("Data/Grades/Prep_3/prep_3_partner_robustcheck.rds")
 }
 
 
 # competencies
 if (cohort_prep == "controls_same_outcome") {
-  data_competencies <- readRDS("Data/Prep_3/prep_3_competencies.rds")
+  data_competencies <- readRDS("Data/Grades/Prep_3/prep_3_competencies.rds")
 } else if (cohort_prep == "controls_bef_outcome") {
-  data_competencies <- readRDS("Data/Prep_3/prep_3_competencies_robustcheck.rds")
+  data_competencies <- readRDS("Data/Grades/Prep_3/prep_3_competencies_robustcheck.rds")
 }
 
 
@@ -118,26 +120,6 @@ length(unique(data_merge_sib_2$ID_t))
 data_merge_sib <- left_join(data_merge_sib_1, data_merge_sib_2, by = c("ID_t", "treatment_period"))
 length(unique(data_merge_sib$ID_t))
 
-
-# replace sibling_activity_NA and set sibling activity variable 0
-# cols_NA <- data_merge_sib %>% select(matches(".*employed.*"), matches(".*study.*")) %>% colnames()
-#   ## create NA dummy
-# data_merge_sib <- data_merge_sib %>%
-#   mutate(
-#     sibling_employed_1_NA = ifelse(is.na(sibling_employed_1), 1, 0),
-#     sibling_employed_2_NA = ifelse(is.na(sibling_employed_2), 1, 0),
-#     sibling_study_1_NA = ifelse(is.na(sibling_study_1), 1, 0),
-#     sibling_study_2_NA = ifelse(is.na(sibling_study_2), 1, 0)
-#     )
-#   ## iterate over columns
-# for (cols_NA_sel in cols_NA) {
-#   data_merge_sib <- data_merge_sib %>%
-#     mutate(
-#       {{cols_NA_sel}} := ifelse(is.na(!!!syms(cols_NA_sel)), 0, !!!syms(cols_NA_sel))
-#     )
-# }
-
-
 # generate age of sibling
 data_merge_sib <- data_merge_sib %>%
   mutate(
@@ -145,11 +127,6 @@ data_merge_sib <- data_merge_sib %>%
     sibling_age_2 = as.numeric(difftime(interview_date_spell, sibling_birth_date_2, units = "weeks")) / 52.5,
   ) %>% dplyr::select(-matches(".*birth_date.*"))
 
-# adjust school degree
-  ## if sibling_age < 18 & interview_date_spell >= 2013, then generate sibling_uni_entrance_quali_NA = 1,
-  ## and set sibling_uni_entrance_quali = 0
-# data_merge_sib %>% select(ID_t, interview_date_spell, matches(".*age.*"), matches("sibling_uni_entrance")) %>% head(5)
-# data_merge_sib %>% select(ID_t, interview_date_spell, matches(".*age.*"), matches("sibling_uni_entrance")) %>% filter(sibling_age_1 < 18) %>% head(5)
 
 data_merge_sib <- data_merge_sib %>%
   mutate(
@@ -437,9 +414,9 @@ print(paste("Number of columns:", ncol(data_merge_4)))
 
 # save
 if (cohort_prep == "controls_same_outcome") {
-  data_merge_all_save <- paste0("Data/Prep_4/prep_4_merge_all_treat", treatment_repl, ".rds")  
+  data_merge_all_save <- paste0("Data/Grades/Prep_4/prep_4_merge_all_treat", treatment_repl, ".rds")  
 } else {
-  data_merge_all_save <- paste0("Data/Prep_4/prep_4_merge_all_treat", treatment_repl, "_robustcheck.rds") 
+  data_merge_all_save <- paste0("Data/Grades/Prep_4/prep_4_merge_all_treat", treatment_repl, "_robustcheck.rds") 
 }
 
 saveRDS(data_merge_4, data_merge_all_save)

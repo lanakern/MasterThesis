@@ -16,43 +16,12 @@
 #++++
 
 
-#%%%%%%%%%#
-## SETUP ##
-#%%%%%%%%%#
-
-
-# clear workspace
-# rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", "treatment_def", "df_inputs", "prep_sel_num")))
-
-# # install packages if needed, load packages
-# if (!require("dplyr")) install.packages("dplyr")
-# library(dplyr)  # to manipulate data
-# 
-# if (!require("stringr")) install.packages("stringr")
-# library(stringr)  # for string manipulations
-# 
-# if (!require("tidyr")) install.packages("tidyr")
-# library(tidyr)  # for fill() function
-# 
-# if (!require("xlsx")) install.packages("xlsx")
-# library(xlsx)  # for excel file
-# 
-# # define inputs
-#   ## selection on cohort preparation
-# #cohort_prep <- "controls_bef_outcome" 
-# cohort_prep <- "controls_same_outcome"
-#   ## only for saving
-# treatment_repl <- "downup" 
-#   ## treatment definition: all frequency levels or only weekly
-# #treatment_def <- "all"
-# treatment_def <- "weekly"
-
 # load data
 if (cohort_prep == "controls_same_outcome") {
-  data_load <- paste0("Data/Prep_5/prep_5_treatment_outcome_", treatment_def, 
+  data_load <- paste0("Data/Grades/Prep_5/prep_5_treatment_outcome_", treatment_def, 
                       "_", treatment_repl, ".rds")  
 } else {
-  data_load <- paste0("Data/Prep_5/prep_5_treatment_outcome_", treatment_def, 
+  data_load <- paste0("Data/Grades/Prep_5/prep_5_treatment_outcome_", treatment_def, 
                       "_", treatment_repl, "_robustcheck.rds")  
 }
 
@@ -380,10 +349,10 @@ if (extra_act == "yes") {
 }
 
 if (cohort_prep == "controls_same_outcome") {
-  data_save <- paste0("Data/Prep_6/prep_6_sample_selection_", treatment_def, 
+  data_save <- paste0("Data/Grades/Prep_6/prep_6_sample_selection_", treatment_def, 
                       "_", treatment_repl, extra_act_save, ".rds")
 } else {
-  data_save <- paste0("Data/Prep_6/prep_6_sample_selection_", treatment_def, 
+  data_save <- paste0("Data/Grades/Prep_6/prep_6_sample_selection_", treatment_def, 
                       "_", treatment_repl, extra_act_save, "_robustcheck.rds")
 }
 

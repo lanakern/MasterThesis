@@ -21,42 +21,15 @@
 # --> Cross-sectional data set: one row for each respondent
 
 
-
-#%%%%%%%%%#
-## SETUP ##
-#%%%%%%%%%#
-
-
-# clear workspace
-# rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", "treatment_def", "df_inputs", "prep_sel_num")))
-
-# # install packages; if needed, load packages
-# if (!require("dplyr")) install.packages("dplyr")
-# library(dplyr)  # to manipulate data
-# 
-# if (!require("lubridate")) install.packages("lubridate")
-# library(lubridate)  # to transform time data and work with dates
-# 
-# if (!require("tidyr")) install.packages("tidyr")
-# library(tidyr)  # to work with missing values
-# 
-# # set language for dates and times to German, since the NEPS month names
-# # are written in German; otherwise date/time functions are not working
-# # for German language
-# Sys.setlocale("LC_TIME", "German")
-
-
-
-
 #%%%%%%%%%%%%%%%%#
 #### Load data ###
 #%%%%%%%%%%%%%%%%#
 
 # prepared sibling data from 01_Load_Data
-data_sibling <- readRDS("Data/Prep_1/prep_1_sibling.rds")
+data_sibling <- readRDS("Data/Grades/Prep_1/prep_1_sibling.rds")
 
 # prepared cati data from 01_Load_Data (only needed for birth date)
-data_target_cati <- readRDS("Data/Prep_1/prep_1_target_cati.rds")
+data_target_cati <- readRDS("Data/Grades/Prep_1/prep_1_target_cati.rds")
 
 # number of respondents
 id_sib <- unique(data_sibling$ID_t)
@@ -523,15 +496,6 @@ data_sibling_final_2 <- data_sibling_final_2 %>%
   dplyr::select(ID_t, sibling, sibling_total, starts_with("sibling_older_total"), 
                 starts_with("sibling_twin"), matches("sibling_.*_1"), matches("sibling_.*_2"))
 
-# check respondents
-# df_check_1 <- data_target_cati %>% subset(ID_t %in% c(7001975, 7001971, 7002373, 7002298, 7001994, 7002007))
-# df_check_2 <- data_sibling %>% subset(ID_t %in% c(7001975, 7001971, 7002373, 7002298, 7001994, 7002007))
-# df_check_3 <- data_sibling_final_2 %>% subset(ID_t %in% c(7001975, 7001971, 7002373, 7002298, 7001994, 7002007)) 
-# 
-# df_check_1 %>% subset(ID_t == 7002007)
-# df_check_2 %>% subset(ID_t == 7002007)
-# test <- df_check_3 %>% subset(ID_t == 7002007)
-
 
 # check for duplicates
 sum(duplicated(data_sibling_final_2))
@@ -554,9 +518,9 @@ paste("Number of columns:", ncol(data_sibling_final_2))
 
 # save data frame
 if (cohort_prep == "controls_same_outcome") {
-  data_sibling_save <- "Data/Prep_3/prep_3_sibling.rds"
+  data_sibling_save <- "Data/Grades/Prep_3/prep_3_sibling.rds"
 } else if (cohort_prep == "controls_bef_outcome") {
-  data_sibling_save <- "Data/Prep_3/prep_3_sibling_robustcheck.rds"
+  data_sibling_save <- "Data/Grades/Prep_3/prep_3_sibling_robustcheck.rds"
 }
 
 saveRDS(data_sibling_final_2, data_sibling_save)

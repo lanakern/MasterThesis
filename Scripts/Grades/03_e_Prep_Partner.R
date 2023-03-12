@@ -23,49 +23,21 @@
 # --> FINAL DATA FRAME IS A PANEL DATA SET (one row for each respondent-wave combination).
 
 
-#%%%%%%%%%#
-## SETUP ##
-#%%%%%%%%%#
-
-
-# clear workspace
-# rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", "treatment_def", "df_inputs", "prep_sel_num")))
-
-# # install packages; if needed, load packages
-# if (!require("dplyr")) install.packages("dplyr")
-# library(dplyr)  # to manipulate data
-# 
-# if (!require("lubridate")) install.packages("lubridate")
-# library(lubridate)  # to transform time data and work with dates
-# 
-# if (!require("tidyr")) install.packages("tidyr")
-# library(tidyr)  # to work with missing values
-# 
-# # set language for dates and times to German, since the NEPS month names
-# # are written in German; otherwise date/time functions are not working
-# # for German language
-# Sys.setlocale("LC_TIME", "German")
-# 
-# # define inputs: selection on cohort preparation
-# #cohort_prep <- "controls_bef_outcome" 
-# cohort_prep <- "controls_same_outcome"
-
-
 #%%%%%%%%%%%%%%%%%#
 #### Load Data ####
 #%%%%%%%%%%%%%%%%%#
 
 
 # load data
-data_partner_raw <- readRDS("Data/Prep_1/prep_1_partner.rds") 
+data_partner_raw <- readRDS("Data/Grades/Prep_1/prep_1_partner.rds") 
 
 # cohort data based on selection
 if (cohort_prep == "controls_same_outcome") {
-  data_cohort_profile <- readRDS("Data/Prep_2/prep_2_cohort_profile.rds") %>%
+  data_cohort_profile <- readRDS("Data/Grades/Prep_2/prep_2_cohort_profile.rds") %>%
     filter(wave_2 == "CATI") %>%
     dplyr::select(ID_t, wave, interview_date)
 } else if (cohort_prep == "controls_bef_outcome") {
-  data_cohort_profile <- readRDS("Data/Prep_2/prep_2_cohort_profile_robustcheck.rds") %>%
+  data_cohort_profile <- readRDS("Data/Grades/Prep_2/prep_2_cohort_profile_robustcheck.rds") %>%
     filter(wave_2 == "CATI") %>%
     dplyr::select(ID_t, wave, interview_date)
 }
@@ -408,20 +380,10 @@ print(paste("Number of columns", ncol(data_partner_final)))
 
 # save data frame
 if (cohort_prep == "controls_same_outcome") {
-  data_partner_save <- "Data/Prep_3/prep_3_partner.rds"
+  data_partner_save <- "Data/Grades/Prep_3/prep_3_partner.rds"
 } else if (cohort_prep == "controls_bef_outcome") {
-  data_partner_save <- "Data/Prep_3/prep_3_partner_robustcheck.rds"
+  data_partner_save <- "Data/Grades/Prep_3/prep_3_partner_robustcheck.rds"
 }
 
 saveRDS(data_partner_final, data_partner_save)
-
-# CHECKS
-# 7001968, 7002012, 7002018, 7001970, 7002521 7005568
-# data_partner %>% subset(ID_t == 7005568) %>% select(ID_t, start_date, end_date, end_date_adj, interview_date, partner_num, partner_current,
-#                                                     partner_gender, partner_uni_degree, partner_school_degree, partner_birth_year)
-# data_partner_final %>% subset(ID_t == 7005568) %>% select(ID_t, interview_date, partner_num, partner_current, partner_current_length,
-#                                                           partner_previous_length_total, partner_male, partner_uni_degree, partner_uni_degree_NA,
-#                                                           partner_school_degree_highest, partner_age, partner_age_NA)
-# data_partner_final %>% filter(partner_age > 70) %>% select(ID_t, interview_date, partner_current, partner_num, partner_age)
-# data_partner %>% subset(ID_t == 7018170) %>% select(ID_t, interview_date, partner_birth_year)
 

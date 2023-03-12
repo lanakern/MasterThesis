@@ -61,9 +61,11 @@
 
 # load data
 if (cohort_prep == "controls_same_outcome") {
-  data_raw <- readRDS(paste0("Data/Prep_4/prep_4_merge_all_treat", treatment_repl, ".rds"))
+  data_raw <- readRDS(paste0("Data/Grades/Prep_4/prep_4_merge_all_treat", 
+                             treatment_repl, ".rds"))
 } else if (cohort_prep == "controls_bef_outcome") {
-  data_raw <- readRDS(paste0("Data/Prep_4/prep_4_merge_all_treat", treatment_repl, "_robustcheck.rds") )
+  data_raw <- readRDS(paste0("Data/Grades/Prep_4/prep_4_merge_all_treat", 
+                             treatment_repl, "_robustcheck.rds") )
 }
 num_id <- length(unique(data_raw$ID_t))
 
@@ -424,10 +426,10 @@ print(paste("Number of respondents after dropping respondents with missing value
 
 # save
 if (cohort_prep == "controls_same_outcome") {
-  data_save <- paste0("Data/Prep_5/prep_5_treatment_outcome_", treatment_def, 
+  data_save <- paste0("Data/Grades/Prep_5/prep_5_treatment_outcome_", treatment_def, 
                       "_", treatment_repl, ".rds")  
 } else {
-  data_save <- paste0("Data/Prep_5/prep_5_treatment_outcome_", treatment_def, 
+  data_save <- paste0("Data/Grades/Prep_5/prep_5_treatment_outcome_", treatment_def, 
                       "_", treatment_repl, "_robustcheck.rds")  
 }
 

@@ -25,45 +25,18 @@
 # --> Resulting data frame is panel data frame
 
 
-
-#%%%%%%%%%%%%%#
-#### Setup ####
-#%%%%%%%%%%%%%#
-
-# clear workspace
-# rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", "treatment_def", "df_inputs", "prep_sel_num")))
-
-# # load and install (if necessary) packages
-# if (!require("dplyr")) install.packages("dplyr")
-# library(dplyr)  # to manipulate data
-# 
-# if (!require("tidyr")) install.packages("tidyr")
-# library(tidyr)  # to manipulate data
-# 
-# if (!require("xlsx")) install.packages("xlsx")
-# library(xlsx)  # to load and write excel files
-# 
-# # selection on treatment replacement
-# treatment_repl <- "downup" # with any other selection, only downward replacement is made
-# 
-# # selection on cohort prepration
-# cohort_prep <- "controls_bef_outcome" 
-# #cohort_prep <- "controls_same_outcome"
-
-
-
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 #### Load Data & Join with Cohort Profile ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 
 # load data
-data_target_cawi <- readRDS("Data/Prep_1/prep_1_target_cawi.rds")
+data_target_cawi <- readRDS("Data/Grades/Prep_1/prep_1_target_cawi.rds")
   ## cohort profile depends on data preparation
 if (cohort_prep == "controls_same_outcome") {
-  data_cohort_profile <- readRDS("Data/Prep_2/prep_2_cohort_profile.rds")
+  data_cohort_profile <- readRDS("Data/Grades/Prep_2/prep_2_cohort_profile.rds")
 } else if (cohort_prep == "controls_bef_outcome") {
-  data_cohort_profile <- readRDS("Data/Prep_2/prep_2_cohort_profile_robustcheck.rds")
+  data_cohort_profile <- readRDS("Data/Grades/Prep_2/prep_2_cohort_profile_robustcheck.rds")
 } else {
   stop("specify which cohort data preparation should be used")
 }
@@ -282,9 +255,11 @@ print(paste("Number of columns:", ncol(data_cawi)))
 
 # save
 if (cohort_prep == "controls_same_outcome") {
-  data_cohort_profile_save <- paste0("Data/Prep_3/prep_3_cawi_treat", treatment_repl, ".rds")
+  data_cohort_profile_save <- paste0("Data/Grades/Prep_3/prep_3_cawi_treat", 
+                                     treatment_repl, ".rds")
 } else {
-  data_cohort_profile_save <- paste0("Data/Prep_3/prep_3_cawi_treat", treatment_repl, "_robustcheck.rds") 
+  data_cohort_profile_save <- paste0("Data/Grades/Prep_3/prep_3_cawi_treat", 
+                                     treatment_repl, "_robustcheck.rds") 
 }
 
 saveRDS(data_cawi, data_cohort_profile_save)
