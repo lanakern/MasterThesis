@@ -430,6 +430,9 @@ for (prep_sel_num in 1:nrow(df_inputs)) {
   treatment_def <- df_inputs_sel$treatment_def
   extra_act <- df_inputs_sel$extra_act
   
+  # Decide if interactions should be created (takes a long time)
+  create_interactions <- "no" # "yes"
+  
   # Prepare control variables
   source("Scripts/Personality/10_Estimation_Sample_Personality.R") 
   
