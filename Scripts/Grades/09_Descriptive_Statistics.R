@@ -167,9 +167,6 @@ data_descr %>%
 #+++++++++++++++++++++++++++#
 
 # general
-data_descr <- data_descr %>%
-  mutate(treatment_period_length = as.numeric(difftime(interview_date_end, interview_date_start, units = "days")) / 30)
-
 summary(data_descr$treatment_period_length)
 
 # differences between treatment and control group
