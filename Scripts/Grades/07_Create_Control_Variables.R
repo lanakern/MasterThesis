@@ -71,10 +71,10 @@ if (extra_act == "yes") {
 }
 
 if (cohort_prep == "controls_same_outcome") {
-  load_data <- paste0("Data/Prep_6/prep_6_sample_selection_", treatment_def, 
+  load_data <- paste0("Data/Grades/Prep_6/prep_6_sample_selection_", treatment_def, 
                       "_", treatment_repl, extra_act_save, ".rds")
 } else {
-  load_data <- paste0("Data/Prep_6/prep_6_sample_selection_", treatment_def, 
+  load_data <- paste0("Data/Grades/Prep_6/prep_6_sample_selection_", treatment_def, 
                       "_", treatment_repl, extra_act_save, "_robustcheck.rds")
 }
 
@@ -334,6 +334,15 @@ table(data_prep_1$educ_military)
 table(data_prep_1$educ_vocprep)
 table(data_prep_1$educ_voctrain)
 table(data_prep_1$educ_intern)
+
+
+## Treatment Period Length ##
+#+++++++++++++++++++++++++++#
+
+data_prep_1 <- data_prep_1 %>%
+  mutate(treatment_period_length = as.numeric(
+    difftime(interview_date_end, interview_date_start, units = "days")
+    ) / 30)
 
 
 ## Child ##
@@ -1096,6 +1105,9 @@ mice_result <- mice(data_prep_4_wide, method = "cart", predictorMatrix = pred_ma
 
 # extract data frames in list
 data_result_mice <- complete(mice_result, "all")
+saveRDS(data_result_mice, 
+        paste0("Data/Grades/Prep_7/prep_7_mice_", treatment_def, "_", 
+               treatment_repl, extra_act_save, ".rds"))
 gc()
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1321,8 +1333,8 @@ for (mice_result_sel in 1:mice_num_data_sets) {
     table(data_prep_5$academic)
     
     # load lists with labels
-    list_cawi_labels <- readRDS("Data/Prep_1/prep_1_target_cawi_list.rds")
-    list_cati_labels <- readRDS("Data/Prep_1/prep_1_target_cati_list.rds")
+    list_cawi_labels <- readRDS("Data/Grades/Prep_1/prep_1_target_cawi_list.rds")
+    list_cati_labels <- readRDS("Data/Grades/Prep_1/prep_1_target_cati_list.rds")
     list_labels <- append(list_cawi_labels, list_cati_labels)
     
     for (i in 1:length(list_labels)) {
@@ -1349,8 +1361,8 @@ for (mice_result_sel in 1:mice_num_data_sets) {
     
     
   } else {
-    list_cawi_labels <- readRDS("Data/Prep_1/prep_1_target_cawi_list.rds")
-    list_cati_labels <- readRDS("Data/Prep_1/prep_1_target_cati_list.rds")
+    list_cawi_labels <- readRDS("Data/Grades/Prep_1/prep_1_target_cawi_list.rds")
+    list_cati_labels <- readRDS("Data/Grades/Prep_1/prep_1_target_cati_list.rds")
     list_labels <- append(list_cawi_labels, list_cati_labels)
     
     for (vars_relabel in vars_not_aggr_all) {
@@ -1498,7 +1510,7 @@ for (mice_result_sel in 1:mice_num_data_sets) {
                              "uni_offers", "uni_counsel_offer", "uni_counsel_use",
                              "emp_current_act_work_hours", "uni_time_courses",
                              "uni_time_studyact", "uni_time_household", "uni_time_childcare",
-                             "uni_time_study")) {
+                             "uni_time_study", "sibling_total")) {
     
     # generate splitting values
     split_one <- unname(quantile(data_prep_6 %>% pull(vars_categorized), 0.25))
@@ -1551,7 +1563,8 @@ for (mice_result_sel in 1:mice_num_data_sets) {
   
   # opinion_educ_* 
   table(data_prep_7$opinion_educ_1, useNA = "always")
-  if (data_prep_7 %>% dplyr::select(starts_with("opinion_educ")) %>% colnames() %>% length() > 1) {
+  if (data_prep_7 %>% dplyr::select(starts_with("opinion_educ")) %>% colnames() %>% length() > 1 &
+      is.character(data_prep_7$opinion_educ_1)) {
     data_prep_7 <- data_prep_7 %>%
       mutate(across(starts_with("opinion_educ"), 
                     ~ case_when(. %in% c("completely disagree", "rather agree") ~ "agree",
@@ -1561,7 +1574,8 @@ for (mice_result_sel in 1:mice_num_data_sets) {
   
   # parents_importance_*
   table(data_prep_7$parents_importance_success_1, useNA = "always")
-  if (data_prep_7 %>% dplyr::select(starts_with("parents_importance")) %>% colnames() %>% length() > 1) {
+  if (data_prep_7 %>% dplyr::select(starts_with("parents_importance")) %>% colnames() %>% length() > 1 &
+      is.character(data_prep_7$parents_importance_success_1)) {
     data_prep_7 <- data_prep_7 %>%
       mutate(across(starts_with("parents_importance"), 
                     ~ case_when(. %in% c("very_important", "rather_important") ~ "important",
@@ -1571,7 +1585,8 @@ for (mice_result_sel in 1:mice_num_data_sets) {
   
   # parents_opinion_degree_*
   table(data_prep_7$parents_opinion_degree_1, useNA = "always")
-  if (data_prep_7 %>% dplyr::select(starts_with("parents_opinion_degree")) %>% colnames() %>% length() > 1) {
+  if (data_prep_7 %>% dplyr::select(starts_with("parents_opinion_degree")) %>% colnames() %>% length() > 1 &
+      is.character(data_prep_7$parents_opinion_degree_1)) {
     data_prep_7 <- data_prep_7 %>%
       mutate(across(starts_with("parents_opinion_degree"), 
                     ~ case_when(. %in% c("completely", "rather") ~ "agree",
@@ -1581,7 +1596,8 @@ for (mice_result_sel in 1:mice_num_data_sets) {
   
   # stress
   table(data_prep_7$stress_1, useNA = "always")
-  if (data_prep_7 %>% dplyr::select(starts_with("stress")) %>% colnames() %>% length() > 1) {
+  if (data_prep_7 %>% dplyr::select(starts_with("stress")) %>% colnames() %>% length() > 1 & 
+      is.character(data_prep_7$stress_1)) {
     data_prep_7 <- data_prep_7 %>%
       mutate(across(starts_with("stress"), 
                     ~ case_when(. %in% c("completely", "rather") ~ "agree",
@@ -1591,7 +1607,8 @@ for (mice_result_sel in 1:mice_num_data_sets) {
   
   # uni_offers_*_heloful
   table(data_prep_7$uni_offers_central_facilities_helpful, useNA = "always")
-  if (data_prep_7 %>% dplyr::select(starts_with("uni_offers") & ends_with("helpful")) %>% colnames() %>% length() > 1) {
+  if (data_prep_7 %>% dplyr::select(starts_with("uni_offers") & ends_with("helpful")) %>% colnames() %>% length() > 1 &
+      is.character(data_prep_7$uni_offers_central_facilities_helpful)) {
     data_prep_7 <- data_prep_7 %>%
       mutate(across(starts_with("uni_offers") & ends_with("helpful"), 
                     ~ case_when(. %in% c("very helpful", "rather helpful") ~ "helpful",
@@ -1621,6 +1638,7 @@ for (mice_result_sel in 1:mice_num_data_sets) {
   
   # birth month and birth year as additional dummys
   data_prep_7$birth_month_name <- as.character(month(data_prep_7$birth_month, label = TRUE, abbr = TRUE))
+  data_prep_7 <- data_prep_7 %>% rename(birth_month_num = birth_month)
   data_prep_7 <- dummy_cols(
     # selected column is removed, and base category is omitted 
     data_prep_7, remove_selected_columns = FALSE, remove_first_dummy = TRUE, 
@@ -1670,10 +1688,10 @@ for (mice_result_sel in 1:mice_num_data_sets) {
   }
   
   if (cohort_prep == "controls_same_outcome") {
-    data_save <- paste0("Data/Prep_7/prep_7_control_vars_", treatment_def, "_", 
+    data_save <- paste0("Data/Grades/Prep_7/prep_7_control_vars_", treatment_def, "_", 
                         treatment_repl, extra_act_save, "_mice", mice_result_sel, ".rds")
   } else {
-    data_save <- paste0("Data/Prep_7/prep_7_control_vars_", treatment_def, "_", 
+    data_save <- paste0("Data/Grades/Prep_7/prep_7_control_vars_", treatment_def, "_", 
                         treatment_repl, extra_act_save, "_robustcheck", "_mice", 
                         mice_result_sel, ".rds")
   }
@@ -1698,3 +1716,143 @@ for (mice_result_sel in 1:mice_num_data_sets) {
   
 } # close iteration over mice result data frames
 
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### SAME NUMBER OF COVARIATES ACROSS MICE DATA FRAMES ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+# NOT DONE ANYMORE AS THIS DOES NOT MAKE SENSE!
+
+# The number of covariates may differ across the MICE data frames. Here, I ensure
+# that this is never the case.
+# If some are missing, they are appended here.
+
+# # load all five data sets
+# if (cohort_prep == "controls_same_outcome") {
+#   data_mice_1 <- readRDS(
+#     paste0("Data/Grades/Prep_7/prep_7_control_vars_", treatment_def, "_", 
+#            treatment_repl, extra_act_save, "_mice", 1, ".rds")
+#   )
+#   
+#   data_mice_2 <- readRDS(
+#     paste0("Data/Grades/Prep_7/prep_7_control_vars_", treatment_def, "_", 
+#            treatment_repl, extra_act_save, "_mice", 2, ".rds")
+#   )
+#   
+#   data_mice_3 <- readRDS(
+#     paste0("Data/Grades/Prep_7/prep_7_control_vars_", treatment_def, "_", 
+#            treatment_repl, extra_act_save, "_mice", 3, ".rds")
+#   )
+#   
+#   data_mice_4 <- readRDS(
+#     paste0("Data/Grades/Prep_7/prep_7_control_vars_", treatment_def, "_", 
+#            treatment_repl, extra_act_save, "_mice", 4, ".rds")
+#   )
+#   
+#   data_mice_5 <- readRDS(
+#     paste0("Data/Grades/Prep_7/prep_7_control_vars_", treatment_def, "_", 
+#            treatment_repl, extra_act_save, "_mice", 5, ".rds")
+#   )
+# } else {
+#   data_mice_1 <- readRDS(
+#     paste0("Data/Grades/Prep_7/prep_7_control_vars_", treatment_def, "_", 
+#            treatment_repl, extra_act_save, "_robustcheck", "_mice", 1, ".rds")
+#   )
+#   
+#   data_mice_2 <- readRDS(
+#     paste0("Data/Grades/Prep_7/prep_7_control_vars_", treatment_def, "_", 
+#            treatment_repl, extra_act_save, "_robustcheck", "_mice", 2, ".rds")
+#   )
+#   
+#   data_mice_3 <- readRDS(
+#     paste0("Data/Grades/Prep_7/prep_7_control_vars_", treatment_def, "_", 
+#            treatment_repl, extra_act_save, "_robustcheck", "_mice", 3, ".rds")
+#   )
+#   
+#   data_mice_4 <- readRDS(
+#     paste0("Data/Grades/Prep_7/prep_7_control_vars_", treatment_def, "_", 
+#            treatment_repl, extra_act_save, "_robustcheck", "_mice", 4, ".rds")
+#   )
+#   
+#   data_mice_5 <- readRDS(
+#     paste0("Data/Grades/Prep_7/prep_7_control_vars_", treatment_def, "_", 
+#            treatment_repl, extra_act_save, "_robustcheck", "_mice", 5, ".rds")
+#   )
+# }
+# 
+# 
+# # extract colnames
+# colnames_mice_1 <- colnames(data_mice_1)
+# colnames_mice_2 <- colnames(data_mice_2)
+# colnames_mice_3 <- colnames(data_mice_3)
+# colnames_mice_4 <- colnames(data_mice_4)
+# colnames_mice_5 <- colnames(data_mice_5)
+# colnames_mice_all <- list(colnames_mice_1, colnames_mice_2, colnames_mice_3, colnames_mice_4, colnames_mice_5)
+# 
+# # identify differences
+# func_df_diff_cols <- function(df, colnames1, colnames2, mice_num) {
+#   
+#   cols_set_diff <- setdiff(get(colnames1), get(colnames2))
+#   if (is_empty(cols_set_diff)) {
+#     df <- df
+#   } else {
+#     df <- rbind(df, data.frame("variable" = cols_set_diff, "MICE" = mice_num))
+#   }
+#   
+#   return(df)
+# }
+# 
+# df_cols_iter <- c(paste0("colnames_mice_", 1:5))
+# df_cols_iter <- expand.grid(df_cols_iter, df_cols_iter) %>% arrange(Var1)
+# 
+# colnames_diff <- data.frame("variable" = NA, "MICE" = NA)
+# for (comb_sel in 1:nrow(df_cols_iter)) {
+#   comb_sel_1 <- as.character(df_cols_iter[comb_sel, "Var1"])
+#   comb_sel_2 <- as.character(df_cols_iter[comb_sel, "Var2"])
+#   mice_num_sel <-  str_extract(comb_sel_1, "[0-9]")
+#   
+#   colnames_diff <- func_df_diff_cols(colnames_diff, comb_sel_1, comb_sel_2, mice_num_sel)
+# }
+# colnames_diff <- colnames_diff %>% na.omit() %>% distinct_at(vars(variable), .keep_all = TRUE)
+# 
+# # iterate over mice data frames to append the columns
+# for (mice_sel in 1:5) {
+#   colnames_mice_sel <- paste0("colnames_mice_", mice_sel)
+#   if (FALSE %in% unique(colnames_diff$variable %in% get(colnames_mice_sel))) {
+#     
+#     # identify variables that need to be added
+#     add_vars <- colnames_diff$variable[!colnames_diff$variable %in% get(colnames_mice_sel)]
+#     add_vars <- colnames_diff %>% filter(variable %in% add_vars)
+#     
+#     for (mice_sel_add in unique(add_vars$MICE)) {
+#       # extract variables and append to data frame
+#       new_df <- cbind(
+#         get(paste0("data_mice_", mice_sel)), 
+#         get(paste0("data_mice_", mice_sel_add)) %>% dplyr::select(
+#           all_of(add_vars %>% filter(MICE == mice_sel_add) %>% pull(variable))
+#         )
+#       )
+#       
+#       # add name 
+#       assign(paste0("data_mice_", mice_sel), new_df)
+#     }
+#   }
+# }
+# 
+# # check if data frame column names are now identical
+# list_mice_df <- list(data_mice_1, data_mice_2, data_mice_3, data_mice_4, data_mice_5)
+# all(sort(Reduce(intersect, lapply(list_mice_df, names))) == sort(names(list_mice_df[[1]])))
+# 
+# # save
+# for (mice_sel in 1:5) {
+#   if (cohort_prep == "controls_same_outcome") {
+#     data_save <- paste0("Data/Grades/Prep_7/prep_7_control_vars_", treatment_def, "_", 
+#                         treatment_repl, extra_act_save, "_mice", mice_sel, ".rds")
+#   } else {
+#     data_save <- paste0("Data/Grades/Prep_7/prep_7_control_vars_", treatment_def, "_", 
+#                         treatment_repl, extra_act_save, "_robustcheck", "_mice", 
+#                         mice_sel, ".rds")
+#   }
+#   
+#   saveRDS(get(paste0("data_mice_", mice_sel)), data_save)
+# }
