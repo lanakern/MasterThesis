@@ -191,7 +191,7 @@ for (func_load in load_function) {
 
 # Load all data files and make basic preparations like renaming variables and
 # recoding missing values as NA
-source("Scripts/01_Load_Data.R")
+source("Scripts/Grades/01_Load_Data.R")
 eval(parse(text = keep_after_file_run))
 
 
@@ -199,7 +199,7 @@ eval(parse(text = keep_after_file_run))
 #++++++++++++++++++++#
 
 # Prepare episode / life course data, i.e., educational history of each respondents
-source("Scripts/02_a_Prep_Data_Life_Course.R")
+source("Scripts/Grades/02_a_Prep_Data_Life_Course.R")
 eval(parse(text = keep_after_file_run))
 
 
@@ -210,7 +210,7 @@ eval(parse(text = keep_after_file_run))
 for (cohort_prep_sel in unique(na.omit(df_inputs$cohort_prep))) {
   cohort_prep <- cohort_prep_sel
   print(cohort_prep)
-  source("Scripts/02_b_Prep_Data_Interview_Participation.R")
+  source("Scripts/Grades/02_b_Prep_Data_Interview_Participation.R")
   eval(parse(text = keep_after_file_run))
 }
 
@@ -233,10 +233,10 @@ for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
   treatment_repl <- df_inputs_sel$treatment_repl # select treatment/outcome replacement
   
   # Prepare individual data sets
-  source("Scripts/03_a_Prep_Cati.R") # CATI
+  source("Scripts/Grades/03_a_Prep_Cati.R") # CATI
   eval(parse(text = keep_after_file_run))
   
-  source("Scripts/03_b_Prep_Cawi.R") # CAWI
+  source("Scripts/Grades/03_b_Prep_Cawi.R") # CAWI
   eval(parse(text = keep_after_file_run))
 
   print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs_indiv)))
@@ -260,16 +260,16 @@ for (cohort_prep_sel in unique(na.omit(df_inputs$cohort_prep))) {
   print(cohort_prep)
 
   # Prepare individual data sets
-  source("Scripts/03_c_Prep_Sibling.R") # Sibling
+  source("Scripts/Grades/03_c_Prep_Sibling.R") # Sibling
   eval(parse(text = keep_after_file_run))
   
-  source("Scripts/03_d_Prep_Child.R") # Child
+  source("Scripts/Grades/03_d_Prep_Child.R") # Child
   eval(parse(text = keep_after_file_run))
   
-  source("Scripts/03_e_Prep_Partner.R") # Partner
+  source("Scripts/Grades/03_e_Prep_Partner.R") # Partner
   eval(parse(text = keep_after_file_run))
   
-  source("Scripts/03_f_Prep_Competencies.R") # Competencies
+  source("Scripts/Grades/03_f_Prep_Competencies.R") # Competencies
   eval(parse(text = keep_after_file_run))
   
   gc()
@@ -294,13 +294,13 @@ for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
   treatment_repl <- df_inputs_sel$treatment_repl # select treatment/outcome replacement
   
   # Merge 
-  source("Scripts/04_a_Merge_CATI_CAWI.R") # merge CATI & CAWI
+  source("Scripts/Grades/04_a_Merge_CATI_CAWI.R") # merge CATI & CAWI
   eval(parse(text = keep_after_file_run))
   
-  source("Scripts/04_b_Merge_Prepare_Episode.R") # add episode data
+  source("Scripts/Grades/04_b_Merge_Prepare_Episode.R") # add episode data
   eval(parse(text = keep_after_file_run))
   
-  source("Scripts/04_c_Merge_All.R") # add all other data sets
+  source("Scripts/Grades/04_c_Merge_All.R") # add all other data sets
   eval(parse(text = keep_after_file_run))
   
   print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs_indiv)))
@@ -346,7 +346,7 @@ for (prep_sel_num in 1:nrow(df_inputs)) {
   extra_act <- df_inputs_sel$extra_act
   
   # Sample selection
-  source("Scripts/06_Sample_Selection.R") 
+  source("Scripts/Grades/06_Sample_Selection.R") 
   eval(parse(text = keep_after_file_run))
   
   print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs)))
@@ -373,7 +373,7 @@ for (prep_sel_num in 1:nrow(df_inputs)) {
   
   # Prepare control variables
   eval(parse(text = keep_after_file_run))
-  source("Scripts/07_Create_Control_Variables.R") 
+  source("Scripts/Grades/07_Create_Control_Variables.R") 
   
   print(paste0("FINISHED COMBINATION", prep_sel_num, " FROM ", nrow(df_inputs)))
   gc()
@@ -399,7 +399,7 @@ for (prep_sel_num in 1:nrow(df_inputs)) {
   extra_act <- df_inputs_sel$extra_act
   
   # Prepare control variables
-  source("Scripts/08_Plausibility_Checks.R") 
+  source("Scripts/Grades/08_Plausibility_Checks.R") 
   
   print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs)))
   eval(parse(text = keep_after_file_run))
@@ -418,7 +418,7 @@ cohort_prep <- main_cohort_prep
 treatment_repl <- main_treatment_repl
 treatment_def <- main_treatment_def
 extra_act <- main_extra_act
-source("Scripts/09_Descriptive_Statistics.R") 
+source("Scripts/Grades/09_Descriptive_Statistics.R") 
 
 
 
@@ -435,8 +435,11 @@ for (prep_sel_num in 1:nrow(df_inputs)) {
   treatment_def <- df_inputs_sel$treatment_def
   extra_act <- df_inputs_sel$extra_act
   
+  # Decide if interactions should be created (takes a long time)
+  create_interactions <- "no" # "yes"
+  
   # Prepare control variables
-  source("Scripts/11_Estimation_Sample.R") 
+  source("Scripts/Grades/10_Estimation_Sample.R") 
   
   print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs)))
   eval(parse(text = keep_after_file_run))
@@ -448,6 +451,7 @@ for (prep_sel_num in 1:nrow(df_inputs)) {
 #+++++++++++++++++++++++++++++#
 
 read.xlsx("Output/SAMPLE_REDUCTION_STEPS_GRADES.xlsx", sheetName = "Sheet1")
+
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
