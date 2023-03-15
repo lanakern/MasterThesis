@@ -1003,8 +1003,10 @@ func_ml_xgboost <- function(treatment_setting, data_train, data_test, outcome, t
         # true values
         "treatment" = data_test %>% pull(treatment), 
         "outcome" = data_test %>% pull(outcome),
-        # number of predictors
-        "num_pred_m" = ncol(xgb_fit_final_m$pre$mold$predictors),
+        # number of predictors (for m actually the same but needed to append data frame)
+        "num_pred_m1" = ncol(xgb_fit_final_m$pre$mold$predictors),
+        "num_pred_m2" = ncol(xgb_fit_final_m$pre$mold$predictors),
+        "num_pred_m3" = ncol(xgb_fit_final_m$pre$mold$predictors),
         "num_pred_g1" = ncol(xgb_fit_final_g1$pre$mold$predictors),
         "num_pred_g2" = ncol(xgb_fit_final_g2$pre$mold$predictors),
         "num_pred_g3" = ncol(xgb_fit_final_g3$pre$mold$predictors)
