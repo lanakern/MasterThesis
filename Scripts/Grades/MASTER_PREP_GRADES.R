@@ -156,7 +156,7 @@ for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
   treatment_def <- df_inputs_sel$treatment_def
   
   # Prepare treatment and outcome
-  source("Scripts/05_Create_Treatment_Outcome.R") 
+  source("Scripts/Grades/05_Create_Treatment_Outcome.R") 
   eval(parse(text = keep_after_file_run))
   
   print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs_indiv)))
