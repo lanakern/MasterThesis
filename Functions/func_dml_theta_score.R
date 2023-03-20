@@ -19,8 +19,8 @@
 # OUTPUT
 # -> theta_ATE_: vector containing the ATE estimate
 # -> theta_ATTE: vector containing the ATTE estimate
-# -> score_ATE: values for the score function of the ATE
-# -> score_ATTE: values for the score function of the ATTE
+# -> score_ATE: values for the neyman orthogonal score function of the ATE
+# -> score_ATTE: values for the neyman orthogonal score function of the ATTE
 # -> APO_*: APO for individuals with treatment status *
 #++++
 
@@ -188,12 +188,12 @@ func_dml_theta_score <- function(treatment_setting, data_pred, data_test, outcom
     result_atte_21 <- func_dml_ATTE(D_2, D_1, m2_pred, m1_pred, g2_pred, m1)
     
     df_atte <- data.frame("no_weekly" = result_atte_31$theta, 
-                         "no_monthly" = result_atte_32$theta, 
-                         "monthly_weekly" = result_atte_21$theta)
+                          "no_monthly" = result_atte_32$theta, 
+                          "monthly_weekly" = result_atte_21$theta)
     
     df_atte_score <- data.frame("no_weekly" = result_atte_31$score, 
-                               "no_monthly" = result_atte_32$score, 
-                               "monthly_weekly" = result_atte_21$score)
+                                "no_monthly" = result_atte_32$score, 
+                                "monthly_weekly" = result_atte_21$score)
     
     
     return(list("score_ATE" = df_ate_score, "theta_ATE" = df_ate, 
