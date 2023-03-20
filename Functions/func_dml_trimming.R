@@ -9,9 +9,8 @@
 #+++
 # This functions trims the nuisance parameter predictions of the propensity score
 # according to the chosen trimming thresholds after the outcome predictions
-# (see Knaus, 2018.
-# This function can be applied in the binary and multivalued treatment setting
-# as well as for all outcome variables considered in this analysis.
+# (see Knaus, 2018). This function can be applied in both the binary and multivalued 
+# treatment setting as well as for all outcome variables considered in this analysis.
 #+++
 # INPUT:
 # -> "treatment_setting": binary treatment setting ("binary") or multivalued treatment setting ("multi")
@@ -116,11 +115,6 @@ func_dml_trimming <- function(treatment_setting, data_pred, data_test, trimming)
     } else if (treatment_setting == "multi") {
       
       # identify smallest and largest propensity score per treatment status
-      df_select_trimming <- data_pred %>% 
-        dplyr::select(m1, m2, m3) %>%
-        mutate(min_m = pmin(m1, m2, m3), max_m = pmax(m1, m2, m3)) %>%
-        summarize(min_m = max(min_m), max_m = min(max_m))
-      
       df_select_trimming <- rbind(
         data_pred %>% filter(treatment == 1) %>% dplyr::select(m1) %>% summarize(min_m = min(m1), max_m = max(m1)),
         data_pred %>% filter(treatment == 2) %>% dplyr::select(m2) %>% summarize(min_m = min(m2), max_m = max(m2)),
