@@ -12,7 +12,7 @@
 # INPUT:
 # -> "outcome": name of outcome variable included in data_train and data_test
 # -> "treatment": name of treatment variable included in data_train and data_test
-# -> "X_controls": vector containing control variables
+# -> "X_controls": vector containing name of control variables
 # -> "data_train, data_train_g0, data_train_g1": training data overall, training
 # data for prediction of g0 and training data for prediction of g1
 # -> "K": number of folds generated for parameter tuning
