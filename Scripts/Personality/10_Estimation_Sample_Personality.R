@@ -36,8 +36,9 @@ if (extra_act == "yes") {
 
 # number of columns may differ across MICE data sets
 data_binary_num_cols <- data.frame()
+data_binary_num_cols_all <- data.frame()
 data_multi_num_cols <- data.frame()
-
+data_multi_num_cols_all <- data.frame()
 
 # ITERATE OVER MICE DATA SETS
 for (mice_data_sel in 1:5) {
@@ -91,14 +92,6 @@ for (mice_data_sel in 1:5) {
   # drop sport participation frequency variables
   data_binary <- data_final %>% dplyr::select(-starts_with("treatment_sport_freq"))
   
-  # dummy for monthly sport participation
-  # never if treatment_sport = 0 and treatment_sport_freq_monthly_less = 0
-  # never if treatment_sport = 1 and treatment_sport_freq_monthly_less = 0
-  data_binary <- data_binary %>% mutate(
-    treatment_sport_freq_monthly_less = 
-      case_when(treatment_sport_freq == "monthly_less" ~ 1, TRUE ~ 0)
-  )
-  
   #### All Predictors ####
   #++++++++++++++++++++++#
   
@@ -119,10 +112,7 @@ for (mice_data_sel in 1:5) {
   # Then mean is saved across the five mice data sets
   data_binary_num_cols <- rbind(
     data_binary_num_cols, 
-    data.frame("num_cols" = ncol(data_binary %>% dplyr::select(
-      -c("treatment_sport"))) - 5, # minus 5 for one outcome and 4 na dummies of other personality traits  , 
-      "num_rows" = nrow(data_binary))
-  )
+    data.frame("num_cols" = ncol(data_binary), "num_rows" = nrow(data_binary)))
   
   if (mice_data_sel == 5) {
     # SAVE NUMBER OF VARIABLES ETC.
@@ -229,10 +219,7 @@ for (mice_data_sel in 1:5) {
     # again save mean after 5th iteration
     data_binary_num_cols_all <- rbind(
       data_binary_num_cols_all, 
-      data.frame("num_cols" = ncol(data_all_plus %>% dplyr::select(
-        -c("treatment_sport"))) - 5, # minus 5 for one outcome and 4 na dummies of other personality traits  
-        "num_rows" = nrow(data_all_plus))
-    )
+      data.frame("num_cols" = ncol(data_all_plus), "num_rows" = nrow(data_all_plus)))
     
     if (mice_data_sel == 5) {
       # SAVE NUMBER OF VARIABLES ETC.
@@ -315,12 +302,7 @@ for (mice_data_sel in 1:5) {
   # SAVE NUMBER OF VARIABLES ETC. AFTER 5th ITERATION
   data_multi_num_cols <- rbind(
     data_multi_num_cols, 
-    data.frame("num_cols" = ncol(data_multi_all %>% dplyr::select(-c(
-      "treatment_sport_freq_never", "treatment_sport_freq_weekly_atleast", 
-      "treatment_sport_freq_source_leisure", "treatment_sport_freq", 
-    ))) - 5, 
-    "num_rows" = nrow(data_multi_all))
-  )
+    data.frame("num_cols" = ncol(data_multi_all), "num_rows" = nrow(data_multi_all)))
   
   if (mice_data_sel == 5) {
     # SAVE NUMBER OF VARIABLES ETC.
@@ -430,10 +412,7 @@ for (mice_data_sel in 1:5) {
     # again save mean after 5th iteration
     data_multi_num_cols_all <- rbind(
       data_multi_num_cols_all, 
-      data.frame("num_cols" = ncol(ncol(data_multi_all_plus %>% dplyr::select(-c(
-        "treatment_sport_freq_never", "treatment_sport_freq_weekly_atleast", 
-        "treatment_sport_freq_source_leisure", "treatment_sport_freq", 
-      ))) - 5), 
+      data.frame("num_cols" = ncol(data_multi_all_plus), 
       "num_rows" = nrow(data_multi_all_plus))
     )
     
