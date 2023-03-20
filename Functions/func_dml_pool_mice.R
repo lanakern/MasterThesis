@@ -66,20 +66,18 @@ func_dml_pool_mice <- function(dml_result, N, mice_num) {
     }
   }
   
-  # aggregate results across MICE data sets: simply take mean / median of
-  # estimates and se
-  # For t- and p-value I also take mean / median, but would be identical
-  # if I would calculate them again
-  # confidence interval is calculated again
+  # aggregate results across MICE data sets: simply take mean of
+  # estimates, se, p-value and t-value (for p-value and t-value new calculation
+  # yields same result). However, the confidence interval is calculated again.
   dml_final_estimation <-
     dml_final %>%
     dplyr::select(Treatment, Type, starts_with("theta"), starts_with("se"), matches(".*value")) %>%
     group_by(Treatment, Type) %>%
     summarize(
-      theta_mean = mean(theta_mean), theta_median = median(theta_median),
-      se_mean = mean(se_mean), se_median = median(se_median),
-      tvalue_mean = mean(tvalue_mean), tvalue_median = median(tvalue_median),
-      pvalue_mean = mean(pvalue_mean), pvalue_median = median(pvalue_median)
+      theta_mean = mean(theta_mean), theta_median = mean(theta_median),
+      se_mean = mean(se_mean), se_median = mean(se_median),
+      tvalue_mean = mean(tvalue_mean), tvalue_median = mean(tvalue_median),
+      pvalue_mean = mean(pvalue_mean), pvalue_median = mean(pvalue_median)
     ) %>%
     mutate(
       # confidence interval
@@ -95,17 +93,17 @@ func_dml_pool_mice <- function(dml_result, N, mice_num) {
       # multivalued treatment setting
       dml_final_estimation <- dml_final_estimation %>%
         mutate(
-          num_predictors_m1 = max(dml_pred$num_pred_m1), num_predictors_m2 = max(dml_pred$num_pred_m2),
-          num_predictors_m3 = max(dml_pred$num_pred_m3), 
-          num_predictors_g1 = max(dml_pred$num_pred_g1), num_predictors_g2 = max(dml_pred$num_pred_g2), 
-          num_predictors_g3 = max(dml_pred$num_pred_g3)
+          num_predictors_m1 = mean(dml_pred$num_pred_m1), num_predictors_m2 = mean(dml_pred$num_pred_m2),
+          num_predictors_m3 = mean(dml_pred$num_pred_m3), 
+          num_predictors_g1 = mean(dml_pred$num_pred_g1), num_predictors_g2 = mean(dml_pred$num_pred_g2), 
+          num_predictors_g3 = mean(dml_pred$num_pred_g3)
         )
     } else {
       # binary treatment setting
       dml_final_estimation <- dml_final_estimation %>%
         mutate(
-          num_predictors_m = max(dml_pred$num_pred_m), num_predictors_g0 = max(dml_pred$num_pred_g0), 
-          num_predictors_g1 = max(dml_pred$num_pred_g1)
+          num_predictors_m = mean(dml_pred$num_pred_m), num_predictors_g0 = mean(dml_pred$num_pred_g0), 
+          num_predictors_g1 = mean(dml_pred$num_pred_g1)
         )
     }
   } else {
@@ -125,5 +123,4 @@ func_dml_pool_mice <- function(dml_result, N, mice_num) {
   } else {
     return(dml_final_estimation)
   }
-
 }
