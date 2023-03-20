@@ -2,6 +2,17 @@
 #### DML IN THE BINARY TREATMENT SETTING ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
+#++++
+# by Lana Kern
+#++++
+# In this file the ATE and ATTE is estimated using DML in the binary
+# treatment setting, that is sport participation vs. non participation. 
+# As outcome both grades and the big five personality traits can be specified.
+#++++
+# The estimation results are stored in an Excel file.
+#++++
+
+
 # track time
 start_time <- Sys.time()
 
@@ -9,7 +20,6 @@ start_time <- Sys.time()
 set.seed(1234)
 
 # empty data frames and lists to store results
-df_ape_all <- data.frame()
 dml_result_all <- list()
 
 # iterate over mice data sets
@@ -44,7 +54,7 @@ for (mice_data_sel in 1:5) {
   } else {
     load_data <- 
       paste0(load_data_folder, "Prep_10/prep_10_dml_binary_", model_type, "_", treatment_def, 
-             "_", treatment_repl, extra_act_save, "robustcheck_mice", mice_data_sel, load_data_ending)
+             "_", treatment_repl, extra_act_save, "_robustcheck_mice", mice_data_sel, load_data_ending)
   }
   
   data_dml <- readRDS(load_data)
@@ -103,8 +113,7 @@ for (mice_data_sel in 1:5) {
   # only save common support plot for main model
   if (cohort_prep == main_cohort_prep & treatment_def == main_treatment_def  &
       treatment_repl == main_treatment_repl & extra_act == main_extra_act & 
-      model_type == main_model_type & 
-      model_controls == main_model_controls & model_treatment == main_model_treatment) {
+      model_type == main_model_type & model_controls == main_model_controls) {
     save_trimming_sel <- TRUE
   } else {
     save_trimming_sel <- FALSE
@@ -131,12 +140,12 @@ for (mice_data_sel in 1:5) {
 # save results
 if (str_detect(outcome_var, "grade")) {
   save_dml <- 
-    paste0("Output/DML/Grades/binary_", model_algo, "_", model_type, "_", 
-           str_replace_all(cohort_prep, "_", ""),
+    paste0("Output/DML/Estimation/Grades/binary_grades_", model_algo, "_", 
+           model_type, "_", str_replace_all(cohort_prep, "_", ""),
            "_", treatment_def, "_", treatment_repl, extra_act_save, ".rds")
 } else if (str_detect(outcome_var, "bigfive")) {
-  paste0("Output/DML/Personality/binary_", model_algo, "_", model_type, "_", 
-         str_replace_all(cohort_prep, "_", ""),
+  paste0("Output/DML/Estimation/Personality/binary_personality_", model_algo, "_", 
+         model_type, "_", str_replace_all(cohort_prep, "_", ""),
          "_", treatment_def, "_", treatment_repl, extra_act_save, ".rds")
 }
 
@@ -159,24 +168,26 @@ dml_result_save <- dml_result_pooled %>%
     model_type = model_type, model_algo = model_algo, model_k = model_k, 
     model_k_tuning = model_k_tuning, model_s_rep = model_s_rep, model_trimming = model_trimming, 
     model_controls = model_controls,
-    # number of treatment periods after trimming
-    n_treats_min = min(unlist(lapply(lapply(dml_result_all, "[[" , "trimming"), "[[", "n_treats"))), 
+    # number of treatment periods before and after after trimming
+    n_treats_before = min(unlist(lapply(lapply(dml_result_all, "[[" , "trimming"), "[[", "n_treats_before"))), 
+    n_treats_after = min(unlist(lapply(lapply(dml_result_all, "[[" , "trimming"), "[[", "n_treats_after"))), 
     # add date
     time_stamp = as.character(Sys.time()),
     # addt time
-    time_elapsed = as.character(Sys.time() - start_time)) %>%
+    time_elapsed = paste(as.character(difftime(Sys.time(), start_time, units = "hours")), "hours")) %>%
   cbind(dml_result_error) %>%
   # re-order columns
-  dplyr::select(outcome, cohort_prep, treatment_repl, treatment_def, extra_act, starts_with("model"), 
-                n_treats_min, starts_with("num_pred"), everything()) %>%
+  dplyr::select(outcome, cohort_prep, treatment_repl, treatment_def, extra_act,  
+                starts_with("model"), n_treats_before, n_treats_after,
+                starts_with("num_pred"), everything()) %>%
   relocate(time_elapsed, time_stamp, .after = last_col()) # time-stamp is ordered last
 
 
 # save estimation results
 dml_result_save <- as.data.frame(dml_result_save)
-if (file.exists("Output/DML/DML_BINARY_ESTIMATION_RESULTS.xlsx")) {
+if (file.exists("Output/DML/Treatment_Effects/DML_BINARY_ESTIMATION_RESULTS.xlsx")) {
   ## replace same estimations
-  dml_result_save_all <- read.xlsx("Output/DML/DML_BINARY_ESTIMATION_RESULTS.xlsx", sheetName = "Sheet1")
+  dml_result_save_all <- read.xlsx("Output/DML/Treatment_Effects/DML_BINARY_ESTIMATION_RESULTS.xlsx", sheetName = "Sheet1")
   dml_result_save_all <- rbind(dml_result_save_all, dml_result_save)
   cols_aggr <- dml_result_save_all %>%
     dplyr::select(outcome, cohort_prep, treatment_repl, treatment_def, starts_with("model")) %>%
@@ -186,9 +197,9 @@ if (file.exists("Output/DML/DML_BINARY_ESTIMATION_RESULTS.xlsx")) {
     filter(time_stamp == max(time_stamp)) %>%
     ungroup() %>% data.frame()
   ## save
-  write.xlsx(dml_result_save_all, "Output/DML/DML_BINARY_ESTIMATION_RESULTS.xlsx", sheetName = "Sheet1",
+  write.xlsx(dml_result_save_all, "Output/DML/Treatment_Effects/DML_BINARY_ESTIMATION_RESULTS.xlsx", sheetName = "Sheet1",
              row.names = FALSE, append = FALSE, showNA = FALSE)
 } else {
-  write.xlsx(dml_result_save, "Output/DML/DML_BINARY_ESTIMATION_RESULTS.xlsx", row.names = FALSE)
+  write.xlsx(dml_result_save, "Output/DML/Treatment_Effects/DML_BINARY_ESTIMATION_RESULTS.xlsx", row.names = FALSE)
 }
 
