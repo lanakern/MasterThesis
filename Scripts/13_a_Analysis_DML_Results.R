@@ -36,7 +36,7 @@ if (main_extra_act == "yes") {
 }
 
 load_results_main <- paste(
-  main_model_type, main_model_outcome, str_replace_all(main_cohort_prep, "_", ""),
+  main_model_type, str_replace_all(main_cohort_prep, "_", ""),
   main_treatment_def, main_treatment_repl, main_extra_act_save, sep = "_"
 )
 
@@ -58,7 +58,7 @@ df_dml_ape_multi <- df_dml_load_multi[[1]]$ape
 # BINARY TREATMENT SETTING #
 df_dml_detail_all_binary <- data.frame()
 for (model_algo_sel in c("lasso", "postlasso", "randomforests", "xgboost")) {
-  df_dml_load_binary <- readRDS(paste0("Output/DML/binary_", model_algo_sel, "_", load_results_main, ".rds"))
+  df_dml_load_binary <- readRDS(paste0("Output/DML/Estimation/Grades/binary_grades_", model_algo_sel, "_", load_results_main, ".rds"))
   # assign(paste0("dml_result_", model_algo_sel), df_dml_load)
   
   df_dml_detail_sub_all <- data.frame()
@@ -95,7 +95,7 @@ for (model_algo_sel in c("lasso", "postlasso", "randomforests", "xgboost")) {
 # BINARY TREATMENT SETTING #
 df_dml_error_all_binary <- data.frame()
 for (model_algo_sel in c("lasso", "postlasso", "randomforests", "xgboost")) {
-  df_dml_load_binary <- readRDS(paste0("Output/DML/binary_", model_algo_sel, "_", load_results_main, ".rds"))
+  df_dml_load_binary <- readRDS(paste0("Output/DML/Estimation/Grades/binary_grades_", model_algo_sel, "_", load_results_main, ".rds"))
   # assign(paste0("dml_result_", model_algo_sel), df_dml_load)
   
   df_dml_error_sub_all <- data.frame()
