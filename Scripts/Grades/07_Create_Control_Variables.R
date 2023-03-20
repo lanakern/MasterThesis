@@ -2,7 +2,6 @@
 #### Create Variables ####
 #%%%%%%%%%%%%%%%%%%%%%%%%#
 
-
 #+++
 # by Lana Kern
 #+++
@@ -35,34 +34,6 @@
 # of variables.
 
 
-#%%%%%%%%%#
-## SETUP ##
-#%%%%%%%%%#
-
-# clear workspace
-# rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", "treatment_def", 
-#                           "df_inputs", "prep_sel_num", ls()[str_starts(ls(), "func_")])))
-
-# # install packages if needed, load packages
-# if (!require("dplyr")) install.packages("dplyr")
-# library(dplyr)  # to manipulate data
-# 
-# if (!require("tidyr")) install.packages("tidyr")
-# library(tidyr)  # for replace_na() function
-# 
-# if (!require("fastDummies")) install.packages("fastDummies")
-# library(fastDummies)  # to generate dummy variables
-# 
-# if (!require("readstata13")) install.packages("readstata13")
-# library(readstata13)  # to re-label aggregated variables
-# 
-# if (!require("lubridate")) install.packages("lubridate")
-# library(lubridate)  # to work with dates
-# 
-# # now set language for dates and times to English
-# Sys.setlocale("LC_TIME", "English")
-
-
 # load data
 if (extra_act == "yes") {
   extra_act_save <- "_extradrop"
@@ -77,7 +48,6 @@ if (cohort_prep == "controls_same_outcome") {
   load_data <- paste0("Data/Grades/Prep_6/prep_6_sample_selection_", treatment_def, 
                       "_", treatment_repl, extra_act_save, "_robustcheck.rds")
 }
-
 
 data_raw <- readRDS(load_data)
 
@@ -129,6 +99,12 @@ data_prep_1 <- data_prep_1 %>%
 
 summary(data_prep_1$health_bmi) # number of NA in generated variable
 
+# do the same for lag
+data_prep_1 <- data_prep_1 %>%
+  mutate(health_bmi_lag = as.numeric(health_weight_lag / ((health_height_lag/100)^2))) %>%
+  dplyr::select(-c(health_weight_lag, health_height_lag))
+
+summary(data_prep_1$health_bmi_lag) # number of NA in generated variable
 
 
 ## Cohort & Period ##
@@ -194,18 +170,44 @@ data_prep_1 <- data_prep_1 %>%
     interest_politics_discussion %in% c(1:2) ~ 1,
     interest_politics_understanding %in% c(1) ~ 1,
     # if all variables are NA then dummy variable is also NA
+    data_prep_1 %>% dplyr::select(starts_with("interest_politics") & !ends_with("lag")) %>% 
+      is.na() %>% rowSums() == 
+      data_prep_1 %>% dplyr::select(starts_with("interest_politics") & !ends_with("lag")) %>% 
+      colnames() %>% length() ~ as.double(NA), 
+    # otherwise 0
+    TRUE ~ 0
+  )) %>%
+  # drop other variables
+  dplyr::select(-(starts_with("interest_politics_") & !ends_with("lag")))
+
+table(data_prep_1$interest_politics, useNA = "always")
+
+
+# do the same for lag
+data_prep_1 <- data_prep_1 %>%
+  # create dummy
+  mutate(interest_politics_lag = case_when(
+    # if there is any sign of political interest, variable takes on value 1
+    interest_politics_signatures_lag == 1 ~ 1,
+    interest_politics_demo_lag == 1 ~ 1,
+    interest_politics_general_lag %in% c(1) ~ 1,
+    interest_politics_discussion_lag %in% c(1:2) ~ 1,
+    interest_politics_understanding_lag %in% c(1) ~ 1,
+    # if all variables are NA then dummy variable is also NA
     data_prep_1 %>% dplyr::select(starts_with("interest_politics")) %>% 
       is.na() %>% rowSums() == 
       data_prep_1 %>% dplyr::select(starts_with("interest_politics")) %>% 
       colnames() %>% length() ~ as.double(NA), 
     # otherwise 0
     TRUE ~ 0
-  )) %>%
-  # drop other variables
-  dplyr::select(-starts_with("interest_politics_"))
+  )) 
+table(data_prep_1$interest_politics_lag, useNA = "always")
 
-table(data_prep_1$interest_politics, useNA = "always")
+# drop other variables
+drop_cols <- data_prep_1 %>% dplyr::select(starts_with("interest_politics")) %>% colnames()
+drop_cols <- drop_cols[!drop_cols %in% c("interest_politics", "interest_politics_lag")]
 
+data_prep_1 <- data_prep_1 %>% dplyr::select(-all_of(drop_cols))
 
 
 ## SMOKING ##
@@ -225,7 +227,6 @@ table(data_prep_1$health_smoking_v1, useNA = "always") # less missing values
 data_prep_1 <- func_reverse_score(data_prep_1, data.frame(
   "vars_reverse" = "health_smoking_v1", "num_scores" = 4
 ))
-
 
 # replace missings in new variable "health_smoking" with values from
 # previous version
@@ -253,6 +254,37 @@ data_prep_1 <- data_prep_1 %>%
 table(data_prep_1$health_smoking_current, useNA = "always")
 
 
+# same for lag
+data_prep_1 <- data_prep_1 %>%
+  mutate(health_smoking_lag = as.integer(health_smoking_lag), 
+         health_smoking_v1_lag = as.integer(health_smoking_v1_lag))
+
+data_prep_1 <- func_reverse_score(data_prep_1, data.frame(
+  "vars_reverse" = "health_smoking_v1_lag", "num_scores" = 4
+))
+
+data_prep_1 <- data_prep_1 %>%
+  mutate(
+    health_smoking_lag = ifelse(is.na(health_smoking_v1_lag), health_smoking_lag, health_smoking_v1_lag)
+  ) %>%
+  dplyr::select(-health_smoking_v1_lag)
+
+data_prep_1 <- data_prep_1 %>%
+  mutate(health_smoking_lag = case_when(
+    health_smoking_lag %in% c(1:2) ~ 1,
+    health_smoking_lag %in% c(3:4) ~ 0,
+    TRUE ~ as.double(NA)
+  )) %>%
+  ## for missings use also health_smoking_number
+  mutate(health_smoking_lag = ifelse(
+    is.na(health_smoking_lag) & health_smoking_lag > 0, 1, health_smoking_lag)
+  ) %>%
+  ## drop other smoking variables
+  dplyr::select(-c("health_smoking_number_lag"))
+
+table(data_prep_1$health_smoking_lag, useNA = "always")
+
+
 
 ## ALCOHOL ##
 #+++++++++++#
@@ -262,12 +294,9 @@ table(data_prep_1$health_alcohol_v1, useNA = "always")
 
 # only minor differences in labels
 data_prep_1 <- data_prep_1 %>%
-  mutate(
-    health_alcohol_v1 = recode(health_alcohol_v1, 
-                               "(almost) every day" = "daily",
-                               "(almost) never" = "never"
-    )
-  )
+  mutate(health_alcohol_v1 = recode(
+    health_alcohol_v1, "(almost) every day" = "daily", "(almost) never" = "never"
+    ))
 
 # replace new variable by previous if NA and generate the dummy for 
 # alcohol consumption
@@ -292,16 +321,43 @@ data_prep_1 <- data_prep_1 %>%
 table(data_prep_1$health_alcohol_current, useNA = "always")
 
 
+# lags
+data_prep_1 <- data_prep_1 %>%
+  mutate(health_alcohol_v1_lag = recode(
+    health_alcohol_v1_lag, "(almost) every day" = "daily", "(almost) never" = "never"
+  ))
+
+# replace new variable by previous if NA and generate the dummy for 
+# alcohol consumption
+data_prep_1 <- data_prep_1 %>%
+  # replacement
+  mutate(health_alcohol_lag = case_when(
+    is.na(health_alcohol_lag) ~ health_alcohol_v1_lag,
+    TRUE ~ health_alcohol_lag
+  )) %>%
+  # dummy generation
+  mutate(
+    health_alcohol_lag = case_when(
+      health_alcohol_lag %in% c("daily", "several times a week") ~ 1,
+      is.na(health_alcohol_lag) ~ as.double(NA),
+      TRUE ~ 0
+    )
+  ) %>%
+  # drop v1 variable
+  dplyr::select(-c(health_alcohol_v1_lag))
+
+
+table(data_prep_1$health_alcohol_lag, useNA = "always")
+
+
 ## DRUGS ##
 #+++++++++#
 
 data_prep_1 <- data_prep_1 %>%
   mutate(health_drugs_ever = ifelse(drugs_never == 0, 1, 0)) %>%
-  dplyr::select(-starts_with("drugs_"))
-
+  dplyr::select(-(starts_with("drugs_") & !ends_with("lag")))
 
 table(data_prep_1$health_drugs_ever, useNA = "always")
-
 
 
 ## Spell Length ##
@@ -513,6 +569,25 @@ data_prep_1 <- data_prep_1 %>%
 table(data_prep_1$uni_prob_graduation, useNA = "always")
 
 
+# do the same for lags
+data_prep_1 <- data_prep_1 %>%
+  ## recode 50-50
+  mutate(uni_degree_complete_prob_lag = recode(
+    uni_degree_complete_prob_lag, "approx. 50:50" = "about 50-50")) %>%
+  ## make replacements
+  mutate(uni_prob_graduation_lag = case_when(
+    is.na(uni_prob_graduation_lag) ~ uni_degree_complete_prob_lag,
+    is.na(uni_prob_graduation_lag) & is.na(uni_degree_complete_prob_lag) ~ as.character(NA),
+    TRUE ~ uni_prob_graduation_lag
+  )) %>%
+  ## recode
+  mutate(uni_prob_graduation_lag = case_when(
+    grepl("unlikely", uni_prob_graduation_lag) ~ "unlikely",
+    grepl("likely", uni_prob_graduation_lag) ~ "likely",
+    TRUE ~ uni_prob_graduation_lag)) %>% 
+  dplyr::select(-uni_degree_complete_prob_lag)
+
+
 
 ## Employment ##
 #++++++++++++++#
@@ -523,7 +598,8 @@ table(data_prep_1$emp_current, useNA = "always")
 data_prep_1 <- data_prep_1 %>%
   ungroup() %>%
   mutate(emp_current = ifelse(
-    rowSums(!is.na(data_prep_1 %>% dplyr::select(starts_with("emp_current_")))) > 0, 1, emp_current)
+    rowSums(!is.na(data_prep_1 %>% dplyr::select(starts_with("emp_current_") & !ends_with("lag") & !ends_with("NA")))) > 0, 1, 
+    emp_current)
     )
 
 table(data_prep_1$emp_current, useNA = "always")
@@ -586,37 +662,65 @@ data_prep_1 <- data_prep_1 %>%
 
 table(data_prep_1$treatment_sport_freq, useNA = "always")
 
+# do the same for the lags
+table(data_prep_1$treatment_sport_freq_lag, useNA = "always")
 
-## GENERATE LAGS ##
-#+++++++++++++++++#
+data_prep_1 <- data_prep_1 %>%
+  mutate(treatment_sport_freq_lag = case_when(
+    treatment_sport_freq_lag == "daily" | treatment_sport_freq_lag == "weekly" ~ "weekly_atleast",
+    treatment_sport_freq_lag == "monthly" | treatment_sport_freq_lag == "less frequently" ~ "monthly_less",
+    treatment_sport_freq_lag == "never" ~ "never",
+    TRUE ~ as.character(NA)
+  ))
+
+table(data_prep_1$treatment_sport_freq_lag, useNA = "always")
+
+
+## HANDLE MISSING VALUES IN LAGS ##
+#+++++++++++++++++++++++++++++++++#
 
 # generate lags for the two treatment and one outcome variable
-data_prep_1 <- data_prep_1 %>%
-  group_by(ID_t) %>%
-  mutate(
-    treatment_sport_lag = lag(treatment_sport), 
-    treatment_sport_freq_lag = lag(treatment_sport_freq),
-    outcome_grade_lag = lag(outcome_grade)
-  )
+# data_prep_1 <- data_prep_1 %>%
+#   group_by(ID_t) %>%
+#   mutate(
+#     treatment_sport_lag = lag(treatment_sport), 
+#     treatment_sport_freq_lag = lag(treatment_sport_freq),
+#     outcome_grade_lag = lag(outcome_grade)
+#   )
 
-# if lag is NA (that is only for first treatment period) lagged variable for
-# outcome is replaced by 0, for treatment_sport by 2, and treatment_freq by "missing"
+# if lag is NA lagged variable for outcome is replaced by 0, for treatment_sport by 2, 
+# and treatment_freq by "missing". Morever, NA Dummies are generated.
 data_prep_1 <- data_prep_1 %>%
   arrange(ID_t, treatment_period) %>%
   group_by(ID_t) %>%
   mutate(
-    treatment_sport_lag = case_when(is.na(treatment_sport_lag) ~ 2, TRUE ~ treatment_sport_lag),
-    treatment_sport_freq_lag = case_when(is.na(treatment_sport_freq_lag) ~ "missing", TRUE ~ treatment_sport_freq_lag),
-    outcome_grade_lag = case_when(is.na(outcome_grade_lag) ~ 0, TRUE ~ outcome_grade_lag)
-  )
+    treatment_sport_lag_NA = ifelse(is.na(treatment_sport_lag), 1, 0),
+    treatment_sport_freq_lag_NA = ifelse(is.na(treatment_sport_freq_lag), 1, 0),
+    outcome_grade_lag_NA = ifelse(is.na(outcome_grade_lag), 1, 0)
+  ) #%>%
+  # mutate(
+  #   treatment_sport_lag = case_when(is.na(treatment_sport_lag) ~ 2, TRUE ~ treatment_sport_lag),
+  #   treatment_sport_freq_lag = case_when(is.na(treatment_sport_freq_lag) ~ "missing", TRUE ~ treatment_sport_freq_lag),
+  #   outcome_grade_lag = case_when(is.na(outcome_grade_lag) ~ 0, TRUE ~ outcome_grade_lag)
+  # )
+
+table(data_prep_1$treatment_sport_lag, useNA = "always")
+table(data_prep_1$treatment_sport_freq_lag, useNA = "always")
+table(data_prep_1$outcome_grade_lag, useNA = "always")
+
+table(data_prep_1$treatment_sport_lag_NA, useNA = "always")
+table(data_prep_1$treatment_sport_freq_lag_NA, useNA = "always")
+table(data_prep_1$outcome_grade_lag_NA, useNA = "always")
 
 # ensure that no missing values in lagged variables are left
-sum(is.na(data_prep_1 %>% ungroup() %>% dplyr::select(ends_with("_lag"))))
+# colSums(is.na(data_prep_1 %>% ungroup() %>% dplyr::select(
+#   "treatment_sport_lag", "treatment_sport_freq_lag", "outcome_grade_lag"
+# )))
 
 # differences in variables
-sum(data_prep_1$treatment_sport != data_prep_1$treatment_sport_lag)
-sum(data_prep_1$treatment_sport_freq != data_prep_1$treatment_sport_freq_lag)
-sum(data_prep_1$outcome_grade != data_prep_1$outcome_grade_lag)
+sum(data_prep_1$treatment_sport != data_prep_1$treatment_sport_lag, na.rm = TRUE)
+sum(data_prep_1$treatment_sport_freq != data_prep_1$treatment_sport_freq_lag, na.rm = TRUE)
+sum(data_prep_1$outcome_grade != data_prep_1$outcome_grade_lag, na.rm = TRUE)
 
 
 ## NA DUMMIES ##
@@ -626,6 +730,10 @@ sum(data_prep_1$outcome_grade != data_prep_1$outcome_grade_lag)
 table(data_prep_1$treatment_sport_NA, useNA = "always")
 table(data_prep_1$treatment_sport_freq_NA, useNA = "always")
 table(data_prep_1$outcome_grade_NA, useNA = "always")
+
+table(data_prep_1$treatment_sport_lag_NA, useNA = "always")
+table(data_prep_1$treatment_sport_freq_lag_NA, useNA = "always")
+table(data_prep_1$outcome_grade_lag_NA, useNA = "always")
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -680,6 +788,7 @@ data_prep_1 <- data_prep_1 %>%
       TRUE ~ as.character(NA)
     ),
     uni_learn_group_partic = recode(uni_learn_group_partic, "yes, namely:" = 1, "no" = 0),
+    uni_learn_group_partic_lag = recode(uni_learn_group_partic_lag, "yes, namely:" = 1, "no" = 0),
     uni_institution_choice = recode(uni_institution_choice, 
       "I didn't really have a preferred higher education institution" = "no_choice"),
     prof_expected = case_when(
@@ -698,6 +807,12 @@ data_prep_1 <- data_prep_1 %>%
       grepl("all", friends_study_share) ~ "(almost)all",
       friends_study_share == "nobody" ~ "almost no one",
       grepl("half", friends_study_share) ~ "(almost)half",
+      TRUE ~ as.character(NA)
+    ),
+    friends_study_share_lag = case_when(
+      grepl("all", friends_study_share_lag) ~ "(almost)all",
+      friends_study_share_lag == "nobody" ~ "almost no one",
+      grepl("half", friends_study_share_lag) ~ "(almost)half",
       TRUE ~ as.character(NA)
     )
   ) %>%
@@ -788,6 +903,15 @@ data_prep_1 <- data_prep_1 %>%
   ))
 
 
+table(data_prep_1$interest_art_musuem_lag, useNA = "always")
+
+data_prep_1 <- data_prep_1 %>%
+  mutate(interest_art_musuem_lag = case_when(
+    interest_art_musuem_lag %in% c("2 to 3 times", "4 to 5 times") ~ "2_to_5_times",
+    TRUE ~ interest_art_musuem_lag
+  ))
+
+
 ## other ##
 #+++++++++#
 
@@ -800,14 +924,24 @@ data_prep_1 <- data_prep_1 %>%
   )
 table(data_prep_1$living_type)
 
+data_prep_1 <- data_prep_1 %>%
+  mutate(
+    living_type_lag = recode(living_type_lag, "in a dormitory?" = "dormitory", "in an apartment/house that you own?" = "own",
+                         "in some other rental accommodation?" = "rent", "with parents or relatives?" = "parents",
+                         "with private individuals for subtenancy?" = "subtenancy")
+  )
+
+
 # birth in germany (east-west) and current place of residence
 table(data_prep_1$birth_ger_eastwest)
 data_prep_1 <- data_prep_1 %>% mutate(
   birth_ger_eastwest = recode(birth_ger_eastwest, "East Germany incl. Berlin" = "East",
                              "West Germany" = "West"),
   place_residence = recode(current_residence_eastwest, "East Germany incl. Berlin" = "East",
+                           "West Germany" = "West", "location is abroad" = "abroad"),
+  place_residence_lag = recode(current_residence_eastwest_lag, "East Germany incl. Berlin" = "East",
                            "West Germany" = "West", "location is abroad" = "abroad")
-  ) %>% dplyr::select(-current_residence_eastwest)
+  ) %>% dplyr::select(-c(current_residence_eastwest, current_residence_eastwest_lag))
 
 
 # religion
@@ -842,6 +976,16 @@ table(data_prep_1$health_general, useNA = "always")
 
 
 
+data_prep_1 <- data_prep_1 %>%
+  mutate(
+    health_general_lag = case_when(
+      health_general_lag %in% c("good", "very good") ~ "good",
+      health_general_lag %in% c("poor", "very poor") ~ "poor",
+      health_general_lag %in% c("moderate") ~ "moderate",
+      TRUE ~ as.character(NA)
+    )
+  ) %>% dplyr::select(-c(health_allergic_lag, health_neuro_lag)) 
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 
@@ -861,23 +1005,34 @@ for (vars_both_sel in vars_both) {
   
   ## identify all variables starting with string
   vars_both_sel_all <- data_prep_1 %>%
-    dplyr::select(starts_with(vars_both_sel)) %>% colnames() %>% 
+    dplyr::select(starts_with(vars_both_sel) & !ends_with("lag")) %>% colnames() %>% 
     str_remove_all("_CATI") %>% str_remove_all("_CAWI") %>% unique()
   
   ## for all of those take the mean (and round)
   for (vars_both_sel_all_rep  in vars_both_sel_all) {
+    vars_both_sel_all_rep_lag <- paste0(vars_both_sel_all_rep, "_lag")
+    
     data_prep_1 <- data_prep_1 %>%
+      # no lagged variables
       mutate(
         !!vars_both_sel_all_rep := round(rowMeans(
           dplyr::select(data_prep_1, !!!rlang::syms(paste0(vars_both_sel_all_rep, "_CAWI")), 
                         !!!rlang::syms(paste0(vars_both_sel_all_rep, "_CATI"))),
           na.rm = TRUE))
+      ) %>%
+      # lagged variables
+      mutate(
+        !!vars_both_sel_all_rep_lag := round(rowMeans(
+          dplyr::select(data_prep_1, !!!rlang::syms(paste0(vars_both_sel_all_rep, "_CAWI_lag")), 
+                        !!!rlang::syms(paste0(vars_both_sel_all_rep, "_CATI_lag"))),
+          na.rm = TRUE))
       )
   }
   
   ## delete all variables ending with CATI and CAWI
-  data_prep_1 <- data_prep_1 %>% dplyr::select(-matches(paste0(vars_both_sel, ".*[_CAWI|_CATI]$")))
-  
+  data_prep_1 <- data_prep_1 %>% 
+    dplyr::select(-matches(paste0(vars_both_sel, ".*[_CAWI|_CATI]$"))) %>%
+    dplyr::select(-(starts_with(vars_both_sel) & matches("CAWI|CATI") & ends_with("lag")))
 }
 
 
@@ -889,6 +1044,11 @@ for (vars_both_sel in vars_both) {
 #%%%%%%%%%%%%%%%%%%%%%%#
 
 data_prep_2 <- data_prep_1 %>% ungroup()
+
+# drop variables containing only missing values
+drop_all_na <- colnames(data_prep_2)[colSums(is.na(data_prep_2)) == nrow(data_prep_2)]
+data_prep_2 <- data_prep_2 %>% dplyr::select(-all_of(drop_all_na))
+
 
 ## Statistics ##
 #++++++++++++++#
@@ -942,7 +1102,8 @@ col_names_na_drop <- sort(names(col_names_na_drop))
 
 # generate vector containing columns which I keep anyway
 col_keep <- c("comp_", "educ_uni_degree_achieve", "educ_uni_degree_aspire", 
-              "prof_expected", "stress","motivation", "sibling", "partner", "child")
+              "prof_expected", "stress","motivation", "sibling", "partner", "child",
+              "treatment", "outcome")
 col_keep_all <- data_prep_2 %>% dplyr::select(matches(paste0(col_keep, collapse = "|"))) %>% colnames()
 
 # adjust vector with colnames to drop
@@ -965,7 +1126,7 @@ vars_drop <- c(
   "educ_uni_degree_1", "educ_uni_degree_2", "educ_uni_start", "educ_uni_start_WT10",
   "end_date_adj", "end_date_orig", "educ_uni_type_inst", "wave", "wave_2", 
   "uni_time_employment", "birth_nationality_ger", "educ_degree_uentrance_ger", "educ_profession_aspired",
-  "father_emp_manager", "mother_emp_manager", "living_rent",
+  "father_emp_manager", "mother_emp_manager", "living_rent", "living_rent_lag",
   "helpless_grades_improve", "helpless_grades_revision", 
   "intern_study_rel", "intern_type", "educ_voc_prep", 
   "uni_admission_restr_other", "educ_uni_degree_achieve", "educ_uni_degree_aspire",
@@ -1081,7 +1242,7 @@ for (pred_matrix_vars_sel in pred_matrix_vars) {
   pred_matrix[pred_matrix_vars_sel, c(pred_matrix_vars_set_0)] <- 0
 }
   ## only closely related variables are used, e.g. for personality variables only personality variables.
-pred_matrix_vars <- c("educ", "interest", "uni", "comp", "child", "sibling", "partner")
+pred_matrix_vars <- c("educ", "interest", "uni", "comp", "child", "sibling", "partner", "treatment", "outcome")
 for (pred_matrix_vars_sel in pred_matrix_vars) {
   pred_matrix_vars_num <- pred_matrix %>% as.data.frame() %>% 
     dplyr::select(starts_with(pred_matrix_vars_sel)) %>% colnames()
@@ -1172,6 +1333,9 @@ for (mice_result_sel in 1:mice_num_data_sets) {
   summary(data_prep_4$comp_ict_wle)
   summary(data_prep_3$comp_math_wle)
   summary(data_prep_4$comp_math_wle)
+  ## lags
+  table(data_prep_3$health_general_lag, useNA = "always")
+  table(data_prep_4$health_general_lag, useNA = "always")
   # reconvert factor variables as character
   data_prep_4 <- data_prep_4 %>%
     mutate_if(is.factor, as.character)
@@ -1203,25 +1367,22 @@ for (mice_result_sel in 1:mice_num_data_sets) {
   # create data frame with variable name and highest variable value number
   # for those variables for which the order of the scale needs to be reversed.
   df_reverse_vars <- data.frame(
-    "vars_reverse" = c("uni_termination_4", paste0("stress_", c(1, 3, 5:7, 11)),
-                       "uni_commitment_1", "uni_commitment_4",
+    "vars_reverse" = c("uni_termination_4", "uni_termination_4_lag",
+                       paste0("stress_", c(1, 3, 5:7, 11)),
+                       paste0("stress_", c(1, 3, 5:7, 11), "_lag"),
+                       "uni_commitment_1", "uni_commitment_1_lag",
+                       "uni_commitment_4", "uni_commitment_4_lag",
                        paste0("personality_selfesteem_", c(2, 5, 6, 8, 9)),
                        paste0("opinion_educ_", c(2,4,8,9,14,15)),
                        paste0("satisfaction_study_", c(2,3,5,6,8,9)),
-                       "uni_prep_4"#, 
-                       #"bigfive_conscientiousness", "bigfive_openness",
-                       #"bigfive_extraversion", "bigfive_neuroticism"
-                       ),
-    "num_scores" = c(4, rep(5, 6), 5, 5, rep(5, 5), rep(5,6), rep(10, 6), 4#,
-                    # rep(5, 4)
-                     )
-  )
-  
+                       "uni_prep_4"),
+    "num_scores" = c(4, 4, rep(5, 6), rep(5, 6), 5, 5, 5, 5, rep(5, 5), rep(5,6), rep(10, 6), 4)
+    )
   
   # apply function and check
-  data_prep_5 %>% dplyr::select(uni_termination_4, stress_3, satisfaction_study_2) %>% head(5)
+  data_prep_5 %>% dplyr::select(uni_termination_4, stress_3, stress_3_lag, satisfaction_study_2) %>% head(5)
   data_prep_5 <- func_reverse_score(data_prep_5, df_reverse_vars)
-  data_prep_5 %>% dplyr::select(uni_termination_4, stress_3, satisfaction_study_2) %>% head(5)
+  data_prep_5 %>% dplyr::select(uni_termination_4, stress_3, stress_3_lag, satisfaction_study_2) %>% head(5)
   
   # recode manually (because number of categories do not match)
   data_prep_5 <- data_prep_5 %>%
@@ -1251,21 +1412,15 @@ for (mice_result_sel in 1:mice_num_data_sets) {
     "friends_opinion_degree"
   )
   # ensure that variables exist (are not dropped above in missing value selection)
-  colnames_exist <- unique(sub("_[^_]+$", "", 
-                               data_prep_5 %>% 
-                                 dplyr::select(matches(paste0(vars_aggregated_mean, collapse = "|"))) %>% 
-                                 colnames()))
+  colnames_exist <- unique(sub("_[^_]+$", "", data_prep_5 %>% 
+          dplyr::select(matches(paste0(vars_aggregated_mean, collapse = "|"))) %>% 
+          colnames))
   vars_aggregated_mean <- vars_aggregated_mean[vars_aggregated_mean %in% colnames_exist]
   
   ## vector with variables aggregated as sum
   vars_aggregated_sum <- c(
     "uni_counsel_.*_offer", "uni_counsel_.*_use", "uni_offers_.*_partic"
   )
-  
-  
-  
-  # load function 
-  # source("Functions/func_aggregate_vars.R")
   
   # ungroup data frame
   data_prep_5 <- data_prep_5 %>% ungroup()
@@ -1282,7 +1437,7 @@ for (mice_result_sel in 1:mice_num_data_sets) {
   vars_not_aggr_all <- c()
   for (vars_aggr in vars_aggregated_mean) {
     # ensure that all variables are numeric
-    data_prep_5 <- data_prep_5 %>% mutate(across(starts_with(vars_aggr), as.numeric))
+    data_prep_5 <- data_prep_5 %>% mutate(across(starts_with(vars_aggr) & !ends_with("lag"), as.numeric))
     # then apply aggregation
     result_agrregate_vars_ls <- 
       func_aggregate_vars(data_prep_5, vars_aggr, cronbach_a, aggr_vars)
@@ -1290,7 +1445,8 @@ for (mice_result_sel in 1:mice_num_data_sets) {
     data_prep_5 <- result_agrregate_vars_ls[[1]]
     ## extract vector with variable prefix that could not be aggregated and append it
     vars_not_aggr <- result_agrregate_vars_ls[[2]]
-    vars_not_aggr_all <- c(vars_not_aggr_all, vars_not_aggr)
+    vars_not_aggr_lag <- result_agrregate_vars_ls[[3]]
+    vars_not_aggr_all <- c(vars_not_aggr_all, vars_not_aggr, vars_not_aggr_lag)
   }
   ## sum
   for (vars_aggr in vars_aggregated_sum) {
@@ -1414,8 +1570,6 @@ for (mice_result_sel in 1:mice_num_data_sets) {
       )
   }
   
-  
-  
   # "apply" variables
   ## extract variables
   vars_recode_apply <- data_prep_5 %>%
@@ -1500,17 +1654,23 @@ for (mice_result_sel in 1:mice_num_data_sets) {
   data_prep_6 <- data_prep_6 %>% mutate(
     emp_current_act_work_hours = case_when(
       emp_current == 1 & emp_current_act_work_hours == 0 ~ 1, TRUE ~ emp_current_act_work_hours 
+    )) %>% 
+    mutate(
+      emp_current_act_work_hours_lag = case_when(
+        emp_current_lag == 1 & emp_current_act_work_hours_lag == 0 ~ 1, TRUE ~ emp_current_act_work_hours_lag 
+      )
     )
-  )
   
   
   ## CATEGORIZE USING QUANTILES ##
   
-  for (vars_categorized in c("age", "educ_years_total", "extracurricular_num",
+  for (vars_categorized in c("age", "educ_years_total", "extracurricular_num", "extracurricular_num_lag",
                              "uni_offers", "uni_counsel_offer", "uni_counsel_use",
-                             "emp_current_act_work_hours", "uni_time_courses",
-                             "uni_time_studyact", "uni_time_household", "uni_time_childcare",
-                             "uni_time_study", "sibling_total")) {
+                             "emp_current_act_work_hours", "emp_current_act_work_hours_lag",
+                             "uni_time_courses", "uni_time_courses_lag",
+                             "uni_time_studyact", "uni_time_studyact_lag", "uni_time_household", 
+                             "uni_time_household_lag", "uni_time_childcare", "uni_time_childcare_lag",
+                             "uni_time_study", "uni_time_study_lag", "sibling_total")) {
     
     # generate splitting values
     split_one <- unname(quantile(data_prep_6 %>% pull(vars_categorized), 0.25))
@@ -1548,6 +1708,7 @@ for (mice_result_sel in 1:mice_num_data_sets) {
   table(data_prep_6$uni_time_household_cat, useNA = "always")
   table(data_prep_6$uni_time_childcare_cat, useNA = "always")
   table(data_prep_6$uni_time_study_cat, useNA = "always")
+  table(data_prep_6$uni_time_study_lag_cat, useNA = "always")
   
   
   
