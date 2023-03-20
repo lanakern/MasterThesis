@@ -121,11 +121,18 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
   }
   
   ## xgboost
+  # xgb_grid <- expand.grid(
+  #   tree_depth = c(3, 6), # default: 6
+  #   trees = c(15), # default: 15
+  #   learn_rate = c(0.01, 0.1, 0.3), # default: 0.3
+  #   mtry = c(floor(sqrt(num_X)), round(num_X)/2, round(num_X)), # default: p (X)
+  #   min_n = c(1) # default: 1
+  # )
   xgb_grid <- expand.grid(
-    tree_depth = c(3, 6), # default: 6
+    tree_depth = c(6), # default: 6
     trees = c(15), # default: 15
-    learn_rate = c(0.01, 0.1, 0.3), # default: 0.3
-    mtry = c(floor(sqrt(num_X)), round(num_X)/2, round(num_X)), # default: p (X)
+    learn_rate = c(0.3), # default: 0.3
+    mtry = c(round(num_X)), # default: p (X)
     min_n = c(1) # default: 1
   )
   
@@ -206,7 +213,6 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
       
       print(paste("Fold", fold_sel))
       
-
       # extract training and test data
       indices_fold_sel <- K_folds$splits[[fold_sel]]$in_id
       data_train <- data[indices_fold_sel, ]
@@ -280,13 +286,11 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
         ## XGBoost ##
         #+++++++++++#
         
+        # make predictions
         xgb_ml <- func_ml_xgboost(
           treatment_setting, data_train, data_test, outcome, treatment, group, K_tuning, 
           xgb_grid, probscore_separate = probscore_separate, probscore_normalize = TRUE
           )
-        
-        # xgb_ml_multi1 <- func_ml_xgboost("multi", data_train, data_test, outcome, treatment, group, K_tuning, xgb_grid)
-        # xgb_ml_multi2 <- func_ml_xgboost("multi", data_train, data_test, outcome, treatment, group, K_tuning, xgb_grid)
         
         # append predictions to data frame
         data_pred <- xgb_ml$pred
@@ -305,6 +309,7 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
         ## RANDOM FORESTS ##
         #++++++++++++++++++#
         
+        # make predictions
         rf_ml <- func_ml_rf(treatment_setting, data_train, data_test, outcome, treatment, group, K_tuning, rf_grid)
         
         # append predictions to data frame
@@ -450,7 +455,7 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
     # is wished to save (that is only for main model)
     if (S_rep == 1 & save_trimming == TRUE) {
       plot_common_support <- func_dml_common_support(treatment_setting, df_pred_all, min_trimming_all, max_trimming_all)
-      ggsave(paste0("Output/DML/Common_Support/dml_plot_common_support_", treatment_setting, "_", mlalgo, "_",
+      ggsave(paste0("Output/DML/Common_Support/MICE/dml_plot_common_support_", treatment_setting, "_", mlalgo, "_",
                     str_remove_all(cohort_prep, "_"), "_", treatment_def, "_", treatment_repl, extra_act_save, 
                     "_mice", mice_sel, ".png"), 
              plot_common_support)
