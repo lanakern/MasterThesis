@@ -146,7 +146,6 @@ main_model_k <- 4
 main_model_k_tuning <- 2
 main_model_s_rep <- 2
 main_model_trimming <- 0.01
-main_model_outcome <- "stand"
 main_model_controls <- "no_lags"
 
 # generate all possible combinations of user inputs (to iterate over it below)
