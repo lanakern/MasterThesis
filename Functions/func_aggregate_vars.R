@@ -22,10 +22,6 @@
 # OUTPUT: data frame with aggregated variables; single variables are dropped.
 #+++++
 
-# library(stringr)
-# library(dplyr)
-# library(psych)
-
 
 #%%%%%%%%%%%%%%%%%%#
 ## WRITE FUNCTION ##
@@ -46,16 +42,37 @@ func_aggregate_vars <- function(data, varsel_prefix, cr_alpha, method) {
   # generate empty vector with variables that are not aggregated because
   # according to cronbach's alpha they do not measure the same thing
   vars_not_aggr <- c()
+  vars_not_aggr_lag <- c()
   
   if (cr_alpha == "yes" & method %in% c("mean", "pca")) {
     # calculate cronbach's alpha to ensure that variables really measure the
     # same thing; do so only if 2-20 items are selected, otherwise all items are kept.
-    varsel_prefix_length <- data %>% dplyr::select(matches(paste0("^", varsel_prefix))) %>% colnames() %>% length()
     
+    # variable length: decide if lags are selected or not
+    colnames_sel <- data %>% 
+      dplyr::select(matches(paste0("^", varsel_prefix))) %>% 
+      colnames()
+    
+    if (any(str_ends(colnames_sel, "lag"))) {
+      varsel_prefix_length <- data %>% 
+        dplyr::select(matches(paste0("^", varsel_prefix, ".*[^lag]$"))) %>% 
+        colnames() %>% length()
+      
+      varsel_prefix_length_lag <- data %>% 
+        dplyr::select(matches(paste0("^", varsel_prefix, ".*lag$"))) %>% 
+        colnames() %>% length()
+    } else {
+      varsel_prefix_length <- data %>% 
+        dplyr::select(matches(paste0("^", varsel_prefix, ".*[^lag]$"))) %>% 
+        colnames() %>% length()
+      varsel_prefix_length_lag <- c()
+    }
+    
+    # calculate alpha for non lagged variables
     if (varsel_prefix_length >= 2 & varsel_prefix_length <= 20) {
       
       # calculate alpha
-      df_alpha <- psych::alpha(data %>% dplyr::select(matches(paste0("^", varsel_prefix))), check.keys = TRUE)
+      df_alpha <- psych::alpha(data %>% dplyr::select(matches(paste0("^", varsel_prefix, ".*[^lag]$"))), check.keys = TRUE)
       
       # extract total alpha
       alpha_total <- df_alpha$total$raw_alpha
@@ -76,13 +93,60 @@ func_aggregate_vars <- function(data, varsel_prefix, cr_alpha, method) {
     } else {
       # if less than two or more than 20 variables are kept, all variables are kept and
       # no selected based on cronbach's alpha is made
-      vars_keep <- data %>% dplyr::select(matches(paste0("^", varsel_prefix))) %>% colnames()
+      vars_keep <- data %>% dplyr::select(matches(paste0("^", varsel_prefix, ".*[^lag]$"))) %>% colnames()
     }
+    
+    # for lagged variables
+    # SO FAR THEY ARE ALWAYS AGGREGATED IF NON-LAGGED VARIABLES ARE
+    vars_keep_lag <- data %>% dplyr::select(matches(paste0("^", varsel_prefix, ".*lag$"))) %>% colnames()
+    # if (!is.null(varsel_prefix_length_lag)) {
+    #   if (varsel_prefix_length_lag >= 2 & varsel_prefix_length_lag <= 20) {
+    #     
+    #     # calculate alpha
+    #     df_alpha <- psych::alpha(data %>% dplyr::select(matches(paste0("^", varsel_prefix, ".*lag$"))), check.keys = TRUE)
+    #     
+    #     # extract total alpha
+    #     alpha_total <- df_alpha$total$raw_alpha
+    #     
+    #     # when variables measure the same thing proceed
+    #     if (alpha_total >= 0.7) {
+    #       # only keep variables for which total alpha would decrease if they would be
+    #       # excluded
+    #       alpha_indiv <- df_alpha$alpha.drop %>% as.data.frame() %>% dplyr::select(raw_alpha)
+    #       alpha_indiv$vars_keep <- rownames(alpha_indiv)
+    #       vars_keep_lag <- alpha_indiv[alpha_indiv < alpha_total, "vars_keep"]
+    #       vars_keep_lag <- str_remove_all(vars_keep_lag, "-")
+    #     } else {
+    #       # ... otherwise do not aggregate the variables
+    #       vars_keep_lag <- c()
+    #     }
+    #     
+    #   } else {
+    #     # if less than two or more than 20 variables are kept, all variables are kept and
+    #     # no selected based on cronbach's alpha is made
+    #     vars_keep_lag <- data %>% dplyr::select(matches(paste0("^", varsel_prefix, ".*lag$"))) %>% colnames()
+    #   }
+    # } # close is.null(varsel_prefix_length_lag) (if lags are included)
+    
+    # if cronbach's alpha should not be calculated
   } else {
-    vars_keep <- data %>% dplyr::select(matches(paste0("^", varsel_prefix))) %>% colnames()
+    vars_keep <- data %>% dplyr::select(matches(paste0("^", varsel_prefix, ".*[^lag]$"))) %>% colnames()
+    if (is_empty(vars_keep)) {
+      vars_keep <- data %>% dplyr::select(matches(paste0("^", varsel_prefix))) %>% colnames()
+    } else {
+      vars_keep <- vars_keep
+    }
+    
+    # lagged variables
+    vars_keep_lag <- data %>% dplyr::select(matches(paste0("^", varsel_prefix, ".*lag$"))) %>% colnames()
+    if (is_empty(vars_keep_lag)) {
+      vars_keep_lag <- c()
+    } else {
+      vars_keep_lag <- vars_keep_lag
+    }
   }
-  
 
+  # decide if aggregation is performed or not
   if (length(vars_keep) == 0) {
     # do not aggregate variables
     data_final <- data 
@@ -98,15 +162,38 @@ func_aggregate_vars <- function(data, varsel_prefix, cr_alpha, method) {
       new_column_name <- varsel_prefix
     }
     
-    
     # create variables to drop
     if (str_detect(varsel_prefix, "\\.\\*")) {
       column_names_drop <- varsel_prefix
     } else if (str_detect(varsel_prefix, "_\\[\\^")) {
       column_names_drop <- varsel_prefix
     } else {
-      column_names_drop <- paste0(varsel_prefix, "_.*$")
+      column_names_drop <- paste0(varsel_prefix, "_", ".*[^lag]$")
     }
+    
+    # same for lag
+    if (!is_empty(vars_keep_lag)) {
+      if (str_detect(varsel_prefix, "\\.\\*")) {
+        new_column_name_lag <- varsel_prefix %>% str_remove("\\.\\*") %>% str_replace("__", "_")
+      } else if (str_detect(varsel_prefix, "_\\[\\^")) {
+        new_column_name_lag <- str_split(varsel_prefix, "_\\[", simplify = TRUE)[,1]
+      } else {
+        new_column_name_lag <- varsel_prefix
+      }
+      new_column_name_lag <- paste0(new_column_name_lag, "_lag")
+
+      if (str_detect(varsel_prefix, "\\.\\*")) {
+        column_names_drop_lag <- varsel_prefix
+      } else if (str_detect(varsel_prefix, "_\\[\\^")) {
+        column_names_drop_lag <- varsel_prefix
+      } else {
+        column_names_drop_lag <- paste0(varsel_prefix, "_.*lag$")
+      }
+    } else {
+      new_column_name_lag <- c()
+      column_names_drop_lag <- c()
+    }
+
     
     
     #+++++++++++++++++++++++#
@@ -118,6 +205,8 @@ func_aggregate_vars <- function(data, varsel_prefix, cr_alpha, method) {
     #--------#
     
     if (method == "mean") {
+      
+      # "normal" variables
       data_final <- data %>% 
         mutate(
           {{new_column_name}} := round(
@@ -125,17 +214,42 @@ func_aggregate_vars <- function(data, varsel_prefix, cr_alpha, method) {
         ) %>%
         dplyr::select(-matches(column_names_drop))
       
+      # "lagged" variables (if they exist)
+      if (!is.null(new_column_name_lag)) {
+        column_names_drop_lag <- data_final %>% 
+          dplyr::select(matches(column_names_drop_lag)) %>% colnames()
+        
+        data_final <- data_final %>% 
+          mutate(
+            {{new_column_name_lag}} := round(
+              rowMeans(dplyr::select(data_final, all_of(vars_keep_lag)), na.rm = TRUE))
+          ) %>%
+          dplyr::select(-all_of(column_names_drop_lag))
+      }
+
+      
       
     ## SUM ##
     #-------#
       
     } else if (method == "sum") {
+      
       data_final <- data %>% 
         mutate(
           {{new_column_name}} := round(
             rowSums(dplyr::select(data, all_of(vars_keep)), na.rm = TRUE))
         ) %>%
         dplyr::select(-matches(column_names_drop))
+      
+      # "lagged" variables (if they exist)
+      if (!is.null(new_column_name_lag)) {
+        data_final <- data_final %>% 
+          mutate(
+            {{new_column_name_lag}} := round(
+              rowSums(dplyr::select(data_final, all_of(vars_keep_lag)), na.rm = TRUE))
+          ) %>%
+          dplyr::select(-matches(column_names_drop_lag))
+      }
       
       
     ## PCA ##
@@ -167,18 +281,65 @@ func_aggregate_vars <- function(data, varsel_prefix, cr_alpha, method) {
             data_final <- data_final %>%
               mutate({{new_column_name_sel}} := pca_result$x[, comp_sel]) 
           }
-          
         }
-      } else {
+        } else {
+          # if only one variable is kept, no PCA is performed
+          # -> variable is left as it is 
+          # -> variable is labelled later (hence, stored in vars_not_aggr)
+          data_final <- data %>%
+            mutate({{new_column_name}} := !!sym(vars_keep)) %>% 
+            dplyr::select(-matches(column_names_drop))
+          
+          vars_not_aggr <- new_column_name
+        }
+        
+        
+        # PCA for lagged variable
+        if (!is.null(new_column_name_lag)) {
+          # identify columns to drop
+          column_names_drop_lag <- data_final %>% 
+            dplyr::select(matches(column_names_drop_lag)) %>% colnames()
+          
+          if (length(vars_keep_lag) > 1) {
+            # select variables for PCA
+            data_pca <- data_final %>%
+              dplyr::select(all_of(vars_keep_lag)) 
+            # calculate PCA
+            pca_result <- prcomp(data_pca, center = TRUE, scale. = TRUE)
+            # calculate eigenvalues
+            pca_eigenvalues <- pca_result$sdev^2
+            # keep components with eigenvalues larger than 1
+            pca_keep <- sum(pca_eigenvalues > 1)
+            # keep variables
+            if (pca_keep == 1) {
+              data_final <- data_final %>%
+                mutate({{new_column_name_lag}} := pca_result$x[, 1]) %>% 
+                dplyr::select(-matches(column_names_drop_lag))
+            } else {
+              # for more than two components, variables are enumerated
+              data_final <- data_final %>% dplyr::select(-matches(column_names_drop_lag))
+              for (comp_sel in 1:pca_keep) {
+                new_column_name_sel <- paste0(new_column_name_lag, "_", comp_sel)
+                data_final <- data_final %>%
+                  mutate({{new_column_name_sel}} := pca_result$x[, comp_sel]) 
+              }
+              
+            }
+        } else {
         # if only one variable is kept, no PCA is performed
         # -> variable is left as it is 
         # -> variable is labelled later (hence, stored in vars_not_aggr)
-        data_final <- data %>%
-          mutate({{new_column_name}} := !!sym(vars_keep)) %>% 
-          dplyr::select(-matches(column_names_drop))
-        
-        vars_not_aggr <- new_column_name
-      }
+          column_names_drop_lag <- data_final %>% 
+            dplyr::select(matches(column_names_drop_lag)) %>% colnames()
+          
+          data_final <- data_final %>%
+            mutate({{new_column_name_lag}} := !!sym(vars_keep_lag)) %>% 
+            dplyr::select(-matches(column_names_drop_lag))
+          
+          vars_not_aggr_lag <- new_column_name_lag
+      }}
+      
+      
       
     ## BINARY ##
     #----------#
@@ -204,8 +365,12 @@ func_aggregate_vars <- function(data, varsel_prefix, cr_alpha, method) {
     
   }
   
+  colnames_exist <- data_final %>% dplyr::select(starts_with(varsel_prefix)) %>% colnames()
+  colnames_keep <- c(varsel_prefix, paste0(varsel_prefix, "_lag"))
+  colnames_drop <- colnames_exist[!colnames_exist %in% colnames_keep]
+  data_final <- data_final %>% dplyr::select(-all_of(colnames_drop))
 
   # return data
-  return(list(data_final, vars_not_aggr))
+  return(list(data_final, vars_not_aggr, vars_not_aggr_lag))
 }
   
