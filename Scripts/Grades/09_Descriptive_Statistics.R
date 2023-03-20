@@ -6,10 +6,10 @@
 # by Lana Kern
 #+++
 # In this file, descriptive statistics are made for both the binary and 
-# multivalued treatment setting. For the outcome, ability, and motivation
-# variables, differences-in-means are calculated. 
+# multivalued treatment setting. For the outcome variable, current average grade, 
+# differences-in-means are calculated. 
 # Everything is done for the main model and the five MICE data set. Those are
-# appended row-wise
+# appended row-wise.
 #+++
 
 
@@ -314,9 +314,11 @@ table(data_descr %>% filter(treatment_sport == 0) %>% dplyr::select(extracurricu
 #### DESCRIPTIVES MOST IMPROTANT PREDICTORS ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-vars_baseline_descr <- str_replace(vars_baseline, "\ngroup,", "")
-data_descr_sub <- eval(parse(text = paste('data_descr %>%', vars_baseline_descr)))
-data_descr_sub %>% colnames()
+# vars_baseline_descr <- str_replace(vars_baseline, "\ngroup,", "")
+# data_descr_sub <- eval(parse(text = paste('data_descr %>%', vars_baseline_descr)))
+# data_descr_sub %>% colnames()
+
+data_descr_sub <- data_descr
 
 
 ## frequency table for categorical variables ##
@@ -399,10 +401,10 @@ for (mice_data_sel in 1:5) {
   }
   
   if (cohort_prep == "controls_same_outcome") {
-    data_load <- paste0("Data/Prep_8/prep_8_plausi_", treatment_def, "_", treatment_repl,
+    data_load <- paste0("Data/Grades/Prep_8/prep_8_plausi_", treatment_def, "_", treatment_repl,
                         extra_act_save, "_mice", mice_data_sel, ".rds")
   } else {
-    data_load <- paste0("Data/Prep_8/prep_8_plausi_", treatment_def, "_", treatment_repl, 
+    data_load <- paste0("Data/Grades/Prep_8/prep_8_plausi_", treatment_def, "_", treatment_repl, 
                         extra_act_save, "_robustcheck", "_mice", mice_data_sel, ".rds")
   }
   
