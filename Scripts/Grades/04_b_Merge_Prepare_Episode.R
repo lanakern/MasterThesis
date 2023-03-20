@@ -30,34 +30,6 @@
 # -> Panel data set
 #++++
 
-#%%%%%%%%%#
-## SETUP ##
-#%%%%%%%%%#
-
-
-# clear workspace
-# rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", "treatment_def", "df_inputs", "prep_sel_num")))
-
-# # install packages if needed, load packages
-# if (!require("dplyr")) install.packages("dplyr")
-# library(dplyr)  # to manipulate data
-# 
-# if (!require("tidyr")) install.packages("tidyr")
-# library(tidyr)  # to manipulate data, e.g. replace_na, spread() etc.
-# 
-# if (!require("sqldf")) install.packages("sqldf")
-# library(sqldf)  # for sql syntax
-# 
-# if (!require("xlsx")) install.packages("xlsx")
-# library(xlsx)  # for excel file
-# 
-# # define inputs
-#   ## selection on cohort preparation
-# #cohort_prep <- "controls_bef_outcome" 
-# cohort_prep <- "controls_same_outcome"
-#   ## treatment replacement
-# treatment_repl <- "downup" # (only used for saving)
-
 
 
 #%%%%%%%%%%%%%%%%%#
@@ -437,6 +409,14 @@ cols_emp_drop <- cols_emp_drop[!str_detect(cols_emp_drop, "current")]
 data_cati_cawi_unispell_emp <- data_cati_cawi_unispell_emp %>%
   dplyr::select(-all_of(cols_emp_drop))
 
+# generate lagged employment variable
+data_cati_cawi_unispell_emp <- data_cati_cawi_unispell_emp %>%
+  group_by(ID_t) %>%
+  mutate(emp_current_lag = lag(emp_current),
+         emp_current_act_work_hours_lag = lag(emp_current_act_work_hours)) %>%
+  # mutate(emp_current_lag_NA = ifelse(is.na(emp_current_lag), 1, 0),
+  #        emp_current_act_work_hours_lag_NA = ifelse(is.na(emp_current_act_work_hours_lag), 1, 0)) %>%
+  ungroup()
 
 # number of respondents
 length(unique(data_cati_cawi_unispell_emp$ID_t)) # unchanged
