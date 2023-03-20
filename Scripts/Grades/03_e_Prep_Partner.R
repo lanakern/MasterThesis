@@ -189,6 +189,13 @@ data_partner %>%
   subset(ID_t %in% c(7002147, 7002012, 7001970)) %>% 
   arrange(ID_t, interview_date)
 
+
+# generate lag for partner: did student have a partner one year before
+data_partner <- data_partner %>%
+  mutate(partner_current_lag = ifelse(
+    interview_date - 365 >= start_date & (interview_date - 365 <= end_date_adj | is.na(end_date_adj)),
+    1, 0))
+
 # checks: 
   ## no missings in length
 sum(is.na(data_partner %>% filter(partner_current == 1) %>% dplyr::select(partner_current_length)))
@@ -265,7 +272,8 @@ data_partner_current <- data_partner_current %>%
 # keep only variables of interest
 data_partner_current <- data_partner_current %>%
   dplyr::select(
-    ID_t, interview_date, partner_current, partner_num, partner_current_length, partner_previous_length_total, 
+    ID_t, interview_date, partner_current, partner_current_lag,
+    partner_num, partner_current_length, partner_previous_length_total, 
     partner_male, partner_age, partner_migration, partner_living_ger, 
     partner_school_degree_highest, partner_uni_degree, starts_with("partner_educ"), 
     partner_study_current, partner_emp_current,
@@ -303,7 +311,7 @@ data_partner_no_current <-
   # create one dummy for partner
   mutate(partner = 1) %>% 
   dplyr::select(
-    ID_t, interview_date, partner_current, partner_num, 
+    ID_t, interview_date, partner_current, partner_current_lag, partner_num, 
     partner_current_length, partner_previous_length_total, 
     partner_male, partner_age, partner_migration, partner_living_ger, 
     partner_school_degree_highest, partner_uni_degree, starts_with("partner_educ"), 
