@@ -41,7 +41,8 @@
 # -> "fold_sel": number of fold
 # -> "probscore_separate": only relevant for multivalued treatment setting ->
 # if TRUE (default) multivalued treatment setting is split in binary treatment setting
-# and separate binary logistic regressions are performed. 
+# and separate binary logistic regressions are performed. Otherwise multinominal
+# classification task is performed. 
 #+++
 # OUTPUT:
 # -> Data frame containing the error metrics across each fold and each
@@ -110,7 +111,7 @@ func_ml_error_metrics <- function(treatment_setting, data_pred, S_rep, fold_sel,
   } else if (treatment_setting == "multi") {
     # again differentiate between separate m(D) models and one multinominal m(D) model  
     
-    ## SEPARTE ##
+    ## SEPARTE BINARY LOGISTIC REGRESSIONS ##
     
     if (probscore_separate == TRUE) {
       
@@ -173,7 +174,7 @@ func_ml_error_metrics <- function(treatment_setting, data_pred, S_rep, fold_sel,
       
       
       
-    ## MULTI ##
+    ## MULTINOMINAL LOGISTIC REGRESSION ##
       
     } else {
       
@@ -272,7 +273,7 @@ func_ml_error_metrics <- function(treatment_setting, data_pred, S_rep, fold_sel,
     g1_mape <- yardstick::mape(data_pred %>% filter(treatment == 1), truth = outcome, estimate = g1) %>%
       dplyr::select(.estimate) %>% pull()
     g2_mape <- yardstick::mape(data_pred %>% filter(treatment == 2), truth = outcome, estimate = g2) %>%
-      dplry::select(.estimate) %>% pull()
+      dplyr::select(.estimate) %>% pull()
     g3_mape <- yardstick::mape(data_pred %>% filter(treatment == 3), truth = outcome, estimate = g3) %>%
       dplyr::select(.estimate) %>% pull()
     
@@ -288,5 +289,6 @@ func_ml_error_metrics <- function(treatment_setting, data_pred, S_rep, fold_sel,
   # combine both data sets
   df_error <- cbind(df_error_class, df_error_reg)
 
+  # return data set
   return(df_error)
 }
