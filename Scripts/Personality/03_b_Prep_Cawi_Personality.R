@@ -63,6 +63,36 @@ data_target_cawi <- data_target_cawi %>%
     sport_uni_freq_NA = ifelse(is.na(sport_uni_freq), 1, 0)
   )
 
+# create lags for selected variables (including outcome and treatment)
+# sort(names(colSums(is.na(data_target_cawi))[colSums(is.na(data_target_cawi)) > nrow(data_target_cawi)/2]))
+var_sel_lag <- c("sport_uni", "sport_uni_freq", "grade_current", "uni_degree_import", 
+                 "uni_ects_degree", "uni_ects_total", "uni_degree_complete_prob",
+                 data_target_cawi %>% dplyr::select(
+                   starts_with("academic"), starts_with("extracurricular"), starts_with("friends"),
+                   starts_with("personality"), starts_with("stress"),
+                   starts_with("uni_best_student"), starts_with("uni_learn_group"),
+                   starts_with("satisfaction_life"), starts_with("social_integr"),
+                   starts_with("uni_commitment"), starts_with("uni_termination"), starts_with("uni_time"), 
+                   starts_with("uni_cost_giving_up"), starts_with("uni_courses_num"), starts_with("uni_anxiety"),
+                   starts_with("uni_fear"), starts_with("uni_perf_satisfied"), starts_with("uni_achievement_expect"),
+                   starts_with("living")
+                 ) %>% colnames())
+data_target_cawi_lags <- data_target_cawi %>%
+  mutate(wave_2 = as.numeric(str_sub(wave, 1, 4))) %>%
+  arrange(ID_t, wave_2) %>%
+  dplyr::select(ID_t, wave, var_sel_lag) %>% 
+  group_by(ID_t) %>%
+  dplyr::mutate(across(var_sel_lag, ~lag(., default = NA))) %>%
+  rename_at(.vars = vars(var_sel_lag), ~paste0(., "_lag")) %>%
+  ungroup()
+
+# generate NA dummies for lagged variables
+# var_sel_lag_na <- colnames(data_target_cawi_lags %>% dplyr::select(-c("ID_t", "wave")))
+var_sel_lag_na <- c("sport_uni_lag", "sport_uni_freq_lag")
+for (var_sel in var_sel_lag_na) {
+  data_target_cawi_lags <- func_na_dummy(data_target_cawi_lags, var_sel)
+}
+
 # fill missing values of CAWI: down here because cohort profile does not
 # contain all waves anymore
 # depending on selection missing values in treatment variable may also be

@@ -20,40 +20,6 @@
 #++++
 
 
-#%%%%%%%%%%%%%#
-#### Setup ####
-#%%%%%%%%%%%%%#
-
-# clear workspace
-# rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", "treatment_def", "df_inputs", "prep_sel_num")))
-
-# # load and install (if necessary) packages
-# if (!require("dplyr")) install.packages("dplyr")
-# library(dplyr)  # to manipulate data
-# 
-# if (!require("tidyr")) install.packages("tidyr")
-# library(tidyr)  # to fill missing values
-# 
-# if (!require("lubridate")) install.packages("lubridate")
-# library(lubridate) # to work with dates
-# 
-# if (!require("xlsx")) install.packages("xlsx")
-# library(xlsx) # for saving as xlsx
-# 
-# # set language for dates and times to German, since the NEPS month names
-# # are written in German; otherwise date/time functions are not working
-# # for German language
-# Sys.setlocale("LC_TIME", "German")
-# 
-# # treatment replacement
-# treatment_repl <- "downup" # with any other selection, only downward replacement is made
-# 
-# # selection on cohort prepration
-# #cohort_prep <- "controls_bef_outcome" 
-# cohort_prep <- "controls_same_outcome"
-
-
-
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 #### Load Data & Join with Cohort Profile ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -100,6 +66,36 @@ data_target_cati <- data_target_cati %>%
     bigfive_neuroticism_NA = ifelse(is.na(bigfive_neuroticism), 1, 0),
     bigfive_openness_NA = ifelse(is.na(bigfive_openness), 1, 0) 
   )
+
+
+# create lags for selected variables (including outcome and treatment)
+# sort(names(colSums(is.na(data_target_cati))[colSums(is.na(data_target_cati)) < nrow(data_target_cati)/2]))
+var_sel_lag <- c("sport_leisure_freq", "living_hh_size", "current_residence_eastwest",
+                 data_target_cati %>% dplyr::select(
+                   starts_with("health"), starts_with("satisfaction_life"), starts_with("bigfive"),
+                   starts_with("motivation_degree"), starts_with("personality"), 
+                   starts_with("uni_prob_graduation"), starts_with("interest")
+                 ) %>% colnames())
+data_target_cati_lags <- data_target_cati %>%
+  mutate(wave_2 = as.numeric(str_sub(wave, 1, 4))) %>%
+  arrange(ID_t, wave_2) %>%
+  dplyr::select(ID_t, wave, var_sel_lag) %>%
+  group_by(ID_t) %>%
+  dplyr::mutate(across(var_sel_lag, ~lag(., default = NA))) %>%
+  rename_at(.vars = vars(var_sel_lag), ~paste0(., "_lag")) %>%
+  ungroup()
+
+# generate NA dummies for lagged variables
+# var_sel_lag_na <- colnames(data_target_cati_lags %>% dplyr::select(-c("ID_t", "wave")))
+var_sel_lag_na <- c("sport_leisure_freq_lag", "bigfive_extraversion_lag", "bigfive_agreeableness_lag",
+                    "bigfive_conscientiousness_lag", "bigfive_neuroticism_lag", "bigfive_openness_lag")
+for (var_sel in var_sel_lag_na) {
+  data_target_cati_lags <- func_na_dummy(data_target_cati_lags, var_sel)
+}
+
+# add to data frame
+data_target_cati <- left_join(data_target_cati, data_target_cati_lags, 
+                              by = c("ID_t", "wave"))
 
 # handle many missing values in CATI: unless a new value has been reported,
 # value is copied downwards, i.e., to later waves. 
