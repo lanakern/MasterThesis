@@ -31,34 +31,6 @@
 #++++
 
 
-#%%%%%%%%%#
-## SETUP ##
-#%%%%%%%%%#
-
-# clear workspace
-# rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", "treatment_def", "df_inputs", "prep_sel_num")))
-
-# # install packages if needed, load packages
-# if (!require("dplyr")) install.packages("dplyr")
-# library(dplyr)  # to manipulate data
-# 
-# if (!require("tidyr")) install.packages("tidyr")
-# library(tidyr)  # for fill() function -> missing values
-# 
-# if (!require("xlsx")) install.packages("xlsx")
-# library(xlsx)  # for excel file
-# 
-# # define inputs
-#   ## selection on cohort preparation
-# #cohort_prep <- "controls_bef_outcome" 
-# cohort_prep <- "controls_same_outcome"
-#   ## only for saving
-# treatment_repl <- "downup" 
-#   ## treatment definition: all frequency levels or only weekly
-# treatment_def <- "all"
-# #treatment_def <- "weekly"
-
-
 # load data
 if (cohort_prep == "controls_same_outcome") {
   data_raw <- readRDS(paste0("Data/Grades/Prep_4/prep_4_merge_all_treat", 
@@ -68,7 +40,6 @@ if (cohort_prep == "controls_same_outcome") {
                              treatment_repl, "_robustcheck.rds") )
 }
 num_id <- length(unique(data_raw$ID_t))
-
 
 
 
@@ -95,14 +66,18 @@ data_raw %>% filter(sport_uni == "not involved") %>% pull(sport_uni_freq) %>% un
 data_1 <- data_raw
 
 # 1.) Recode sport_uni_freq as "never" for sport_uni == "not involved"
+# do the same for the lagged variable
 data_1 <- data_1 %>%
-  mutate(sport_uni_freq = ifelse(
-    sport_uni == "not involved" & is.na(sport_uni_freq), "never", sport_uni_freq
-    ))
+  mutate(
+    sport_uni_freq = ifelse(sport_uni == "not involved" & is.na(sport_uni_freq), "never", sport_uni_freq),
+    sport_uni_freq_lag = ifelse(sport_uni_lag == "not involved" & is.na(sport_uni_freq_lag), "never", sport_uni_freq_lag)
+    ) 
 
 table(data_1$sport_uni, useNA = "always")
 table(data_1$sport_uni_freq, useNA = "always")
+table(data_1$sport_uni_freq_lag, useNA = "always")
 data_1 %>% filter(sport_uni == "not involved") %>% pull(sport_uni_freq) %>% unique()
+data_1 %>% filter(sport_uni_lag == "not involved") %>% pull(sport_uni_freq_lag) %>% unique()
 
 
 # 2.) Recode values: 
@@ -129,10 +104,10 @@ data_1 %>% filter(sport_uni == "not involved") %>% pull(sport_uni_freq) %>% uniq
 
 table(data_1$sport_uni_freq, useNA = "always")
 table(data_1$sport_leisure_freq, useNA = "always")
-
+table(data_1$sport_uni_freq_lag, useNA = "always")
+table(data_1$sport_leisure_freq_lag, useNA = "always")
 
 data_1 <- data_1 %>%
-  # labels
   mutate(
     sport_uni_freq = recode(
       sport_uni_freq,
@@ -145,15 +120,41 @@ data_1 <- data_1 %>%
       "never" = 1, "once a month or less" = 2, 
       "several times a month or once a week" = 3,
       "several times a week" = 4, "almost daily or daily" = 5
-    )
-  ) 
+    ))
 
+# recode lags (problems with NA. hence if)
+if (any(!is.na(unique(data_1$sport_uni_freq_lag)))) {
+  data_1 <- data_1 %>%
+    # labels
+    mutate(
+      sport_uni_freq_lag = recode(
+        sport_uni_freq_lag,
+        "never" = 1, "less frequently" = 2, "once a month" = 2, 
+        "several times a month" = 3, "once a week" = 3, 
+        "several times a week" = 4, "daily" = 5
+      ))
+}
 
+if (any(!is.na(unique(data_1$sport_leisure_freq_lag)))) {
+  data_1 <- data_1 %>%
+    # labels
+    mutate(
+      sport_leisure_freq_lag = recode(
+        sport_leisure_freq_lag, 
+        "never" = 1, "once a month or less" = 2, 
+        "several times a month or once a week" = 3,
+        "several times a week" = 4, "almost daily or daily" = 5
+      ))
+}
+ 
 table(data_1$sport_uni_freq, useNA = "always")
 table(data_1$sport_leisure_freq, useNA = "always")
+table(data_1$sport_leisure_freq_lag, useNA = "always")
+table(data_1$sport_uni_freq_lag, useNA = "always")
 
 
 # generate one treatment frequency variable (for both university and leisure sport)
+# same is done for lag
 data_1 <- data_1 %>%
   mutate(
     treatment_sport_freq = case_when(
@@ -164,10 +165,20 @@ data_1 <- data_1 %>%
       # in all other cases use uni sport
       TRUE ~ sport_uni_freq
     )
+  ) %>%
+  mutate(
+    treatment_sport_freq_lag = case_when(
+      # if uni sport is missing use info on leisure sport
+      is.na(sport_uni_freq_lag) ~ sport_leisure_freq_lag,
+      # if leisure sport frequency is higher, however, use info on leisure sport
+      sport_leisure_freq_lag > sport_uni_freq_lag & !is.na(sport_leisure_freq_lag) & !is.na(sport_uni_freq_lag) ~ sport_leisure_freq_lag,
+      # in all other cases use uni sport
+      TRUE ~ sport_uni_freq_lag
+    )
   )
 
 table(data_1$treatment_sport_freq, useNA = "always")
-
+table(data_1$treatment_sport_freq_lag, useNA = "always")
 
 # create dummy to know if I used uni or leisure sport information
 data_1 <- data_1 %>%
@@ -195,8 +206,12 @@ table(data_1$sport_freq_source, useNA = "always")
 data_1 <- data_1 %>% mutate(
   treatment_sport_freq = recode(treatment_sport_freq,
     "1" = "never", "2" = "less frequently", "3" = "monthly", "4" = "weekly", "5" = "daily"
-  ))
-
+  ),
+  treatment_sport_freq_lag = recode(
+    treatment_sport_freq_lag, 
+    "1" = "never", "2" = "less frequently", "3" = "monthly", "4" = "weekly", "5" = "daily"
+  )
+  )
 
 
 
@@ -217,7 +232,7 @@ table(data_2$sport_leisure_freq, useNA = "always")
 if (treatment_def == "all") {
   data_2 <- data_2 %>%
     # rename original sport_uni variable
-    rename(sport_uni_orig = sport_uni) %>%
+    rename(sport_uni_orig = sport_uni, sport_uni_lag_orig = sport_uni_lag) %>%
     # create variables
     mutate(
       # respondent participates in university sport if sport_uni_orig equals
@@ -226,11 +241,18 @@ if (treatment_def == "all") {
                          ifelse(is.na(sport_uni_orig), NA, 1)),
       # respondent participates in leisure sport if sport_leisure_freq is NOT NA and not 0
       sport_leisure = ifelse(sport_leisure_freq > 1, 1, 
-                             ifelse(is.na(sport_leisure_freq), NA, 0))
+                             ifelse(is.na(sport_leisure_freq), NA, 0)),
+      # do the same for the lags
+      sport_uni_lag = ifelse(sport_uni_lag_orig == "not involved", 0, 
+                             ifelse(is.na(sport_uni_lag_orig), NA, 1)),
+      sport_leisure_lag = ifelse(sport_leisure_freq_lag > 1, 1, 
+                             ifelse(is.na(sport_leisure_freq_lag), NA, 0))
     ) 
   
   table(data_2$sport_uni, useNA = "always")
   table(data_2$sport_leisure, useNA = "always")
+  table(data_2$sport_uni_lag, useNA = "always")
+  table(data_2$sport_leisure_lag, useNA = "always")
   
   
   # create general dummy for sport-participation (=1) and non-participation (=0)
@@ -239,7 +261,10 @@ if (treatment_def == "all") {
     mutate(
       treatment_sport = case_when(sport_leisure == 1 | sport_uni == 1 ~ 1,
                                   is.na(sport_leisure) & is.na(sport_uni) ~ as.double(NA),
-                                  TRUE ~ 0)
+                                  TRUE ~ 0),
+      treatment_sport_lag = case_when(sport_leisure_lag == 1 | sport_uni_lag == 1 ~ 1,
+                                      is.na(sport_leisure_lag) & is.na(sport_uni_lag) ~ as.double(NA),
+                                      TRUE ~ 0)
     ) %>%
     # create indicator for source
     mutate(
@@ -255,7 +280,7 @@ if (treatment_def == "all") {
 ## ONLY CONSIDER AS SPORT PARTICIPATION WEEKLY PARTICIPATION
 } else {
   data_2 <- data_2 %>%
-    rename(sport_uni_orig = sport_uni) %>%
+    rename(sport_uni_orig = sport_uni, sport_uni_lag_orig = sport_uni_lag) %>%
     # create variables
     mutate(
       # respondent participates in university sport if sport_uni_freq variable
@@ -264,7 +289,12 @@ if (treatment_def == "all") {
                          ifelse(is.na(sport_uni_freq), NA, 0)),
       # respondent participates in leisure sport if sport_leisure_freq is NOT NA and not 0
       sport_leisure = ifelse(sport_leisure_freq > 3, 1, 
-                             ifelse(is.na(sport_leisure_freq), NA, 0))
+                             ifelse(is.na(sport_leisure_freq), NA, 0)),
+      # for lags
+      sport_uni_lag = ifelse(sport_uni_freq_lag > 3, 1, 
+                             ifelse(is.na(sport_uni_freq_lag), NA, 0)),
+      sport_leisure_lag = ifelse(sport_leisure_freq_lag > 3, 1, 
+                                 ifelse(is.na(sport_leisure_freq_lag), NA, 0))
     ) 
   
   table(data_2$sport_uni, useNA = "always")
@@ -277,7 +307,10 @@ if (treatment_def == "all") {
     mutate(
       treatment_sport = case_when(sport_leisure == 1 | sport_uni == 1 ~ 1,
                                   is.na(sport_leisure) & is.na(sport_uni) ~ as.double(NA),
-                                  TRUE ~ 0)
+                                  TRUE ~ 0),
+      treatment_sport_lag = case_when(sport_leisure_lag == 1 | sport_uni_lag == 1 ~ 1,
+                                      is.na(sport_leisure_lag) & is.na(sport_uni_lag) ~ as.double(NA),
+                                      TRUE ~ 0)
     ) %>%
     # create indicator for source
     mutate(
@@ -302,12 +335,19 @@ table(data_2$treatment_sport, useNA = "always")
 table(data_2$sport_source, useNA = "always")
 
 
-# create NA variable
+# create NA variables
 data_2 <- data_2 %>% 
   mutate(
     treatment_sport_NA = ifelse(sport_uni_NA == 1 & sport_leisure_freq_NA == 1, 1, 0),
-    treatment_sport_freq_NA = ifelse(sport_uni_freq_NA == 1 & sport_leisure_freq_NA == 1, 1, 0)
+    treatment_sport_freq_NA = ifelse(sport_uni_freq_NA == 1 & sport_leisure_freq_NA == 1, 1, 0),
+    treatment_sport_lag_NA = ifelse(sport_uni_freq_lag_NA == 1 & sport_leisure_freq_lag_NA == 1, 1, 0),
+    treatment_sport_freq_lag_NA = ifelse(sport_uni_freq_lag_NA == 1 & sport_leisure_freq_lag_NA == 1, 1, 0)
     )
+
+table(data_2$treatment_sport_NA, useNA = "always")
+table(data_2$treatment_sport_freq_NA, useNA = "always")
+table(data_2$treatment_sport_lag_NA, useNA = "always")
+table(data_2$treatment_sport_freq_lag_NA, useNA = "always")
 
 
 ## CHECK ##
@@ -349,19 +389,22 @@ data_3 <- data_2
 # academic achievements so far
 # however, if it is missing, the final grade is used (does not happen often)
 summary(data_3$grade_current)
+summary(data_3$grade_current_lag)
 
 data_3 %>% filter(is.na(grade_current) & !is.na(grade_final)) %>%
   pull(ID_t) %>% unique() %>% length()
 
 data_3 <- data_3 %>%
-  mutate(outcome_grade = ifelse(is.na(grade_current), grade_final, grade_current))
+  mutate(outcome_grade = ifelse(is.na(grade_current), grade_final, grade_current),
+         outcome_grade_lag = ifelse(is.na(grade_current_lag), grade_final_lag, grade_current_lag))
 
 summary(data_3$outcome_grade) 
-
+summary(data_3$outcome_grade_lag) 
 
 # create NA variable
 data_3 <- data_3 %>% 
-  mutate(outcome_grade_NA = ifelse(grade_current_NA == 1, 1, 0))
+  mutate(outcome_grade_NA = ifelse(grade_current_NA == 1, 1, 0),
+         outcome_grade_lag_NA = ifelse(grade_current_lag_NA == 1, 1, 0))
 
 # number of respondents
 length(unique(data_3$ID_t)) # should be unchanged
@@ -384,18 +427,24 @@ data_4 <- data_4 %>% filter(!is.na(treatment_sport) & !is.na(outcome_grade))
 num_id_adj_1 <- length(unique(data_4$ID_t)) 
 drop_na <- num_id - num_id_adj_1
 
-# plausible values: every value above 5.0 is implausible
+# plausible values: every value below 1.0 and above 5.0 is implausible
 # hence those are set NA; missing values are downward replaced; remaining
 # missing values are deleted
 summary(data_4$outcome_grade)
+summary(data_4$outcome_grade_lag)
 data_4 <- data_4 %>%
-  mutate(outcome_grade = replace(outcome_grade, outcome_grade > 5, NA)) %>%
+  mutate(outcome_grade = replace(outcome_grade, outcome_grade > 5, NA),
+         outcome_grade = replace(outcome_grade, outcome_grade < 1, NA),
+         outcome_grade_lag = replace(outcome_grade_lag, outcome_grade_lag > 5, NA),
+         outcome_grade_lag = replace(outcome_grade_lag, outcome_grade_lag < 1, NA)
+         ) %>%
   group_by(ID_t) %>%
-  fill(outcome_grade, .direction = "down") %>%
+  fill(c(outcome_grade, outcome_grade_lag), .direction = "down") %>%
   ungroup() %>%
   filter(!is.na(outcome_grade))
 
 summary(data_4$outcome_grade)
+summary(data_4$outcome_grade_lag)
 num_id_adj_2 <- length(unique(data_4$ID_t)) 
 drop_grade <- num_id_adj_1 - num_id_adj_2
 
@@ -412,7 +461,7 @@ data_4 <- data_4 %>% dplyr::select(-starts_with("grade"))
 # ungroup data frame
 data_4 <- data_4 %>% ungroup()
 
-# ensure that they are no missing values for treatment and outcome (except freq)
+# ensure that they are no missing values for treatment and outcome (except freq and lags)
 colSums(is.na(data_4 %>% dplyr::select(starts_with("treatment_s"), starts_with("outcome"))))
 
 # check for duplicates
@@ -422,7 +471,8 @@ sum(duplicated(data_4))
 print(paste("Number of respondents before data preparation:", num_id))
 print(paste("Number of respondents after dropping respondents with missing value in treatment:", num_id_adj_1))
 print(paste("Number of respondents after dropping respondents with missing value in outcome:", num_id_adj_2))
-
+print(paste("Number of treatment periods:", nrow(data_4)))
+print(paste("Number of columns:", ncol(data_4)))
 
 # save
 if (cohort_prep == "controls_same_outcome") {
