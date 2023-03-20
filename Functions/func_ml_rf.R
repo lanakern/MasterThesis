@@ -11,23 +11,26 @@
 #++++
 # INPUT:
 # -> "treatment_setting": binary treatment setting ("binary") or multivalued treatment setting ("multi")
-# -> "data_train": training data
-# -> "data_test": test data
+# -> "data_train": training data containing "outcome", "treatment", and controls
+# -> "data_test": test data containing "outcome", "treatment", "group", and controls (same as for data_train)
 # -> "outcome": name of outcome variable included in data_train and data_test
 # -> "treatment": name of treatment variable included in data_train and data_test
 # -> "group": group variable included in data_train and data_test
-# -> "K": number of folds generated for parameter tuning
+# -> "K": number of folds generated for parameter tuning. For random forests, it is
+# possible to not tune the hyperparameters. In this case, set K = 1, and the 
+# default values are used.
 # -> "rf_grid": hyperparameter grid consisting of
-  # - "trees": number of tress in the forest. Set to 1,000 (NOT TUNED). Default is 500.
+  # - "trees": number of tress in the forest. Due to the computational burden,
+  # they are not tuned (first value in grid is selected).
   # - "mtry": randomly selected predictors at each split. 
   # Default: floor(sqrt(ncol(x))) for classification, floor(ncol(x)/3) for regression. 
   # - "min_n": minimal size of terminal node. Default: 5 for regression; 10 for classification.
   # https://parsnip.tidymodels.org/reference/details_rand_forest_randomForest.html
 #++++
 # OUTPUT:
-# -> "pred": data frame with nuisance parameter predictions and true values
-# -> "param": data frame including the value of lambda that is used for
-# final model training
+# -> "pred": data frame with nuisance parameter predictions and true values.
+# -> "param": data frame including the hyperparameter values that are used for
+# the final model training.
 #++++
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -38,6 +41,7 @@ func_ml_rf <- function(treatment_setting, data_train, data_test, outcome, treatm
     stop("Treatment setting: binary or multi")
   }
   
+  # so far, trees are not tuned.
   trees_sel <- unique(rf_grid$trees)[1]
   
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -69,7 +73,8 @@ func_ml_rf <- function(treatment_setting, data_train, data_test, outcome, treatm
     
     # generate recipe: define outcome and predictors
     ## confounding factors / predictors: all variables except treatment, outcome, and group
-    X_controls <- data_train %>% dplyr::select(-c(all_of(outcome), all_of(treatment), all_of(group))) %>% colnames()
+    X_controls <- data_train %>% 
+      dplyr::select(-c(all_of(outcome), all_of(treatment), all_of(group))) %>% colnames()
     ## m(x)
     rf_recipe_m <- 
       data_train %>%
@@ -178,7 +183,7 @@ func_ml_rf <- function(treatment_setting, data_train, data_test, outcome, treatm
       )
       
     } else {
-      # default parameter
+      # default parameters
       df_best_param <- data.frame(
         "m_trees" = trees_sel, "m_mtry" = floor(sqrt(ncol(data_train))), "m_min_n" = 5,
         "g0_trees" = trees_sel, "g0_mtry" = floor(ncol(data_train)/3), "g0_min_n" = 5,
@@ -218,10 +223,7 @@ func_ml_rf <- function(treatment_setting, data_train, data_test, outcome, treatm
     min_n_g1 <- df_best_param$g1_min_n
     
     rf_spec_final_g1 <- 
-      rand_forest(trees = {{trees_g1}}, 
-                  mtry = {{mtry_g1}}, 
-                  min_n = {{min_n_g1}}
-      ) %>%
+      rand_forest(trees = {{trees_g1}}, mtry = {{mtry_g1}}, min_n = {{min_n_g1}}) %>%
       set_engine("randomForest") %>% 
       set_mode("regression")
     
@@ -327,7 +329,11 @@ func_ml_rf <- function(treatment_setting, data_train, data_test, outcome, treatm
     ## confounding factors / predictors: all variables except variables including treatment information, outcome, and group
     X_controls <- data_train %>% 
       dplyr::select(-c(all_of(outcome), starts_with(treatment), all_of(group))) %>% colnames()
-    X_controls <- c(X_controls, "treatment_sport_freq_na", "treatment_sport_freq_lag")
+    X_controls <- c(X_controls, "treatment_sport_freq_na", "treatment_sport_freq_source_leisure", 
+                    "treatment_sport_freq_source_uni")
+    if ("treatment_sport_freq_lag" %in% ncol(data_train)) {
+      X_controls <- c(X_controls, "treatment_sport_freq_lag")
+    }
     ## m(x) for each treatment category
     rf_recipe_m1 <- 
       data_train %>%
@@ -474,10 +480,10 @@ func_ml_rf <- function(treatment_setting, data_train, data_test, outcome, treatm
         "m3_min_n" = rf_best_param_m3$min_n,
         "g1_trees" = trees_sel, "g1_mtry" = rf_best_param_g1$mtry,
         "g1_min_n" = rf_best_param_g1$min_n,
-        "g2_trees" = trees_sel, "g2_mtry" = rf_best_param_g1$mtry,
-        "g2_min_n" = rf_best_param_g1$min_n,
-        "g3_trees" = trees_sel, "g3_mtry" = rf_best_param_g1$mtry,
-        "g3_min_n" = rf_best_param_g1$min_n
+        "g2_trees" = trees_sel, "g2_mtry" = rf_best_param_g2$mtry,
+        "g2_min_n" = rf_best_param_g2$min_n,
+        "g3_trees" = trees_sel, "g3_mtry" = rf_best_param_g3$mtry,
+        "g3_min_n" = rf_best_param_g3$min_n
       )
     } else {
       df_best_param <- data.frame(
@@ -668,7 +674,4 @@ func_ml_rf <- function(treatment_setting, data_train, data_test, outcome, treatm
     # return data frame with predictions
     return(list("pred" = df_pred, "param" = df_best_param))
   }
-  
-  
-  
 } # close function() 
