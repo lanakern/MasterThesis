@@ -45,7 +45,6 @@ id_cohort <- unique(data_cohort_profile$ID_t)
 setdiff(id_cohort, id_cati) # should be "integer(0)"
 sum(id_cohort %in% id_cati) == length(id_cohort) # should be TRUE
 
-
 # CAWI: keep only respondents who are also in data cohort
 data_target_cati <- data_target_cati %>% filter(ID_t %in% id_cohort)
 id_num_cati_adj_1 <- length(unique(data_target_cati$ID_t))
@@ -56,6 +55,34 @@ data_target_cati <- data_target_cati %>%
     sport_leisure_freq_NA = ifelse(is.na(sport_leisure_freq), 1, 0),
     grade_final_NA = ifelse(is.na(grade_final), 1, 0) 
   )
+
+# create lags for selected variables (including outcome and treatment)
+# sort(names(colSums(is.na(data_target_cati))[colSums(is.na(data_target_cati)) < nrow(data_target_cati)/2]))
+var_sel_lag <- c("sport_leisure_freq", "grade_final", "living_hh_size", "current_residence_eastwest",
+                 data_target_cati %>% dplyr::select(
+                   starts_with("health"), starts_with("satisfaction_life"), starts_with("bigfive"),
+                   starts_with("motivation_degree"), starts_with("personality"), 
+                   starts_with("uni_prob_graduation"), starts_with("interest"), 
+                 ) %>% colnames())
+data_target_cati_lags <- data_target_cati %>%
+  mutate(wave_2 = as.numeric(str_sub(wave, 1, 4))) %>%
+  arrange(ID_t, wave_2) %>%
+  dplyr::select(ID_t, wave, var_sel_lag) %>%
+  group_by(ID_t) %>%
+  dplyr::mutate(across(var_sel_lag, ~lag(., default = NA))) %>%
+  rename_at(.vars = vars(var_sel_lag), ~paste0(., "_lag")) %>%
+  ungroup()
+
+# generate NA dummies for lagged variables
+# var_sel_lag_na <- colnames(data_target_cati_lags %>% dplyr::select(-c("ID_t", "wave")))
+var_sel_lag_na <- c("sport_leisure_freq_lag", "grade_final_lag")
+for (var_sel in var_sel_lag_na) {
+  data_target_cati_lags <- func_na_dummy(data_target_cati_lags, var_sel)
+}
+
+# add to data frame
+data_target_cati <- left_join(data_target_cati, data_target_cati_lags, 
+                              by = c("ID_t", "wave"))
 
 # handle many missing values in CATI: unless a new value has been reported,
 # value is copied downwards, i.e., to later waves. 
