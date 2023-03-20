@@ -5,7 +5,11 @@
 #++++
 # by Lana Kern
 #++++
-# This function uses post-lasso to predict the nuisance parameters. 
+# This function uses post-lasso to predict the nuisance parameters in both the
+# binary and multivalued treatment setting.
+# Note: The parameter tuning for the binary treatment setting is performed in
+# "func_ml_postlasso_tuning_binary" and for the multivalued treatment setting
+# in "func_ml_postlasso_tuning_multi". 
 #++++
 # INPUT:
 # -> "treatment_setting": binary treatment setting ("binary") or multivalued treatment setting ("multi")
@@ -14,7 +18,7 @@
 # -> "outcome": name of outcome variable included in data_train and data_test
 # -> "treatment": name of treatment variable included in data_train and data_test
 # -> "group": group variable included in data_train and data_test
-# -> "K": number of folds generated for parameter tuning
+# -> "K": number of folds generated for parameter tuning. Must be K >= 2.
 # -> "lambda_val": number of lambda values used in tuning process
 #++++
 # OUTPUT:
@@ -35,6 +39,7 @@ func_ml_postlasso <- function(treatment_setting, data_train, data_test, outcome,
   
   # define a parameter grid with 1,000 random values for the penalty term
   lasso_grid <- grid_regular(penalty(), levels = lambda_val)
+  
   
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
   #### BINARY TREATMENT SETTING ####
@@ -190,7 +195,7 @@ func_ml_postlasso <- function(treatment_setting, data_train, data_test, outcome,
     lasso_coef_g1 <- tidy(lasso_fit_final_g1) %>% as.data.frame()
     lasso_coef_g1 <- lasso_coef_g1 %>% filter(estimate > 0) %>% mutate(model = "g1") %>% dplyr::select(-penalty)
     
-    
+    # generate union used for final model
     lasso_coef_all <- union(union(lasso_coef_g0$term, lasso_coef_g1$term), lasso_coef_m$term)
     lasso_coef_all <- lasso_coef_all[!str_detect("(Intercept)", lasso_coef_all)]
     
@@ -280,7 +285,11 @@ func_ml_postlasso <- function(treatment_setting, data_train, data_test, outcome,
     ## confounding factors / predictors: all variables except variables including treatment information, outcome, and group
     X_controls <- data_train %>% 
       dplyr::select(-c(all_of(outcome), starts_with(treatment), all_of(group))) %>% colnames()
-    X_controls <- c(X_controls, "treatment_sport_freq_na", "treatment_sport_freq_lag")
+    X_controls <- c(X_controls, "treatment_sport_freq_na", "treatment_sport_freq_source_leisure", 
+                    "treatment_sport_freq_source_uni")
+    if ("treatment_sport_freq_lag" %in% ncol(data_train)) {
+      X_controls <- c(X_controls, "treatment_sport_freq_lag")
+    }
     ## m(x) for each treatment category
     lasso_recipe_m1 <- 
       data_train %>%
