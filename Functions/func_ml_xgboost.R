@@ -361,7 +361,11 @@ func_ml_xgboost <- function(treatment_setting, data_train, data_test, outcome, t
         ## confounding factors / predictors: all variables except variables including treatment information, outcome, and group
       X_controls <- data_train %>% 
         dplyr::select(-c(all_of(outcome), starts_with(treatment), all_of(group))) %>% colnames()
-      X_controls <- c(X_controls, "treatment_sport_freq_na", "treatment_sport_freq_lag")
+      X_controls <- c(X_controls, "treatment_sport_freq_na", "treatment_sport_freq_source_leisure", 
+                      "treatment_sport_freq_source_uni")
+      if ("treatment_sport_freq_lag" %in% ncol(data_train)) {
+        X_controls <- c(X_controls, "treatment_sport_freq_lag")
+      }
       
         ## m(x) for each treatment category
       xgb_recipe_m1 <- 
@@ -764,7 +768,11 @@ func_ml_xgboost <- function(treatment_setting, data_train, data_test, outcome, t
         ## confounding factors / predictors: all variables except treatment, outcome, and group
       X_controls <- data_train %>% 
         dplyr::select(-c(all_of(outcome), starts_with(treatment), all_of(group))) %>% colnames()
-      X_controls <- c(X_controls, "treatment_sport_freq_na", "treatment_sport_freq_lag")
+      X_controls <- c(X_controls, "treatment_sport_freq_na", "treatment_sport_freq_source_leisure", 
+                      "treatment_sport_freq_source_uni")
+      if ("treatment_sport_freq_lag" %in% ncol(data_train)) {
+        X_controls <- c(X_controls, "treatment_sport_freq_lag")
+      }
         ## m(x)
       xgb_recipe_m <- 
         data_train %>%
