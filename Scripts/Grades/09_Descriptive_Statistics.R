@@ -78,6 +78,7 @@ data_descr_mice1 <- data_descr %>% filter(MICE == 1)
 
 data_outcome_descr <- 
   func_mean_comp(df = data_descr_mice1, y_variables = "outcome_grade", treatment_setting = "binary")
+data_outcome_descr <- data_outcome_descr %>% dplyr::select(-median)
 
 # calculate minimum, maximum, median etc.
 data_outcome_descr_2 <- func_summary_stats(data_descr_mice1, "treatment_sport", "outcome_grade")
@@ -439,6 +440,7 @@ data_descr_multi_mice1 <- data_descr_multi %>% filter(MICE == 1)
 
 # mean comparison
 data_outcome_descr_multi <- func_mean_comp(data_descr_multi_mice1, "outcome_grade", "multi")
+data_outcome_descr_multi <- data_outcome_descr_multi %>% dplyr::select(-median)
 data_outcome_descr_multi
 
 # calculate minimum, maximum, median etc.
