@@ -35,8 +35,10 @@ if (extra_act == "yes") {
 
 # number of columns may differ across MICE data sets
 data_binary_num_cols <- data.frame()
+data_binary_num_cols_nolags <- data.frame()
 data_binary_num_cols_all <- data.frame()
 data_multi_num_cols <- data.frame()
+data_multi_num_cols_nolags <- data.frame()
 data_multi_num_cols_all <- data.frame()
 
 # ITERATE OVER MICE DATA SETS
@@ -71,7 +73,7 @@ for (mice_data_sel in 1:5) {
     # in the cross-fitting procedure
     mutate(group = as.integer(factor(id_t,levels = unique(id_t))))  %>%
     dplyr::select(-c(id_t, starts_with("interview_date"), treatment_period, 
-              starts_with("na_count"), ends_with("_cat")))
+              starts_with("na_count"), ends_with("_cat"), ends_with("_cat_lag")))
   
   # ensure all character variables are dropped
   treatment_sport_freq <- data_final$treatment_sport_freq # keep
@@ -130,6 +132,32 @@ for (mice_data_sel in 1:5) {
     gc()
   }
   
+  
+  # Only save for non-lag variables (but no extra data set)
+  data_binary_lags <- data_binary %>% dplyr::select(-ends_with("_lag"))
+  data_binary_num_cols_nolags <- rbind(
+    data_binary_num_cols_nolags, 
+    data.frame("num_cols" = ncol(data_binary_lags), "num_rows" = nrow(data_binary_lags))
+  )
+  
+  if (mice_data_sel == 5) {
+    df_excel_save <- data.frame(
+      "data_prep_step" = "estimation_sample",
+      "data_prep_step_2" = "binary_nolags",
+      "data_prep_choice_cohort" = cohort_prep,
+      "data_prep_treatment_repl" = treatment_repl,
+      "data_prep_treatment_def" = treatment_def,
+      "data_prep_extraact" = extra_act, 
+      "num_id" = length(unique(data_final_raw$id_t)), 
+      "num_rows" = mean(data_binary_num_cols_nolags$num_rows),
+      "num_cols" = mean(data_binary_num_cols_nolags$num_cols),
+      "time_stamp" = Sys.time()
+    )
+    ## load function
+    source("Functions/func_save_sample_reduction.R")
+    func_save_sample_reduction(df_excel_save, "grade")
+    gc()
+  }
 
   
   
@@ -251,37 +279,28 @@ for (mice_data_sel in 1:5) {
   
   # drop treatment variables for binary treatment setting
   data_multi_all <- data_final %>%
-    dplyr::select(-c(treatment_sport, treatment_sport_lag, treatment_sport_na,
+    dplyr::select(-c(treatment_sport, treatment_sport_na,
+                     treatment_sport_lag, treatment_sport_lag_na, 
                      treatment_sport_source_uni, treatment_sport_source_leisure,
                      treatment_sport_freq_never, treatment_sport_freq_weekly_atleast,
-                     treatment_sport_freq_lag_monthly_less, treatment_sport_freq_lag_never, 
-                     treatment_sport_freq_lag_weekly_atleast))
+                     treatment_sport_freq_never_lag, treatment_sport_freq_weekly_atleast_lag))
   
   # create treatment_sport_freq dummy
   data_multi_all <- fastDummies::dummy_cols(
     data_multi_all, remove_selected_columns = FALSE, remove_first_dummy = FALSE, 
-    select_columns = "treatment_sport_freq"
-  )
+    select_columns = c("treatment_sport_freq", "treatment_sport_freq_lag")
+  ) %>% dplyr::select(-treatment_sport_freq_lag)
   
   # treatment_sport_freq as number
   data_multi_all <- data_multi_all %>%
     mutate(treatment_sport_freq = case_when(
       treatment_sport_freq == "weekly_atleast" ~ 1,
       treatment_sport_freq == "monthly_less" ~ 2,
-      TRUE ~ 3
-    ))
-  
-  # lag also as number
-  data_multi_all <- data_multi_all %>%
-    mutate(treatment_sport_freq_lag = case_when(
-      treatment_sport_freq_lag == "weekly_atleast" ~ 1,
-      treatment_sport_freq_lag == "monthly_less" ~ 2,
-      treatment_sport_freq_lag == "never" ~ 3,
+      treatment_sport_freq == "never" ~ 3,
       TRUE ~ 4
     ))
-    ## drop lag dummies
-  data_multi_all <- data_multi_all %>% dplyr::select(-starts_with("treatment_sport_freq_lag_"))
   
+
   # save data frames
   if (cohort_prep == "controls_same_outcome") {
     saveRDS(data_multi_all, 
@@ -318,6 +337,32 @@ for (mice_data_sel in 1:5) {
     gc()
   }
   
+  
+  # Only save for non-lag variables (but no extra data set)
+  data_multi_all_lags <- data_multi_all %>% dplyr::select(-ends_with("_lag"))
+  data_multi_num_cols_nolags <- rbind(
+    data_multi_num_cols_nolags, 
+    data.frame("num_cols" = ncol(data_multi_all_lags), "num_rows" = nrow(data_multi_all_lags))
+  )
+  
+  if (mice_data_sel == 5) {
+    df_excel_save <- data.frame(
+      "data_prep_step" = "estimation_sample",
+      "data_prep_step_2" = "binary_nolags",
+      "data_prep_choice_cohort" = cohort_prep,
+      "data_prep_treatment_repl" = treatment_repl,
+      "data_prep_treatment_def" = treatment_def,
+      "data_prep_extraact" = extra_act, 
+      "num_id" = length(unique(data_final_raw$id_t)), 
+      "num_rows" = mean(data_multi_all_lags$num_rows),
+      "num_cols" = mean(data_multi_all_lags$num_cols),
+      "time_stamp" = Sys.time()
+    )
+    ## load function
+    source("Functions/func_save_sample_reduction.R")
+    func_save_sample_reduction(df_excel_save, "grade")
+    gc()
+  }
   
   #### All + Interaction + Polynomials ####
   #+++++++++++++++++++++++++++++++++++++++#
@@ -424,6 +469,6 @@ for (mice_data_sel in 1:5) {
       source("Functions/func_save_sample_reduction.R")
       func_save_sample_reduction(df_excel_save, "grade")
       gc()
-    }
-  }
-}
+    } # close saving
+  } # close create_interaction
+} # close iteration over mice data sets
