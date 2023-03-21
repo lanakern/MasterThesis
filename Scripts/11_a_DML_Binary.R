@@ -57,16 +57,42 @@ for (mice_data_sel in 1:5) {
              "_", treatment_repl, extra_act_save, "_robustcheck_mice", mice_data_sel, load_data_ending)
   }
   
-  data_dml <- readRDS(load_data)
+  data_dml_raw <- readRDS(load_data)
+  data_dml <- data_dml_raw
   
   # drop lags if desired by user
-  if (model_controls == "no_lags") {
+  if (model_controls_lag == "no_lags") {
     # drop all lags
-    data_dml <- data_dml %>% dplyr::select(-c(ends_with("_lag"))) %>% as.data.frame()
-  } else if (model_controls == "no_to_lags") {
+    data_dml <- data_dml %>% 
+      dplyr::select(-c(contains("_lag"))) %>% 
+      as.data.frame()
+  } else if (model_controls_lag == "no_treatment_outcome_lags") {
     # drop only treatment and outcome lags
+    # here differentiate between GPA and personality outcome
+    if (str_detect(outcome_var, "grade")) {
+      data_dml <- data_dml %>% 
+        dplyr::select(-c(starts_with("treatment") & contains("_lag"))) %>% 
+        dplyr::select(-c(starts_with("outcome") & contains("_lag"))) %>%
+        as.data.frame()
+    } else {
+      data_dml <- data_dml %>% 
+        dplyr::select(-c(starts_with("treatment") & contains("_lag"))) %>% 
+        dplyr::select(-c(starts_with(outcome_var) & contains("_lag"))) %>%
+        as.data.frame()
+    }
   } else {
     # keep all lags
+    data_dml <- data_dml %>% as.data.frame()
+  }
+  
+  # drop endogeneous variables if desired by user
+  if (model_controls_endog == "no") {
+    colnames_endog_drop <- 
+      eval(parse(text = paste(paste("data_dml_raw", "%>%"), vars_endogenous, "%>% colnames()")))
+    colnames_endog_drop <- colnames_endog_drop[colnames_endog_drop %in% colnames(data_dml)]
+    data_dml <- data_dml %>% dplyr::select(-all_of(colnames_endog_drop))
+  } else {
+    # keep endogeneous variables
     data_dml <- data_dml %>% as.data.frame()
   }
   
@@ -113,7 +139,8 @@ for (mice_data_sel in 1:5) {
   # only save common support plot for main model
   if (cohort_prep == main_cohort_prep & treatment_def == main_treatment_def  &
       treatment_repl == main_treatment_repl & extra_act == main_extra_act & 
-      model_type == main_model_type & model_controls == main_model_controls) {
+      model_type == main_model_type & model_controls_lag == main_model_controls_lag &
+      model_controls_endog == main_model_controls_endog) {
     save_trimming_sel <- TRUE
   } else {
     save_trimming_sel <- FALSE
@@ -167,7 +194,7 @@ dml_result_save <- dml_result_pooled %>%
     # append user selections
     model_type = model_type, model_algo = model_algo, model_k = model_k, 
     model_k_tuning = model_k_tuning, model_s_rep = model_s_rep, model_trimming = model_trimming, 
-    model_controls = model_controls,
+    model_controls_lag = model_controls_lag, model_controls_endog = model_controls_endog,
     # number of treatment periods before and after after trimming
     n_treats_before = min(unlist(lapply(lapply(dml_result_all, "[[" , "trimming"), "[[", "n_treats_before"))), 
     n_treats_after = min(unlist(lapply(lapply(dml_result_all, "[[" , "trimming"), "[[", "n_treats_after"))), 
