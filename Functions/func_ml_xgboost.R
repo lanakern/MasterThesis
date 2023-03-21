@@ -146,18 +146,26 @@ func_ml_xgboost <- function(treatment_setting, data_train, data_test, outcome, t
     # parameter tuning via K-fold CV
     # this means that training data is again partitioned into K folds
     K_folds_inner_m <- rsample::group_vfold_cv(
-      data = data_train, 
-      v = K, group = group, strata = all_of(treatment), balance = "observations"
+      data = data_train %>%
+        group_by(group) %>% 
+        mutate(treatment_fold = mean(!!rlang::sym(treatment))) %>%
+        ungroup(), 
+      v = K, group = group, strata = treatment_fold, balance = "observations"
     )
     K_folds_inner_g0 <- rsample::group_vfold_cv(
-      data = data_train_g0,  
-      v = K, group = group, strata = all_of(outcome), balance = "observations"
+      data = data_train_g0 %>%
+        group_by(group) %>% 
+        mutate(outcome_fold = mean(!!rlang::sym(outcome))) %>%
+        ungroup(),  
+      v = K, group = group, strata = outcome_fold, balance = "observations"
     )
     K_folds_inner_g1 <- rsample::group_vfold_cv(
-      data = data_train_g1,  
-      v = K, group = group, strata = all_of(outcome), balance = "observations"
+      data = data_train_g1 %>%
+        group_by(group) %>% 
+        mutate(outcome_fold = mean(!!rlang::sym(outcome))) %>%
+        ungroup(),  
+      v = K, group = group, strata = outcome_fold, balance = "observations"
     )
-    
     
     # conduct parameter tuning
     ## m(X)
@@ -443,30 +451,47 @@ func_ml_xgboost <- function(treatment_setting, data_train, data_test, outcome, t
       # parameter tuning via 5-fold CV
       # this means that training data is again partitioned into K-folds
       K_folds_inner_m1 <- rsample::group_vfold_cv(
-        data = data_train, 
-        v = K, group = group, strata = all_of(treatment_sport_freq_weekly_atleast), balance = "observations"
+        data = data_train %>%
+          group_by(group) %>% 
+          mutate(treatment_fold = mean(treatment_sport_freq_weekly_atleast)) %>%
+          ungroup(), 
+        v = K, group = group, strata = treatment_fold, balance = "observations"
       )
       K_folds_inner_m2 <- rsample::group_vfold_cv(
-        data = data_train, 
-        v = K, group = group, strata = all_of(treatment_sport_freq_monthly_less), balance = "observations"
+        data = data_train %>%
+          group_by(group) %>% 
+          mutate(treatment_fold = mean(treatment_sport_freq_monthly_less)) %>%
+          ungroup(), 
+        v = K, group = group, strata = treatment_fold, balance = "observations"
       )
       K_folds_inner_m3 <- rsample::group_vfold_cv(
-        data = data_train, 
-        v = K, group = group, strata = all_of(treatment_sport_freq_never), balance = "observations"
+        data = data_train %>%
+          group_by(group) %>% 
+          mutate(treatment_fold = mean(treatment_sport_freq_never)) %>%
+          ungroup(), 
+        v = K, group = group, strata = treatment_fold, balance = "observations"
       )
-      
       
       K_folds_inner_g1 <- rsample::group_vfold_cv(
-        data = data_train_g1,  
-        v = K, group = group, strata = all_of(outcome), balance = "observations"
+        data = data_train_g1 %>%
+          group_by(group) %>% 
+          mutate(outcome_fold = mean(!!rlang::sym(outcome))) %>%
+          ungroup(),  
+        v = K, group = group, strata = outcome_fold, balance = "observations"
       )
       K_folds_inner_g2 <- rsample::group_vfold_cv(
-        data = data_train_g2,  
-        v = K, group = group, strata = all_of(outcome), balance = "observations"
+        data = data_train_g2 %>%
+          group_by(group) %>% 
+          mutate(outcome_fold = mean(!!rlang::sym(outcome))) %>%
+          ungroup(),  
+        v = K, group = group, strata = outcome_fold, balance = "observations"
       )
       K_folds_inner_g3 <- rsample::group_vfold_cv(
-        data = data_train_g3,  
-        v = K, group = group, strata = all_of(outcome), balance = "observations"
+        data = data_train_g3 %>%
+          group_by(group) %>% 
+          mutate(outcome_fold = mean(!!rlang::sym(outcome))) %>%
+          ungroup(),  
+        v = K, group = group, strata = outcome_fold, balance = "observations"
       )
       
       # conduct parameter tuning
@@ -826,21 +851,34 @@ func_ml_xgboost <- function(treatment_setting, data_train, data_test, outcome, t
       
       # parameter tuning via 5-fold CV
       # this means that training data is again partitioned into 5 folds
-      K_folds_inner_m <- rsample::group_vfold_cv(
-        data = data_train, 
-        v = K, group = group, strata = all_of(treatment), balance = "observations"
+      K_folds_inner_m<- rsample::group_vfold_cv(
+        data = data_train %>%
+          group_by(group) %>% 
+          mutate(treatment_fold = mean(!!rlang::sym(treatment))) %>%
+          ungroup(), 
+        v = K, group = group, strata = treatment_fold, balance = "observations"
       )
+      
       K_folds_inner_g1 <- rsample::group_vfold_cv(
-        data = data_train_g1,  
-        v = K, group = group, strata = all_of(outcome), balance = "observations"
+        data = data_train_g1 %>%
+          group_by(group) %>% 
+          mutate(outcome_fold = mean(!!rlang::sym(outcome))) %>%
+          ungroup(),  
+        v = K, group = group, strata = outcome_fold, balance = "observations"
       )
       K_folds_inner_g2 <- rsample::group_vfold_cv(
-        data = data_train_g2,  
-        v = K, group = group, strata = all_of(outcome), balance = "observations"
+        data = data_train_g2 %>%
+          group_by(group) %>% 
+          mutate(outcome_fold = mean(!!rlang::sym(outcome))) %>%
+          ungroup(),  
+        v = K, group = group, strata = outcome_fold, balance = "observations"
       )
       K_folds_inner_g3 <- rsample::group_vfold_cv(
-        data = data_train_g3,  
-        v = K, group = group, strata = all_of(outcome), balance = "observations"
+        data = data_train_g3 %>%
+          group_by(group) %>% 
+          mutate(outcome_fold = mean(!!rlang::sym(outcome))) %>%
+          ungroup(),  
+        v = K, group = group, strata = outcome_fold, balance = "observations"
       )
       
       # conduct parameter tuning

@@ -121,26 +121,26 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
   }
   
   ## xgboost
-  # xgb_grid <- expand.grid(
-  #   tree_depth = c(3, 6), # default: 6
-  #   trees = c(15), # default: 15
-  #   learn_rate = c(0.01, 0.1, 0.3), # default: 0.3
-  #   mtry = c(floor(sqrt(num_X)), round(num_X)/2, round(num_X)), # default: p (X)
-  #   min_n = c(1) # default: 1
-  # )
   xgb_grid <- expand.grid(
-    tree_depth = c(6), # default: 6
+    tree_depth = c(3, 6), # default: 6
     trees = c(15), # default: 15
-    learn_rate = c(0.3), # default: 0.3
-    mtry = c(round(num_X)), # default: p (X)
+    learn_rate = c(0.01, 0.3), # default: 0.3
+    mtry = c(floor(sqrt(num_X)), round(num_X)/2, round(num_X)), # default: p (X)
     min_n = c(1) # default: 1
   )
+  # xgb_grid <- expand.grid(
+  #   tree_depth = c(6), # default: 6
+  #   trees = c(15), # default: 15
+  #   learn_rate = c(0.3), # default: 0.3
+  #   mtry = c(round(num_X)), # default: p (X)
+  #   min_n = c(1) # default: 1
+  # )
   
   ## random forests
   rf_grid <- expand.grid(
     trees = c(500), # default: 500
     mtry = c(floor(sqrt(num_X)), floor(num_X/3), round(num_X)), # default: floor(sqrt(num_X)) for classification and floor(num_X/3) for regression
-    min_n = c(5) # default: 5 for regression and 10 for classification
+    min_n = c(5, 10) # default: 5 for regression and 10 for classification
   )
   
   
@@ -200,9 +200,18 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
     # balance = "observations": assigns roughly the same number of observations to each fold
     # https://rsample.tidymodels.org/reference/group_vfold_cv.html
     # https://scikit-learn.org/stable/modules/cross_validation.html#group-k-fold
+    
+    # calculate means across group since group_vfold_cv needs constant strata
+    # across groups
+    data_folds <- data %>%
+      group_by(group) %>% 
+      mutate(treatment_fold = mean(!!rlang::sym(treatment))) %>%
+      dplyr::select(group, treatment_fold) %>%
+      ungroup()
+    
     K_folds <- rsample::group_vfold_cv(
-      data = data,  v = K, group = group, 
-      strata = c(all_of(outcome), all_of(treatment)), balance = "observations"
+      data = data_folds,  v = K, group = group, 
+      strata = treatment_fold, balance = "observations"
     )
     
     
@@ -454,11 +463,19 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
     # only save common support plot for first iteration (S_rep = 1) and if it
     # is wished to save (that is only for main model)
     if (S_rep == 1 & save_trimming == TRUE) {
-      plot_common_support <- func_dml_common_support(treatment_setting, df_pred_all, min_trimming_all, max_trimming_all)
-      ggsave(paste0("Output/DML/Common_Support/MICE/dml_plot_common_support_", treatment_setting, "_", mlalgo, "_",
-                    str_remove_all(cohort_prep, "_"), "_", treatment_def, "_", treatment_repl, extra_act_save, 
-                    "_mice", mice_sel, ".png"), 
-             plot_common_support)
+      plot_common_support <- func_dml_common_support(treatment_setting, df_pred_all, min_trimming_all, max_trimming_all, mlalgo)
+      if (treatment_setting == "binary") {
+        ggsave(paste0("Output/DML/Common_Support/MICE/dml_plot_common_support_", treatment_setting, "_", mlalgo, "_",
+                      str_remove_all(cohort_prep, "_"), "_", treatment_def, "_", treatment_repl, extra_act_save, 
+                      "_mice", mice_sel, ".png"), 
+               plot_common_support)
+      } else {
+        ggsave(paste0("Output/DML/Common_Support/MICE/dml_plot_common_support_", treatment_setting, "_", mlalgo, "_",
+                      str_remove_all(cohort_prep, "_"), "_", treatment_def, "_", treatment_repl, extra_act_save, 
+                      "_mice", mice_sel, ".png"), 
+               plot_common_support, width = 20, height = 20, units = "cm")
+      }
+
     }
     
     
