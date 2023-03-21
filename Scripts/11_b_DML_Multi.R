@@ -76,13 +76,38 @@ for (mice_data_sel in 1:5) {
   data_dml <- readRDS(load_data)
   
   # drop lags if desired by user
-  if (model_controls == "no_lags") {
+  if (model_controls_lag == "no_lags") {
     # drop all lags
-    data_dml <- data_dml %>% dplyr::select(-c(ends_with("_lag"))) %>% as.data.frame()
-  } else if (model_controls == "no_to_lags") {
+    data_dml <- data_dml %>% 
+      dplyr::select(-c(contains("_lag"))) %>% 
+      as.data.frame()
+  } else if (model_controls_lag == "no_treatment_outcome_lags") {
     # drop only treatment and outcome lags
+    # here differentiate between GPA and personality outcome
+    if (str_detect(outcome_var, "grade")) {
+      data_dml <- data_dml %>% 
+        dplyr::select(-c(starts_with("treatment_sport_freq") & contains("_lag"))) %>% 
+        dplyr::select(-c(starts_with("outcome") & contains("_lag"))) %>%
+        as.data.frame()
+    } else {
+      data_dml <- data_dml %>% 
+        dplyr::select(-c(starts_with("treatment_sport_freq") & contains("_lag"))) %>% 
+        dplyr::select(-c(starts_with(outcome_var) & contains("_lag"))) %>%
+        as.data.frame()
+    }
   } else {
     # keep all lags
+    data_dml <- data_dml %>% as.data.frame()
+  }
+  
+  # drop endogeneous variables if desired by user
+  if (model_controls_endog == "no") {
+    colnames_endog_drop <- 
+      eval(parse(text = paste(paste("data_dml_raw", "%>%"), vars_endogenous, "%>% colnames()")))
+    colnames_endog_drop <- colnames_endog_drop[colnames_endog_drop %in% colnames(data_dml)]
+    data_dml <- data_dml %>% dplyr::select(-all_of(colnames_endog_drop))
+  } else {
+    # keep endogeneous variables
     data_dml <- data_dml %>% as.data.frame()
   }
   
@@ -125,7 +150,8 @@ for (mice_data_sel in 1:5) {
   # only save common support plot for main model
   if (cohort_prep == main_cohort_prep & treatment_def == main_treatment_def  &
       treatment_repl == main_treatment_repl & extra_act == main_extra_act & 
-      model_type == main_model_type & model_controls == main_model_controls) {
+      model_type == main_model_type & model_controls_lag == main_model_controls_lag &
+      model_controls_endog == main_model_controls_endog) {
     save_trimming_sel <- TRUE
   } else {
     save_trimming_sel <- FALSE
@@ -140,7 +166,7 @@ for (mice_data_sel in 1:5) {
     # save common support plot
     save_trimming = save_trimming_sel,
     # model generation: separate 
-    probscore_separate = probscore_separate, mice_data_sel
+    probscore_separate = probscore_separate, mice_sel = mice_data_sel
   )
   
   # append APE
@@ -191,7 +217,8 @@ dml_result_save <- dml_result_pooled %>%
     # append user selections
     model_type = main_model_type, model_algo = multi_model_algo, model_k = main_model_k, 
     model_k_tuning = main_model_k_tuning, model_s_rep = main_model_s_rep, 
-    model_trimming = main_model_trimming, model_controls = main_model_controls,
+    model_trimming = main_model_trimming, model_controls_lag = main_model_controls_lag,
+    model_controls_endog = main_model_controls_endog,
     # number of treatment periods before and after after trimming
     n_treats_before = min(unlist(lapply(lapply(dml_result_all, "[[" , "trimming"), "[[", "n_treats_before"))), 
     n_treats_after = min(unlist(lapply(lapply(dml_result_all, "[[" , "trimming"), "[[", "n_treats_after"))), 
