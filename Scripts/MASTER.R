@@ -11,6 +11,9 @@
 # This file ensures the above mentioned steps are conducted in the correct order.
 # ATTENTION: THIS FILE HAS VERY LONG RUN TIMES OF SEVERAL WEEKS. Thus, it is
 # recommended to perform the operations step by step.
+#+++
+# The code is developed using "R version 4.1.2 (2021-11-01) -- "Bird Hippie"".
+# Note that with the latest R version some functions are not working.
 #++++
 
 
@@ -146,7 +149,8 @@ main_model_k <- 4
 main_model_k_tuning <- 2
 main_model_s_rep <- 2
 main_model_trimming <- 0.01
-main_model_controls <- "no_lags"
+main_model_controls_lag <- "no_lags"
+main_model_controls_endog  <- "yes"
 
 # generate all possible combinations of user inputs (to iterate over it below)
 df_inputs <- data.frame(
@@ -165,17 +169,28 @@ aggr_vars <- "pca" # "mean" (not used anymore)
 cronbach_a <- "yes" # "no" (not used anymore)
 
 
-# define variables which may be endogenous
-vars_endogenous <- c("educ_school_grade_math", "educ_school_grade_ger", "educ_school_grade_final")
-
+# define variables which may be endogenous (only used in main model)
+# also outcome and treatment lags but they are dropped within the code
+vars_endogenous <- 'dplyr::select(starts_with("health"), starts_with("uni_time_courses"),
+  starts_with("uni_time_study"), starts_with("extracurricular_freq"), starts_with("extracurricular_num"),
+  starts_with("interest"), starts_with("comp"), starts_with("emp"), starts_with("personality"),
+  starts_with("satisfaction_life"), starts_with("stress"), starts_with("uni_anxiety"),
+  starts_with("bigfive"), starts_with("parents_degree_wish"), starts_with("parents_importance_success"), 
+  starts_with("parents_opinion_degree"),
+  c("educ_school_grade_math", "educ_school_grade_ger", "educ_school_grade_final", 
+    "educ_school_rep_grade", "educ_school_degree_general", "educ_school_degree_applied", 
+    "uni_best_student", "uni_best_student_lag", "uni_ects_current",
+    "extracurricular_music"))'
+    
 
 # define variables to keep after deleting environment
 keep_after_file_run <- 'rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", 
 "treatment_def", "extra_act", "prep_sel_num", "aggr_vars", "cronbach_a",
 "df_inputs", "df_inputs_indiv", "df_inputs_dml", "df_inputs_dml_lasso",
  "keep_after_file_run", "vars_baseline", "model_type", "model_algo", 
-"model_k", "model_k_tuning", "model_s_rep", "model_trimming", "model_controls", 
-"model_outcome", "dml_num",  "treatment_setting", "outcome_var",
+"model_k", "model_k_tuning", "model_s_rep", "model_trimming", "model_controls_lag", 
+"model_controls_endog", "model_outcome", "dml_num", "probscore_separate", 
+"treatment_setting", "outcome_var", "outcome_var_multi", vars_endogenous", 
 ls()[str_starts(ls(), "func_")], ls()[str_starts(ls(), "main_")])))'
 
 
@@ -225,7 +240,8 @@ treatment_repl <- main_treatment_repl
 treatment_def <- main_treatment_def
 extra_act <- main_extra_act
 model_type <- "all"
-model_controls <- "no_lags"
+model_controls_lag <- "no_lags" # "no_treatment_outcome_lags", "all"
+model_controls_endog <- "yes"
 model_trimming <- 0.01
 
 # for lasso and xgboost higher K as they are computationally faster
@@ -311,7 +327,8 @@ treatment_repl <- main_treatment_repl
 treatment_def <- main_treatment_def
 extra_act <- main_extra_act
 model_type <- "all"
-model_controls <- "no_lags"
+model_controls_lag <- "no_lags"
+model_controls_endog <- "yes"
 model_trimming <- 0.01
 probscore_separate <- TRUE
 
@@ -359,7 +376,8 @@ cohort_prep <- main_cohort_prep
 treatment_def <- main_treatment_def
 treatment_repl <- main_treatment_repl
 extra_act <- main_extra_act
-model_controls <- main_model_controls
+model_controls_lag <- main_model_controls_lag
+model_controls_endog <- main_model_controls_endog
 n_features <- 20
 
 source("Scripts/13_c_DML_FeatureImportance.R") 
