@@ -1143,7 +1143,8 @@ if (id_num == 0) {
     "helpless_grades_improve", "helpless_grades_revision", 
     "intern_study_rel", "intern_type", "educ_voc_prep", "grade_final",
     "uni_admission_restr_other", "educ_uni_degree_achieve", "educ_uni_degree_aspire",
-    "personality_sociable", "personality_thorough", "personality_imaginative"
+    "personality_sociable", "personality_thorough", "personality_imaginative",
+    "uni_ects_degree_lag", "uni_ects_degree", "uni_ects_total_lag"
   )
   # ensure that those variables are really in data frame
   vars_drop <- vars_drop[vars_drop  %in% colnames(data_prep_2)]
@@ -1406,17 +1407,16 @@ if (id_num == 0) {
     # in the upcoming function variables are identified using prefixes.
     ## vector with variables aggregated as mean
     vars_aggregated_mean <- c(
-      ## CAWI
       "personality_goal_pers", "personality_goal_flex", "parents_importance_success",
-      "uni_counsel_.*_quality", "uni_quality", "uni_best_student", "uni_fear",
+      "uni_counsel_.*_quality",  "uni_best_student", "uni_fear",
       "uni_anxiety", "uni_termination", "uni_commitment", "uni_prep",
       "academic", "helpless", "social_integr", "stress", 
-      "uni_achievement_comp", "uni_perf_satisfied", "uni_offers",  
+      "uni_achievement_comp", "uni_perf_satisfied",  
       "personality_assertiveness", "personality_conflicts", 
       "personality_selfesteem", "parents_opinion_degree", "opinion_educ",
       "motivation_degree", "satisfaction_study", "satisfaction_life",
-      "interest_math", "interest_german", "risk", "uni_offers_.*_helpful",
-      "friends_opinion_degree"
+      "interest_math", "interest_german", "risk", 
+      "friends_opinion_degree"#,"uni_offers", "uni_offers_.*_helpful","uni_quality",
     )
     # ensure that variables exist (are not dropped above in missing value selection)
     colnames_exist <- unique(sub("_[^_]+$", "", 
@@ -1481,7 +1481,7 @@ if (id_num == 0) {
     data_prep_5 <- data_prep_5 %>% dplyr::select(-uni_offers_no)
     cols_offers <- data_prep_5 %>% dplyr::select(starts_with("uni_offers")) %>% colnames()
     cols_offers_help <- data_prep_5 %>% dplyr::select(starts_with("uni_offers") & ends_with("helpful")) %>% colnames()
-    cols_offers <- cols_offers[!cols_offers %in% cols_offers_help]
+    cols_offers <- cols_offers[!cols_offers %in% c(cols_offers_help, "uni_offers_partic")]
     
     data_prep_5 <- data_prep_5 %>% 
       mutate("uni_offers" = round(rowSums(dplyr::select(
@@ -1833,6 +1833,13 @@ if (id_num == 0) {
     data_final <- data_final %>%
       rename_all(list(~ stringr::str_to_lower(.))) %>%
       rename_all(list(~ stringr::str_replace_all(., ' ', '_')))
+    
+    # lag always at end of column name
+    colnames_lag_repl_old <- data_final %>% dplyr::select(contains("_lag_") & !ends_with("na")) %>% colnames()
+    colnames_lag_repl_new <- paste0(str_replace_all(colnames_lag_repl, "_lag_", "_"), "_lag")
+    
+    data_final <- data_final %>% 
+      dplyr::rename_with(~ colnames_lag_repl_new, all_of(colnames_lag_repl_old)) 
     
     # ungroup
     data_final <- data_final %>% ungroup()
