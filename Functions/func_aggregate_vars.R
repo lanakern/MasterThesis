@@ -317,9 +317,10 @@ func_aggregate_vars <- function(data, varsel_prefix, cr_alpha, method) {
                 dplyr::select(-matches(column_names_drop_lag))
             } else {
               # for more than two components, variables are enumerated
-              data_final <- data_final %>% dplyr::select(-matches(column_names_drop_lag))
+              data_final <- data_final %>% dplyr::select(-all_of(column_names_drop_lag))
               for (comp_sel in 1:pca_keep) {
-                new_column_name_sel <- paste0(new_column_name_lag, "_", comp_sel)
+                new_column_name_sel <- 
+                  paste0(str_remove(new_column_name_lag, "_lag"), "_", comp_sel, "_lag")
                 data_final <- data_final %>%
                   mutate({{new_column_name_sel}} := pca_result$x[, comp_sel]) 
               }
@@ -366,9 +367,15 @@ func_aggregate_vars <- function(data, varsel_prefix, cr_alpha, method) {
   }
   
   colnames_exist <- data_final %>% dplyr::select(starts_with(varsel_prefix)) %>% colnames()
-  colnames_keep <- c(varsel_prefix, paste0(varsel_prefix, "_lag"))
-  colnames_drop <- colnames_exist[!colnames_exist %in% colnames_keep]
-  data_final <- data_final %>% dplyr::select(-all_of(colnames_drop))
+  
+  if (all(str_detect(colnames_exist, "[0-9]")) == FALSE) {
+    colnames_keep <- c(varsel_prefix, paste0(varsel_prefix, "_lag"))
+    colnames_drop <- colnames_exist[!colnames_exist %in% colnames_keep]
+    data_final <- data_final %>% dplyr::select(-all_of(colnames_drop))
+  } else {
+    data_final <- data_final
+  }
+
 
   # return data
   return(list(data_final, vars_not_aggr, vars_not_aggr_lag))
