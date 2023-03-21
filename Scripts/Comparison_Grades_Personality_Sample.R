@@ -24,16 +24,26 @@ length(outersect(id_grades, id_pers)) / num_id_grades
 #### Comparison Data Sets ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-data_main_mice1 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_down_extradrop_mice1.rds")
-data_main_mice2 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_down_extradrop_mice2.rds")
-data_main_mice3 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_down_extradrop_mice3.rds")
-data_main_mice4 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_down_extradrop_mice4.rds")
-data_main_mice5 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_down_extradrop_mice5.rds")
+data_main_mice1 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_down_extradrop_mice1.rds") # 520
+data_main_mice2 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_down_extradrop_mice2.rds") # 519
+data_main_mice3 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_down_extradrop_mice3.rds") # 520
+data_main_mice4 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_down_extradrop_mice4.rds") # 519
+data_main_mice5 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_down_extradrop_mice5.rds") # 519
 
 setdiff(colnames(data_main_mice1), colnames(data_main_mice2))
-setdiff(colnames(data_main_mice2), colnames(data_main_mice3))
+setdiff(colnames(data_main_mice2), colnames(data_main_mice1))
+setdiff(colnames(data_main_mice3), colnames(data_main_mice2))
 setdiff(colnames(data_main_mice4), colnames(data_main_mice5))
+setdiff(colnames(data_main_mice5), colnames(data_main_mice4))
 
+data_main_multi_mice1 <- readRDS("Data/Grades/Prep_10/prep_10_dml_multi_all_weekly_down_extradrop_mice1.rds") # 525
+data_main_multi_mice2 <- readRDS("Data/Grades/Prep_10/prep_10_dml_multi_all_weekly_down_extradrop_mice2.rds") # 524
+data_main_multi_mice3 <- readRDS("Data/Grades/Prep_10/prep_10_dml_multi_all_weekly_down_extradrop_mice3.rds") # 525
+data_main_multi_mice4 <- readRDS("Data/Grades/Prep_10/prep_10_dml_multi_all_weekly_down_extradrop_mice4.rds") # 524
+data_main_multi_mice5 <- readRDS("Data/Grades/Prep_10/prep_10_dml_multi_all_weekly_down_extradrop_mice5.rds") # 524
+
+setdiff(colnames(data_main_mice1), colnames(data_main_multi_mice2))
+setdiff(colnames(data_main_multi_mice2), colnames(data_main_mice1))
 
 # check all variables
 summary(data_main_mice1$outcome_grade_lag)
