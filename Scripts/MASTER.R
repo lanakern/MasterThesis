@@ -9,12 +9,49 @@
 # traits as outcome are conducted. Moreover, DML in both the binary and multivalued
 # treatment setting is performed.
 # This file ensures the above mentioned steps are conducted in the correct order.
+#+++
+# The user can specify the following parameters (not needed as done automatically):
+# -> "cohort_prep" determines the treatment period generation method:
+# "controls_same_outcome" (CAWI-CATI combinations for grades, CATI-CAWI combinations for personality) 
+# or "controls_bef_outcome" (CAWI-CATI-CAWI combinations for grades, CATI-CAWI-CATI 
+# combinations for grades).
+# -> "treatment_repl" for missing value replacement of treatment and outcome variable.
+# "down" means that the last value carried forward method is applied.
+# "one_lag" means that the last value carried forward method is applied only for the enxt wave.
+# "no" means that missing values are not replaced. This results in the smallest sample
+# size; for the personality sample in even no observations.
+# -> "treatment_def" defines the treatment group categorization. "weekly" means
+# that only students who participate in sports at least weekly are considered as 
+# sport participants. "all" means that students who exercise at any regularity
+# are considered as sport participants. 
+# -> "extra_act" determines if the sample only included students who participate
+# in sport and/or any other extracurricular activity. If "yes" this is done;
+# if "no" this sample reduction step is skipped.
+# -> "treatment_setting" defines the "binary" and "multi"valued treatment setting.
+# -> "outcome_var" defines the outcome variable in the binary treatment setting.
+# -> "outcome_var_multi" defines the outcome variable in the multivalued treatment setting.
+# -> "model_type" defines tne control variables: "all" or "allintpoly". The control
+# variables can then further be selected by "model_controls_lag" and "model_controls_endog".
+# -> "model_controls_lag" indicates if lagged variables are included and if yes which.
+# "no_lags" means that no lagged variables are included at all, "no_treatment_outcome_lags"
+# means that only lags for outcome and treatment are dropped, "all" means that all
+# lagged variables are included in the estimation. 
+# -> "model_controls_endog" indicates if also possibly endogeneous variables are
+# included ("yes") or ("no"); "no" should only be used for model_type == "all".
+# -> "model_trimming" determines the trimming threshold for enforcing common
+# support. It can take on numeric values (lowest range) or "min-max".
+# -> "model_k" determines the number of partitions in K-fold cross-fitting.
+# -> "model_k_tuning" determines the number of folds in K-fold CV for parameter tuning.
+# -> "model_s_rep" determines the number of repetitions.
+# -> "model_algo" denotes the ML algorithm used to make the nuisance parameter
+# predictions. "lasso", "postlasso", "randomforests" or "xgboost": 
+#+++
 # ATTENTION: THIS FILE HAS VERY LONG RUN TIMES OF SEVERAL WEEKS. Thus, it is
 # recommended to perform the operations step by step.
 #+++
 # The code is developed using "R version 4.1.2 (2021-11-01) -- "Bird Hippie"".
 # Note that with the latest R version some functions are not working.
-#++++
+#+++
 
 
 #%%%%%%%%%%%%%#
@@ -245,10 +282,9 @@ model_controls_endog <- "yes"
 model_trimming <- 0.01
 
 # for lasso and xgboost higher K as they are computationally faster
-model_k <- 4 # 4
-model_k_tuning <- 2 # 4
-model_s_rep <- 2 # 20
-
+model_k <- 4 
+model_k_tuning <- 4 
+model_s_rep <- 10 
 
 ## LASSO ##
 model_algo <- "lasso"
