@@ -36,8 +36,10 @@ if (extra_act == "yes") {
 
 # number of columns may differ across MICE data sets
 data_binary_num_cols <- data.frame()
+data_binary_num_cols_nolags <- data.frame()
 data_binary_num_cols_all <- data.frame()
 data_multi_num_cols <- data.frame()
+data_multi_num_cols_nolags <- data.frame()
 data_multi_num_cols_all <- data.frame()
 
 # ITERATE OVER MICE DATA SETS
@@ -72,7 +74,7 @@ for (mice_data_sel in 1:5) {
     # in the cross-fitting procedure
     mutate(group = as.integer(factor(id_t,levels = unique(id_t))))  %>%
     dplyr::select(-c(id_t, starts_with("interview_date"), treatment_period, 
-                     starts_with("na_count"), ends_with("_cat")))
+                     starts_with("na_count"), ends_with("_cat"), ends_with("_cat_lag")))
   
   # ensure all character variables are dropped
   treatment_sport_freq <- data_final$treatment_sport_freq # keep
@@ -126,6 +128,32 @@ for (mice_data_sel in 1:5) {
       "num_id" = length(unique(data_final_raw$id_t)), 
       "num_rows" = data_binary_num_cols$num_rows,
       "num_cols" = data_binary_num_cols$num_cols,
+      "time_stamp" = Sys.time()
+    )
+    ## load function
+    source("Functions/func_save_sample_reduction.R")
+    func_save_sample_reduction(df_excel_save, "personality")
+    gc()
+  }
+  
+  # Only save for non-lag variables (but no extra data set)
+  data_binary_lags <- data_binary %>% dplyr::select(-ends_with("_lag"))
+  data_binary_num_cols_nolags <- rbind(
+    data_binary_num_cols_nolags, 
+    data.frame("num_cols" = ncol(data_binary_lags), "num_rows" = nrow(data_binary_lags))
+  )
+  
+  if (mice_data_sel == 5) {
+    df_excel_save <- data.frame(
+      "data_prep_step" = "estimation_sample",
+      "data_prep_step_2" = "binary_nolags",
+      "data_prep_choice_cohort" = cohort_prep,
+      "data_prep_treatment_repl" = treatment_repl,
+      "data_prep_treatment_def" = treatment_def,
+      "data_prep_extraact" = extra_act, 
+      "num_id" = length(unique(data_final_raw$id_t)), 
+      "num_rows" = mean(data_binary_num_cols_nolags$num_rows),
+      "num_cols" = mean(data_binary_num_cols_nolags$num_cols),
       "time_stamp" = Sys.time()
     )
     ## load function
@@ -325,6 +353,31 @@ for (mice_data_sel in 1:5) {
   }  
 
 
+  # Only save for non-lag variables (but no extra data set)
+  data_multi_all_lags <- data_multi_all %>% dplyr::select(-ends_with("_lag"))
+  data_multi_num_cols_nolags <- rbind(
+    data_multi_num_cols_nolags, 
+    data.frame("num_cols" = ncol(data_multi_all_lags), "num_rows" = nrow(data_multi_all_lags))
+  )
+  
+  if (mice_data_sel == 5) {
+    df_excel_save <- data.frame(
+      "data_prep_step" = "estimation_sample",
+      "data_prep_step_2" = "binary_nolags",
+      "data_prep_choice_cohort" = cohort_prep,
+      "data_prep_treatment_repl" = treatment_repl,
+      "data_prep_treatment_def" = treatment_def,
+      "data_prep_extraact" = extra_act, 
+      "num_id" = length(unique(data_final_raw$id_t)), 
+      "num_rows" = mean(data_multi_all_lags$num_rows),
+      "num_cols" = mean(data_multi_all_lags$num_cols),
+      "time_stamp" = Sys.time()
+    )
+    ## load function
+    source("Functions/func_save_sample_reduction.R")
+    func_save_sample_reduction(df_excel_save, "personality")
+    gc()
+  }
   
   
   #### All + Interactions + Polynomials ####
