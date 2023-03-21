@@ -13,17 +13,31 @@
 # -> "data_pred": data frame containing all nuisance parameter predictions.
 # -> "min_trimming": minimal trimming threshold
 # -> "max_trimming: maximal trimming threshold
+# -> "ml_algo": ML algorithm used to create the plot (only used in plot title)
 #+++
 # OUTPUT: Plot
 #+++
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-func_dml_common_support <- function(treatment_setting, data_pred, min_trimming, max_trimming) {
+func_dml_common_support <- function(treatment_setting, data_pred, min_trimming, max_trimming, ml_algo) {
   
   # extract trimming thresholds
   min_trimming <- min(min_trimming)
   max_trimming <- min(max_trimming)
+  
+  # nice ml algo name
+  if (ml_algo == "xgboost") {
+    ml_algo <- "XGBoost"
+  } else if (ml_algo == "randomforests") {
+    ml_algo <- "Random Forests"
+  } else if (ml_algo == "postlasso") {
+    ml_algo <- "Post-Lasso"
+  } else if (ml_algo == "lasso") {
+    ml_algo <- "Lasso"
+  } else {
+    stop("ML algorithm does not exist.")
+  }
   
   ## BINARY TREATMENT SETTING ##
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -45,7 +59,7 @@ func_dml_common_support <- function(treatment_setting, data_pred, min_trimming, 
       # aesthetics
       xlab("Propensity Score") + 
       ylab("Density") + 
-      ggtitle("Propensity Score Overlap") +
+      ggtitle(bquote(paste(atop(bold(.(ml_algo)), "Propensity Score Overlap")))) +
       theme_bw() +
       theme(plot.title = element_text(hjust = 0.5)) +
       guides(fill = guide_legend(title = "Treatment Group"))
@@ -90,9 +104,12 @@ func_dml_common_support <- function(treatment_setting, data_pred, min_trimming, 
       # aesthetics
       xlab("Propensity Score") + 
       ylab("Density") + 
-      ggtitle(paste("Propensity Score Overlap for Prediction of Weekly Sport Participation")) +
+      ggtitle(bquote(paste(atop(bold(.(ml_algo)), "Propensity Score Overlap for Prediction of Weekly Sport Participation")))) +
       theme_bw() +
-      theme(plot.title = element_text(hjust = 0.5)) +
+      theme(plot.title = element_text(hjust = 0.5, size = 10),
+            axis.title = element_text(size = 8),
+            legend.text = element_text(size = 8),
+            legend.title = element_text(size = 8)) +
       guides(fill = guide_legend(title = "Treatment Group"))
     
     
@@ -111,7 +128,10 @@ func_dml_common_support <- function(treatment_setting, data_pred, min_trimming, 
       ylab("Density") + 
       ggtitle(paste("Propensity Score Overlap for Prediction of Monthly Sport Participation")) +
       theme_bw() +
-      theme(plot.title = element_text(hjust = 0.5)) +
+      theme(plot.title = element_text(hjust = 0.5, size = 10),
+            axis.title = element_text(size = 8),
+            legend.text = element_text(size = 8),
+            legend.title = element_text(size = 8)) +
       guides(fill = guide_legend(title = "Treatment Group"))
     
     
@@ -130,7 +150,10 @@ func_dml_common_support <- function(treatment_setting, data_pred, min_trimming, 
       ylab("Density") + 
       ggtitle(paste("Propensity Score Overlap for Prediction of No Sport Participation")) +
       theme_bw() +
-      theme(plot.title = element_text(hjust = 0.5)) +
+      theme(plot.title = element_text(hjust = 0.5, size = 10),
+            axis.title = element_text(size = 8),
+            legend.text = element_text(size = 8),
+            legend.title = element_text(size = 8)) +
       guides(fill = guide_legend(title = "Treatment Group"))
     
     
