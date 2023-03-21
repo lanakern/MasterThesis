@@ -117,7 +117,7 @@ plot_outcome_treatment_binary <-
   theme_bw() +
   guides(fill = guide_legend(title = "Treatment Group"))
   #geom_density()
-ggsave("Output/Descriptives/PLOT_GRADES_TREATMENT_BINARY.png", 
+ggsave("Output/Descriptives/Grades/GRADES_PLOT_TREATMENT_BINARY.png", 
        plot_outcome_treatment_binary)
 
 
