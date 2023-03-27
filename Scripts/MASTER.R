@@ -17,7 +17,6 @@
 # combinations for grades).
 # -> "treatment_repl" for missing value replacement of treatment and outcome variable.
 # "down" means that the last value carried forward method is applied.
-# "one_lag" means that the last value carried forward method is applied only for the enxt wave.
 # "no" means that missing values are not replaced. This results in the smallest sample
 # size; for the personality sample in even no observations.
 # -> "treatment_def" defines the treatment group categorization. "weekly" means
@@ -192,13 +191,13 @@ main_model_controls_endog  <- "yes"
 # generate all possible combinations of user inputs (to iterate over it below)
 df_inputs <- data.frame(
   # for interview data preparation
-  "cohort_prep" = c("controls_bef_outcome", rep("controls_same_outcome", 5)), 
+  "cohort_prep" = c("controls_bef_outcome", rep("controls_same_outcome", 4)), 
   # for treatment and outcome missing value replacement
-  "treatment_repl" = c("down", "down", "down", "down", "onelag", "no"),
+  "treatment_repl" = c("down", "down", "down", "down", "no"),
   # for treatment generation
-  "treatment_def" = c("weekly", "all", "weekly", "weekly", "weekly", "weekly"),
+  "treatment_def" = c("weekly", "all", "weekly", "weekly", "weekly"),
   # for sample selection: only keeping respondents with extracurricular activity
-  "extra_act" = c("yes", "yes", "no", "yes", "yes", "yes")
+  "extra_act" = c("yes", "yes", "no", "yes", "yes")
 )
 
 # aggregation of variables
@@ -227,7 +226,7 @@ keep_after_file_run <- 'rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl
  "keep_after_file_run", "vars_baseline", "model_type", "model_algo", 
 "model_k", "model_k_tuning", "model_s_rep", "model_trimming", "model_controls_lag", 
 "model_controls_endog", "model_outcome", "dml_num", "probscore_separate", 
-"treatment_setting", "outcome_var", "outcome_var_multi", vars_endogenous", 
+"treatment_setting", "outcome_var", "outcome_var_multi", "vars_endogenous", 
 ls()[str_starts(ls(), "func_")], ls()[str_starts(ls(), "main_")])))'
 
 
@@ -247,6 +246,7 @@ for (func_load in load_function) {
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 source("Personality/MASTER_PREP_PERSONALITY.R")
+Sys.setlocale("LC_TIME", "German") # because this is changed within the file
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
