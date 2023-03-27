@@ -24,23 +24,27 @@ length(outersect(id_grades, id_pers)) / num_id_grades
 #### Comparison Data Sets ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-data_main_mice1 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_down_extradrop_mice1.rds") # 520
-data_main_mice2 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_down_extradrop_mice2.rds") # 519
-data_main_mice3 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_down_extradrop_mice3.rds") # 520
-data_main_mice4 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_down_extradrop_mice4.rds") # 519
-data_main_mice5 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_down_extradrop_mice5.rds") # 519
+## MAIN ##
+#++++++++#
+
+data_main_mice1 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_down_extradrop_mice1.rds") # 516
+data_main_mice2 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_down_extradrop_mice2.rds") # 516
+data_main_mice3 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_down_extradrop_mice3.rds") # 516
+data_main_mice4 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_down_extradrop_mice4.rds") # 516
+data_main_mice5 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_down_extradrop_mice5.rds") # 516
 
 setdiff(colnames(data_main_mice1), colnames(data_main_mice2))
 setdiff(colnames(data_main_mice2), colnames(data_main_mice1))
 setdiff(colnames(data_main_mice3), colnames(data_main_mice2))
+setdiff(colnames(data_main_mice2), colnames(data_main_mice3))
 setdiff(colnames(data_main_mice4), colnames(data_main_mice5))
 setdiff(colnames(data_main_mice5), colnames(data_main_mice4))
 
-data_main_multi_mice1 <- readRDS("Data/Grades/Prep_10/prep_10_dml_multi_all_weekly_down_extradrop_mice1.rds") # 525
-data_main_multi_mice2 <- readRDS("Data/Grades/Prep_10/prep_10_dml_multi_all_weekly_down_extradrop_mice2.rds") # 524
-data_main_multi_mice3 <- readRDS("Data/Grades/Prep_10/prep_10_dml_multi_all_weekly_down_extradrop_mice3.rds") # 525
-data_main_multi_mice4 <- readRDS("Data/Grades/Prep_10/prep_10_dml_multi_all_weekly_down_extradrop_mice4.rds") # 524
-data_main_multi_mice5 <- readRDS("Data/Grades/Prep_10/prep_10_dml_multi_all_weekly_down_extradrop_mice5.rds") # 524
+data_main_multi_mice1 <- readRDS("Data/Grades/Prep_10/prep_10_dml_multi_all_weekly_down_extradrop_mice1.rds") # 521
+data_main_multi_mice2 <- readRDS("Data/Grades/Prep_10/prep_10_dml_multi_all_weekly_down_extradrop_mice2.rds") # 521
+data_main_multi_mice3 <- readRDS("Data/Grades/Prep_10/prep_10_dml_multi_all_weekly_down_extradrop_mice3.rds") # 521
+data_main_multi_mice4 <- readRDS("Data/Grades/Prep_10/prep_10_dml_multi_all_weekly_down_extradrop_mice4.rds") # 521
+data_main_multi_mice5 <- readRDS("Data/Grades/Prep_10/prep_10_dml_multi_all_weekly_down_extradrop_mice5.rds") # 521
 
 setdiff(colnames(data_main_mice1), colnames(data_main_multi_mice2))
 setdiff(colnames(data_main_multi_mice2), colnames(data_main_mice1))
@@ -77,7 +81,88 @@ data_main_mice1 <- data_main_mice1 %>% dplyr::select(-starts_with("living"))
 data_main_mice1 <- data_main_mice1 %>% dplyr::select(-starts_with("prof_expected"))
 data_main_mice1 <- data_main_mice1 %>% dplyr::select(-c(starts_with("gender"), starts_with("age"), bilingual, kindergarden,
                                                 migration, starts_with("religion"),
-                                                academic, starts_with("helpless_grades"), starts_with("motivation_degree"),
                                                 starts_with("satisfaction"), starts_with("social_integr"), starts_with("stress"),
                                                 starts_with("status_prof"), starts_with("place_residence"), starts_with("na")))
 
+
+## Robustness Check 1 ##
+#++++++++++++++++++++++#
+
+data_1_mice1 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_down_extradrop_robustcheck_mice1.rds")
+data_1_mice2 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_down_extradrop_robustcheck_mice2.rds")
+data_1_mice3 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_down_extradrop_robustcheck_mice3.rds")
+data_1_mice4 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_down_extradrop_robustcheck_mice4.rds")
+data_1_mice5 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_down_extradrop_robustcheck_mice5.rds")
+
+setdiff(colnames(data_main_mice1), colnames(data_1_mice1))
+setdiff(colnames(data_1_mice1), colnames(data_main_mice1))
+setdiff(colnames(data_1_mice2), colnames(data_1_mice1))
+setdiff(colnames(data_1_mice2), colnames(data_1_mice3))
+setdiff(colnames(data_1_mice5), colnames(data_1_mice4))
+
+data_1_mice1 %>% dplyr::select(starts_with("outcome")) %>% colnames()
+data_1_mice1 %>% dplyr::select(starts_with("treatment")) %>% colnames()
+
+
+## Robustness Check 2 ##
+#++++++++++++++++++++++#
+
+data_2_mice1 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_all_down_extradrop_mice1.rds")
+data_2_mice2 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_all_down_extradrop_mice2.rds")
+data_2_mice3 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_all_down_extradrop_mice3.rds")
+data_2_mice4 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_all_down_extradrop_mice4.rds")
+data_2_mice5 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_all_down_extradrop_mice5.rds")
+
+setdiff(colnames(data_main_mice1), colnames(data_2_mice1))
+setdiff(colnames(data_2_mice1), colnames(data_main_mice1))
+
+data_2_mice1 %>% dplyr::select(starts_with("outcome")) %>% colnames()
+data_2_mice1 %>% dplyr::select(starts_with("treatment")) %>% colnames()
+
+
+## Robustness Check 3 ##
+#++++++++++++++++++++++#
+
+data_3_mice1 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_down_mice1.rds")
+data_3_mice2 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_down_mice2.rds")
+data_3_mice3 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_down_mice3.rds")
+data_3_mice4 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_down_mice4.rds")
+data_3_mice5 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_down_mice5.rds")
+
+setdiff(colnames(data_main_mice1), colnames(data_3_mice1))
+setdiff(colnames(data_3_mice1), colnames(data_main_mice1))
+
+data_3_mice1 %>% dplyr::select(starts_with("outcome")) %>% colnames()
+data_3_mice1 %>% dplyr::select(starts_with("treatment")) %>% colnames()
+
+## Robustness Check 5 ##
+#++++++++++++++++++++++#
+
+data_5_mice1 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_onelag_extradrop_mice1.rds")
+data_5_mice2 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_onelag_extradrop_mice2.rds")
+data_5_mice3 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_onelag_extradrop_mice3.rds")
+data_5_mice4 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_onelag_extradrop_mice4.rds")
+data_5_mice5 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_onelag_extradrop_mice5.rds")
+
+setdiff(colnames(data_main_mice1), colnames(data_5_mice1))
+setdiff(colnames(data_5_mice1), colnames(data_main_mice1))
+
+data_5_mice1 %>% dplyr::select(starts_with("outcome")) %>% colnames()
+data_5_mice1 %>% dplyr::select(starts_with("treatment")) %>% colnames()
+
+## Robustness Check 6 ##
+#++++++++++++++++++++++#
+
+data_6_mice1 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_no_extradrop_mice1.rds")
+data_6_mice2 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_no_extradrop_mice2.rds")
+data_6_mice3 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_no_extradrop_mice3.rds")
+data_6_mice4 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_no_extradrop_mice4.rds")
+data_6_mice5 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_no_extradrop_mice5.rds")
+
+setdiff(colnames(data_main_mice1), colnames(data_6_mice1))
+setdiff(colnames(data_6_mice1), colnames(data_main_mice1))
+
+data_6_mice1 %>% dplyr::select(starts_with("outcome")) %>% colnames()
+data_6_mice1 %>% dplyr::select(starts_with("treatment")) %>% colnames()
+
+table(data_6_mice1$treatment_sport_source_uni)
