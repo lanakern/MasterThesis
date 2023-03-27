@@ -74,7 +74,8 @@ for (mice_data_sel in 1:5) {
     # in the cross-fitting procedure
     mutate(group = as.integer(factor(id_t,levels = unique(id_t))))  %>%
     dplyr::select(-c(id_t, starts_with("interview_date"), treatment_period, 
-                     starts_with("na_count"), ends_with("_cat"), ends_with("_cat_lag")))
+                     starts_with("na_count"), ends_with("_cat"), ends_with("_cat_lag"),
+                     starts_with("uni_time_employment"), starts_with("uni_entrance_quali_access_")))
   
   # ensure all character variables are dropped
   treatment_sport_freq <- data_final$treatment_sport_freq # keep
@@ -282,12 +283,13 @@ for (mice_data_sel in 1:5) {
   #++++++++++++++++++++++#
   
   # drop treatment variables for binary treatment setting
-  data_multi_all <- data_final %>%
-    dplyr::select(-c(treatment_sport, treatment_sport_lag, treatment_sport_na,
-                     treatment_sport_source_uni, treatment_sport_source_leisure,
-                     treatment_sport_freq_never, treatment_sport_freq_weekly_atleast,
-                     treatment_sport_freq_lag_monthly_less, treatment_sport_freq_lag_never, 
-                     treatment_sport_freq_lag_weekly_atleast))
+  drop_vars_multi <- c("treatment_sport", "treatment_sport_na",
+                       "treatment_sport_lag", "treatment_sport_lag_na", 
+                       "treatment_sport_source_uni", "treatment_sport_source_leisure",
+                       "treatment_sport_freq_never", "treatment_sport_freq_weekly_atleast",
+                       "treatment_sport_freq_never_lag", "treatment_sport_freq_weekly_atleast_lag")
+  drop_vars_multi <- drop_vars_multi[drop_vars_multi %in% colnames(data_final)]
+  data_multi_all <- data_final %>% dplyr::select(-all_of(drop_vars_multi))
   
   # create treatment_sport_freq dummy
   data_multi_all <- fastDummies::dummy_cols(
@@ -363,14 +365,14 @@ for (mice_data_sel in 1:5) {
   if (mice_data_sel == 5) {
     df_excel_save <- data.frame(
       "data_prep_step" = "estimation_sample",
-      "data_prep_step_2" = "binary_nolags",
+      "data_prep_step_2" = "multi_nolags",
       "data_prep_choice_cohort" = cohort_prep,
       "data_prep_treatment_repl" = treatment_repl,
       "data_prep_treatment_def" = treatment_def,
       "data_prep_extraact" = extra_act, 
       "num_id" = length(unique(data_final_raw$id_t)), 
-      "num_rows" = mean(data_multi_all_lags$num_rows),
-      "num_cols" = mean(data_multi_all_lags$num_cols),
+      "num_rows" = mean(data_multi_num_cols_nolags$num_rows),
+      "num_cols" = mean(data_multi_num_cols_nolags$num_cols),
       "time_stamp" = Sys.time()
     )
     ## load function
