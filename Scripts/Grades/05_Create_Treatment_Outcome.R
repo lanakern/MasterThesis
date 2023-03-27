@@ -422,7 +422,7 @@ data_4 <- data_3
 
 # subset: keep only respondents who do not have any missing in treatment and
 # grade 
-data_4 <- data_4 %>% filter(!is.na(treatment_sport) & !is.na(outcome_grade))
+data_4 <- data_4 %>% filter(!is.na(treatment_sport) & !is.na(treatment_sport_freq) & !is.na(outcome_grade))
 
 num_id_adj_1 <- length(unique(data_4$ID_t)) 
 drop_na <- num_id - num_id_adj_1
