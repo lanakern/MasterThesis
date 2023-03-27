@@ -52,7 +52,10 @@ for (cohort_prep_sel in unique(na.omit(df_inputs$cohort_prep))) {
 # Prepare CATI and CAWI: iteration over cohort_prep and treatment_repl
 # Note: generated data sets differ across treatment_repl but number of students,
 # rows and columns only differ across cohort_prep
-df_inputs_indiv <- df_inputs %>% dplyr::select(cohort_prep, treatment_repl) %>% distinct()
+df_inputs_indiv <- df_inputs %>% 
+  dplyr::select(cohort_prep, treatment_repl) %>% 
+  filter(treatment_repl == "down") %>%
+  distinct()
 
 for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
   
@@ -147,6 +150,7 @@ for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
 # Here I iterate over all combinations except extracurricular activity
 df_inputs_indiv <- df_inputs %>% 
   dplyr::select(cohort_prep, treatment_repl, treatment_def) %>% 
+  filter(treatment_repl == "down", treatment_def == "weekly") %>%
   distinct()
 
 for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
@@ -169,8 +173,15 @@ for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
 
 # Conduct sample selection
 # Here I iterate over all combinations
-for (prep_sel_num in 1:nrow(df_inputs)) {
-  df_inputs_sel <- df_inputs[prep_sel_num, ]
+df_inputs_indiv <- rbind(
+  df_inputs %>%
+    filter(cohort_prep == "controls_same_outcome" & extra_act == "no"),
+  df_inputs %>%
+    filter(cohort_prep == "controls_bef_outcome")
+)
+
+for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
+  df_inputs_sel <- df_inputs_indiv[prep_sel_num, ]
   cohort_prep <- df_inputs_sel$cohort_prep
   treatment_repl <- df_inputs_sel$treatment_repl
   treatment_def <- df_inputs_sel$treatment_def
@@ -194,9 +205,9 @@ Sys.setlocale("LC_TIME", "English")
 
 
 # perform further steps without sample selection reduction
-for (prep_sel_num in 1:nrow(df_inputs)) {
+for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
   
-  df_inputs_sel <- df_inputs[prep_sel_num, ]
+  df_inputs_sel <- df_inputs_indiv[prep_sel_num, ]
   cohort_prep <- df_inputs_sel$cohort_prep
   treatment_repl <- df_inputs_sel$treatment_repl
   treatment_def <- df_inputs_sel$treatment_def
@@ -206,24 +217,24 @@ for (prep_sel_num in 1:nrow(df_inputs)) {
   eval(parse(text = keep_after_file_run))
   source("Scripts/Grades/07_Create_Control_Variables.R") 
   
-  print(paste0("FINISHED COMBINATION", prep_sel_num, " FROM ", nrow(df_inputs)))
+  print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs)))
   gc()
 }
 
 
 # load file showing sample reduction
-df_excel_save_hist <- read.xlsx("Output/SAMPLE_REDUCTION_STEPS.xlsx", sheetName = "Sheet1")
+df_excel_save_hist <- read.xlsx("Output/SAMPLE_REDUCTION_STEPS_GRADES.xlsx", sheetName = "Sheet1")
 df_excel_save_hist
 
 
 #### Plausibility analysis ####
 #+++++++++++++++++++++++++++++#
 
-for (prep_sel_num in 1:nrow(df_inputs)) {
+for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
   
   print(paste0("START COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs)))
   
-  df_inputs_sel <- df_inputs[prep_sel_num, ]
+  df_inputs_sel <- df_inputs_indiv[prep_sel_num, ]
   cohort_prep <- df_inputs_sel$cohort_prep
   treatment_repl <- df_inputs_sel$treatment_repl
   treatment_def <- df_inputs_sel$treatment_def
@@ -267,7 +278,7 @@ for (prep_sel_num in 1:nrow(df_inputs)) {
   extra_act <- df_inputs_sel$extra_act
   
   # Decide if interactions should be created (takes a long time)
-  create_interactions <- "no" # "yes"
+  create_interactions <- "yes" # "yes"
   
   # Prepare control variables
   source("Scripts/Grades/10_Estimation_Sample.R") 
