@@ -35,15 +35,22 @@ for (mice_data_sel in 1:5) {
   
   if (cohort_prep == "controls_same_outcome") {
     data_load <- paste0("Data/Grades/Prep_8/prep_8_plausi_", treatment_def, "_", 
-                        treatment_repl,extra_act_save, "_mice", mice_data_sel, ".rds")
+                        treatment_repl, "_mice", mice_data_sel, ".rds")
   } else {
     data_load <- paste0("Data/Grades/Prep_8/prep_8_plausi_", treatment_def, "_", 
-                        treatment_repl, extra_act_save, "_robustcheck", "_mice", 
+                        treatment_repl, "_robustcheck", "_mice", 
                         mice_data_sel, ".rds")
   }
   
   data_descr_sub <- readRDS(data_load)
   data_descr_sub <- data_descr_sub %>% ungroup() %>% mutate(MICE = mice_data_sel)
+  
+  # drop students who do not take part in any extracurricular activity
+  if (extra_act == "yes") {
+    data_descr_sub <- data_descr_sub %>% filter(extracurricular_num > 0)
+  } else {
+    data_descr_sub <- data_descr_sub
+  }
   
   # keep only columns that are in all data frame
   colnames_sub <- colnames(data_descr_sub)
