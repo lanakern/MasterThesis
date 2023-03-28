@@ -82,7 +82,8 @@ vars_personality <- c(
   "bigfive_openness", "bigfive_agreeableness"
 )
 
-data_outcome_descr_all <- func_mean_comp(data_descr_mice1, vars_personality,  "binary")
+data_outcome_descr_all <- func_mean_comp(data_descr_mice1, vars_personality,  "binary") %>%
+  dplyr::select(-median)
 
 
 data_outcome_descr_all
@@ -439,7 +440,8 @@ data_descr_multi_mice1 <- data_descr_multi %>% filter(MICE == 1)
 #%%%%%%%%%%%%%%%#
 
 # calculate mean-standardized differences
-data_outcome_descr_multi_all <- func_mean_comp(data_descr_multi_mice1, vars_personality,  "multi")
+data_outcome_descr_multi_all <- func_mean_comp(data_descr_multi_mice1, vars_personality,  "multi") %>%
+  dplyr::select(-median)
 
 
 # calculate minimum, maximum, median etc.
