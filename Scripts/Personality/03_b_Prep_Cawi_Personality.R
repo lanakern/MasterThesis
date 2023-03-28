@@ -93,6 +93,9 @@ for (var_sel in var_sel_lag_na) {
   data_target_cawi_lags <- func_na_dummy(data_target_cawi_lags, var_sel)
 }
 
+data_target_cawi <- left_join(data_target_cawi, data_target_cawi_lags, 
+                              by = c("ID_t", "wave"))
+
 # fill missing values of CAWI: down here because cohort profile does not
 # contain all waves anymore
 # depending on selection missing values in treatment variable may also be
