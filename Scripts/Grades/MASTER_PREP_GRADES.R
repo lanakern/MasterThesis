@@ -67,9 +67,11 @@ for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
   treatment_repl <- df_inputs_sel$treatment_repl # select treatment/outcome replacement
   
   # Prepare individual data sets
+  print("CATI")
   source("Scripts/Grades/03_a_Prep_Cati.R") # CATI
   eval(parse(text = keep_after_file_run))
   
+  print("CAWI")
   source("Scripts/Grades/03_b_Prep_Cawi.R") # CAWI
   eval(parse(text = keep_after_file_run))
 
@@ -130,15 +132,18 @@ for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
   # Merge 
   source("Scripts/Grades/04_a_Merge_CATI_CAWI.R") # merge CATI & CAWI
   eval(parse(text = keep_after_file_run))
+  gc()
   
   source("Scripts/Grades/04_b_Merge_Prepare_Episode.R") # add episode data
   eval(parse(text = keep_after_file_run))
+  gc()
   
   source("Scripts/Grades/04_c_Merge_All.R") # add all other data sets
   eval(parse(text = keep_after_file_run))
+  gc()
   
   print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs_indiv)))
-  gc()
+  
 }
 
 
@@ -191,7 +196,7 @@ for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
   source("Scripts/Grades/06_Sample_Selection.R") 
   eval(parse(text = keep_after_file_run))
   
-  print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs)))
+  print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs_indiv)))
   gc()
 }
 
@@ -217,7 +222,7 @@ for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
   eval(parse(text = keep_after_file_run))
   source("Scripts/Grades/07_Create_Control_Variables.R") 
   
-  print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs)))
+  print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs_indiv)))
   gc()
 }
 
@@ -232,7 +237,7 @@ df_excel_save_hist
 
 for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
   
-  print(paste0("START COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs)))
+  print(paste0("START COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs_indiv)))
   
   df_inputs_sel <- df_inputs_indiv[prep_sel_num, ]
   cohort_prep <- df_inputs_sel$cohort_prep
@@ -243,7 +248,7 @@ for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
   # Prepare control variables
   source("Scripts/Grades/08_Plausibility_Checks.R") 
   
-  print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs)))
+  print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs_indiv)))
   eval(parse(text = keep_after_file_run))
   gc()
 }
