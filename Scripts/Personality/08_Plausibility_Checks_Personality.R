@@ -152,6 +152,14 @@ for (mice_data_sel in 1:5) {
   table(round(df_plausi$age), round(df_plausi$partner_previous_length_total))
   sum(df_plausi$age - df_plausi$partner_previous_length_total < 0)
   
+  # I only deem having a partner at age of 14
+  df_plausi <- df_plausi %>% mutate(
+    partner_current_length = case_when(age - partner_current_length < 14 ~ age - 14, TRUE ~ partner_current_length),
+    partner_previous_length_total = case_when(age - partner_previous_length_total < 14 ~ age - 14, TRUE ~ partner_previous_length_total)
+  )
+  
+  summary(df_plausi$partner_current_length)
+  summary(df_plausi$partner_previous_length_total)
   
   ## AGE OF SIBLING ##
   #++++++++++++++++++#
@@ -159,10 +167,10 @@ for (mice_data_sel in 1:5) {
   summary(df_plausi$sibling_age_1)
   summary(df_plausi$sibling_age_2)
   
-  # maximum time difference 40 years
+  # maximum time difference 30 years
   df_plausi <- df_plausi %>% mutate(
-    sibling_age_1 = case_when(abs(sibling_age_1 - age) > 40 ~ age + 40, TRUE ~ sibling_age_1),
-    sibling_age_2 = case_when(abs(sibling_age_2 - age) > 40 ~ age + 40, TRUE ~ sibling_age_2)
+    sibling_age_1 = case_when(abs(sibling_age_1 - age) > 30 ~ age + 30, TRUE ~ sibling_age_1),
+    sibling_age_2 = case_when(abs(sibling_age_2 - age) > 30 ~ age + 30, TRUE ~ sibling_age_2)
   )
   
   summary(df_plausi$sibling_age_1)
@@ -293,20 +301,6 @@ for (mice_data_sel in 1:5) {
   ## UNI ECTS ##
   #++++++++++++#
   
-  # if no ECTS points are awared in degree programm, uni_ects_total
-  # and uni_ects_current should be zero
-  df_plausi %>% filter(uni_ects_degree == 0) %>% dplyr::select(starts_with("uni_ects")) %>% distinct()
-  
-  # hence, change dummy
-  df_plausi <- df_plausi %>%
-    mutate(uni_ects_degree = case_when(uni_ects_degree == 0 & (uni_ects_current > 0 | uni_ects_total > 0) ~ 1,
-                                       TRUE ~ uni_ects_degree))
-  df_plausi %>% filter(uni_ects_degree == 0) %>% dplyr::select(starts_with("uni_ects")) %>% distinct()
-  table(df_plausi$uni_ects_degree)
-  
-  # hence variable is dropped
-  df_plausi <- df_plausi %>% dplyr::select(-uni_ects_degree)
-  
   # uni_ects_current is allowed to be larger than uni_ects_total
   # because one can obtain more credits than needed
   sum(df_plausi$uni_ects_current > df_plausi$uni_ects_total)
@@ -335,6 +329,15 @@ for (mice_data_sel in 1:5) {
   print(paste("Number of columns:", ncol(df_plausi)))
   
   # no missing values
+  # check for missing values
+  # if there are still missing values left, replace with indicator method
+  if (sum(is.na(df_plausi)) > 0) {
+    cols_na <- names(colSums(is.na(df_plausi))[colSums(is.na(df_plausi)) > 0])
+    for (cols_na_sel in cols_na) {
+      df_plausi <- df_plausi %>%
+        mutate({{cols_na_sel}} := ifelse(is.na(!!rlang::sym(cols_na_sel)), 0, !!rlang::sym(cols_na_sel)))
+    }
+  }
   print(paste("Number of missing values:", sum(is.na(df_plausi))))
   
   # no duplicates
