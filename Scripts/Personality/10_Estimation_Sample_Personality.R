@@ -73,7 +73,7 @@ for (mice_data_sel in 1:5) {
     # group the observation belongs; this info is only used for sample splitting
     # in the cross-fitting procedure
     mutate(group = as.integer(factor(id_t,levels = unique(id_t))))  %>%
-    dplyr::select(-c(id_t, starts_with("interview_date"), treatment_period, 
+    dplyr::select(-c(id_t, starts_with("interview_date"), starts_with("health_disability"),
                      starts_with("na_count"), ends_with("_cat"), ends_with("_cat_lag"),
                      starts_with("uni_time_employment"), starts_with("uni_entrance_quali_access_")))
   
@@ -127,8 +127,8 @@ for (mice_data_sel in 1:5) {
       "data_prep_treatment_def" = treatment_def,
       "data_prep_extraact" = extra_act, 
       "num_id" = length(unique(data_final_raw$id_t)), 
-      "num_rows" = data_binary_num_cols$num_rows,
-      "num_cols" = data_binary_num_cols$num_cols,
+      "num_rows" = mean(data_binary_num_cols$num_rows),
+      "num_cols" = mean(data_binary_num_cols$num_cols),
       "time_stamp" = Sys.time()
     )
     ## load function
@@ -282,7 +282,8 @@ for (mice_data_sel in 1:5) {
   #### All Predictors ####
   #++++++++++++++++++++++#
   
-  # drop treatment variables for binary treatment setting
+  # drop treatment variables from binary treatment setting
+  # for data preparation of no treatment replacement some variables does not exist
   drop_vars_multi <- c("treatment_sport", "treatment_sport_na",
                        "treatment_sport_lag", "treatment_sport_lag_na", 
                        "treatment_sport_source_uni", "treatment_sport_source_leisure",
@@ -294,28 +295,18 @@ for (mice_data_sel in 1:5) {
   # create treatment_sport_freq dummy
   data_multi_all <- fastDummies::dummy_cols(
     data_multi_all, remove_selected_columns = FALSE, remove_first_dummy = FALSE, 
-    select_columns = "treatment_sport_freq"
-  )
+    select_columns = c("treatment_sport_freq", "treatment_sport_freq_lag")
+  ) %>% dplyr::select(-c(treatment_sport_freq_lag, treatment_sport_freq_lag_never))
   
   # treatment_sport_freq as number
   data_multi_all <- data_multi_all %>%
     mutate(treatment_sport_freq = case_when(
       treatment_sport_freq == "weekly_atleast" ~ 1,
       treatment_sport_freq == "monthly_less" ~ 2,
-      TRUE ~ 3
-    ))
-  
-  # lag also as number
-  data_multi_all <- data_multi_all %>%
-    mutate(treatment_sport_freq_lag = case_when(
-      treatment_sport_freq_lag == "weekly_atleast" ~ 1,
-      treatment_sport_freq_lag == "monthly_less" ~ 2,
-      treatment_sport_freq_lag == "never" ~ 3,
+      treatment_sport_freq == "never" ~ 3,
       TRUE ~ 4
     ))
-    ## drop lag dummies
-  data_multi_all <- data_multi_all %>% dplyr::select(-c(starts_with("treatment_sport_freq_lag_")))
-  
+
   # save data frames
   if (cohort_prep == "controls_same_outcome") {
     saveRDS(data_multi_all, 
