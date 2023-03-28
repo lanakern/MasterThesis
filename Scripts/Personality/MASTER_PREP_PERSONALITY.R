@@ -71,17 +71,20 @@ gc()
 # Prepare individual data sets
 source("Scripts/Personality/03_c_Prep_Sibling_personality.R") # Sibling
 eval(parse(text = keep_after_file_run))
-  
+gc()
+
 source("Scripts/Personality/03_d_Prep_Child_personality.R") # Child
 eval(parse(text = keep_after_file_run))
-  
+gc()
+
 source("Scripts/Personality/03_e_Prep_Partner_personality.R") # Partner
 eval(parse(text = keep_after_file_run))
-  
+gc()
+
 source("Scripts/Personality/03_f_Prep_Competencies_personality.R") # Competencies
 eval(parse(text = keep_after_file_run))
-
 gc()
+
   
 
 #### Merge ####
@@ -90,16 +93,18 @@ gc()
 # Merge CATI & CAWI
 source("Scripts/Personality/04_a_Merge_CATI_CAWI_Personality.R") 
 eval(parse(text = keep_after_file_run))
+gc()
 
 # Merge episode data 
 source("Scripts/Personality/04_b_Merge_Prepare_Episode_Personality.R") 
 eval(parse(text = keep_after_file_run))
+gc()
 
 # Merge all other data sets
 source("Scripts/Personality/04_c_Merge_All_Personality.R") 
 eval(parse(text = keep_after_file_run))
-  
-gc()
+gc()  
+
 
 
 
@@ -139,7 +144,7 @@ gc()
 #+++++++++++++++++++++++++++++#
 
 source("Scripts/Personality/08_Plausibility_Checks_Personality.R") 
-eval(parse(text = keep_after_file_run)
+eval(parse(text = keep_after_file_run))
 gc()
 
 
