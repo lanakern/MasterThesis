@@ -137,7 +137,7 @@ if (extra_act == "yes") {
 } else {
   data_sub_2 <- left_join(
     data_sub_1, data_count, by = c("ID_t", "treatment_period")
-  )
+  ) %>% filter(!is.na(extracurricular_num))
   
   data_sub_2 <- left_join(
     data_sub_2, data_count_lags, by = c("ID_t", "treatment_period")
