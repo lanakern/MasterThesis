@@ -98,7 +98,8 @@ for (mice_data_sel in 1:5) {
     mutate(group = as.integer(factor(id_t,levels = unique(id_t))))  %>%
     dplyr::select(-c(id_t, starts_with("interview_date"), #treatment_period, 
               starts_with("na_count"), ends_with("_cat"), ends_with("_cat_lag"),
-              starts_with("uni_time_employment"), starts_with("uni_entrance_quali_access_")))
+              starts_with("uni_time_employment"), starts_with("uni_entrance_quali_access_"),
+              starts_with("motivation_degree_4"), starts_with("health_disability")))
   
   # ensure all character variables are dropped
   treatment_sport_freq <- data_final$treatment_sport_freq # keep
@@ -107,18 +108,16 @@ for (mice_data_sel in 1:5) {
   data_final$treatment_sport_freq <- treatment_sport_freq
   data_final$treatment_sport_freq_lag <- treatment_sport_freq_lag
   
-  # for main model drop "motivation_degree_4_lag" as it only exists for mice == 5
-  if (cohort_prep == main_cohort_prep) {
-    data_final <- data_final %>% dplyr::select(-starts_with("motivation_degree_4"))
-  }
-  
+
   # ensure all constant variables are dropped
   data_final <- remove_constant(data_final)
   
   # adjust treatment period (may change due to drop outs)
   data_final <- data_final %>%
     group_by(group) %>%
-    mutate(treatment_period = row_number()) 
+    mutate(treatment_period = row_number()) %>%
+    ungroup()
+  
   
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
   #### BINARY TREATMENT SETTING ####
