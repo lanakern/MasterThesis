@@ -47,7 +47,7 @@ if (cohort_prep == "controls_same_outcome") {
 }
 
 # Episode data
-data_life_course <- readRDS("Data/Prep_2/prep_2_life_course.rds")
+data_life_course <- readRDS("Data/Personality/Prep_2/prep_2_life_course_personality.rds")
 
 
 # number of respondents in different data sets
