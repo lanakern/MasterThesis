@@ -96,7 +96,7 @@ for (mice_data_sel in 1:5) {
     # group the observation belongs; this info is only used for sample splitting
     # in the cross-fitting procedure
     mutate(group = as.integer(factor(id_t,levels = unique(id_t))))  %>%
-    dplyr::select(-c(id_t, starts_with("interview_date"), treatment_period, 
+    dplyr::select(-c(id_t, starts_with("interview_date"), #treatment_period, 
               starts_with("na_count"), ends_with("_cat"), ends_with("_cat_lag"),
               starts_with("uni_time_employment"), starts_with("uni_entrance_quali_access_")))
   
@@ -108,14 +108,17 @@ for (mice_data_sel in 1:5) {
   data_final$treatment_sport_freq_lag <- treatment_sport_freq_lag
   
   # for main model drop "motivation_degree_4_lag" as it only exists for mice == 5
-  if (cohort_prep == main_cohort_prep & treatment_repl == main_treatment_repl &
-      treatment_def %in% c("weekly", "all") & extra_act == main_extra_act) {
-    data_final <- data_final %>% dplyr::select(-starts_with("motivation_degree_4_lag"))
+  if (cohort_prep == main_cohort_prep) {
+    data_final <- data_final %>% dplyr::select(-starts_with("motivation_degree_4"))
   }
   
   # ensure all constant variables are dropped
   data_final <- remove_constant(data_final)
   
+  # adjust treatment period (may change due to drop outs)
+  data_final <- data_final %>%
+    group_by(group) %>%
+    mutate(treatment_period = row_number()) 
   
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
   #### BINARY TREATMENT SETTING ####
@@ -324,7 +327,7 @@ for (mice_data_sel in 1:5) {
   data_multi_all <- fastDummies::dummy_cols(
     data_multi_all, remove_selected_columns = FALSE, remove_first_dummy = FALSE, 
     select_columns = c("treatment_sport_freq", "treatment_sport_freq_lag")
-  ) %>% dplyr::select(-treatment_sport_freq_lag)
+  ) %>% dplyr::select(-c(treatment_sport_freq_lag, treatment_sport_freq_lag_never))
   
   # treatment_sport_freq as number
   data_multi_all <- data_multi_all %>%
