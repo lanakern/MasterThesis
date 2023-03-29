@@ -284,7 +284,7 @@ model_trimming <- 0.01
 # for lasso and xgboost higher K as they are computationally faster
 model_k <- 4 
 model_k_tuning <- 2
-model_s_rep <- 10 
+model_s_rep <- 5 
 
 ## LASSO ##
 model_algo <- "lasso"
