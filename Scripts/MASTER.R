@@ -185,7 +185,7 @@ main_model_k <- 4
 main_model_k_tuning <- 2
 main_model_s_rep <- 2
 main_model_trimming <- 0.01
-main_model_controls_lag <- "no_lags"
+main_model_controls_lag <- "no_treatment_outcome_lags" # "no_lags", "all"
 main_model_controls_endog  <- "yes"
 
 # generate all possible combinations of user inputs (to iterate over it below)
@@ -276,14 +276,14 @@ cohort_prep <- main_cohort_prep
 treatment_repl <- main_treatment_repl
 treatment_def <- main_treatment_def
 extra_act <- main_extra_act
-model_type <- "all"
-model_controls_lag <- "no_lags" # "no_treatment_outcome_lags", "all"
-model_controls_endog <- "yes"
+model_type <- main_model_type
+model_controls_lag <- main_model_controls_lag
+model_controls_endog <- main_model_controls_endog
 model_trimming <- 0.01
 
 # for lasso and xgboost higher K as they are computationally faster
 model_k <- 4 
-model_k_tuning <- 4 
+model_k_tuning <- 2
 model_s_rep <- 10 
 
 ## LASSO ##
