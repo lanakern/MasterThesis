@@ -47,7 +47,7 @@ for (mice_data_sel in 1:5) {
   
   # drop students who do not take part in any extracurricular activity
   if (extra_act == "yes") {
-    data_descr_sub <- data_descr_sub %>% filter(extracurricular_num > 0)
+    data_descr_sub <- data_descr_sub %>% filter(extracurricular_num > 0 | treatment_sport == 1)
   } else {
     data_descr_sub <- data_descr_sub
   }
@@ -418,6 +418,13 @@ for (mice_data_sel in 1:5) {
   
   data_descr_sub <- readRDS(data_load)
   data_descr_sub <- data_descr_sub %>% ungroup() %>% mutate(MICE = mice_data_sel)
+  
+  # drop students who do not take part in any extracurricular activity
+  if (extra_act == "yes") {
+    data_descr_sub <- data_descr_sub %>% filter(extracurricular_num > 0 | treatment_sport == 1)
+  } else {
+    data_descr_sub <- data_descr_sub
+  }
   
   # keep only columns that are in all data frame
   colnames_sub <- colnames(data_descr_sub)
