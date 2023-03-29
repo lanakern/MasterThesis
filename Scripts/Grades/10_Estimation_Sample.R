@@ -67,7 +67,7 @@ for (mice_data_sel in 1:5) {
   data_final <- data_final_raw %>% ungroup() %>% type.convert(as.is = TRUE)
   
   # change treatment group to all sport participation levels
-  if (treatment_def == "all") {
+  if (treatment_def == "all" & cohort_prep == main_cohort_prep) {
     data_final <- data_final %>% 
       mutate(treatment_sport = ifelse(treatment_sport_freq != "never", 1, 0)) 
   } else {
@@ -75,7 +75,7 @@ for (mice_data_sel in 1:5) {
   }
   
   # drop replaced treatment and outcome information
-  if (treatment_repl == "no") {
+  if (treatment_repl == "no" & cohort_prep == main_cohort_prep) {
     data_final <- data_final %>% 
       filter(outcome_grade_na == 0 & treatment_sport_na == 0)
   } else {
@@ -83,9 +83,9 @@ for (mice_data_sel in 1:5) {
   }
   
   # drop students who do not take part in any extracurricular activity
-  if (extra_act == "yes") {
+  if (extra_act == "yes" & cohort_prep == main_cohort_prep) {
     data_final <- data_final %>%
-      filter(extracurricular_num > 0)
+      filter(extracurricular_num > 0 | treatment_sport == 1)
   } else {
     data_final <- data_final
   }
@@ -99,7 +99,10 @@ for (mice_data_sel in 1:5) {
     dplyr::select(-c(id_t, starts_with("interview_date"), #treatment_period, 
               starts_with("na_count"), ends_with("_cat"), ends_with("_cat_lag"),
               starts_with("uni_time_employment"), starts_with("uni_entrance_quali_access_"),
-              starts_with("motivation_degree_4"), starts_with("health_disability")))
+              starts_with("motivation_degree_4")))
+  
+  # also drop big five lags because they are identical to true value
+  data_final <- data_final %>% dplyr::select(-c(starts_with("bigfive") & ends_with("lag")))
   
   # ensure all character variables are dropped
   treatment_sport_freq <- data_final$treatment_sport_freq # keep
