@@ -190,6 +190,22 @@ data_descr %>%
   filter(bigfive_agreeableness != bigfive_agreeableness_lag) %>%
   nrow()
 
+data_descr %>%
+  dplyr::select(bigfive_openness, bigfive_openness_lag) %>%
+  filter(bigfive_openness != bigfive_openness_lag) %>%
+  nrow()
+
+data_descr %>%
+  filter(bigfive_extraversion != bigfive_extraversion_lag) %>%
+  nrow()
+
+data_descr %>%
+  filter(bigfive_conscientiousness != bigfive_conscientiousness_lag) %>%
+  nrow()
+
+data_descr %>%
+  filter(bigfive_neuroticism != bigfive_neuroticism_lag) %>%
+  nrow()
 
 
 ## LENGTH TREATMENT PERIOD ##
@@ -314,70 +330,68 @@ table(data_descr %>% filter(treatment_sport == 0) %>% dplyr::select(extracurricu
 
 
 
-# #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-# #### DESCRIPTIVES MOST IMPROTANT PREDICTORS ####
-# #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-# 
-# vars_baseline_descr <- str_replace(vars_baseline, "\ngroup,", "")
-# data_descr_sub <- eval(parse(text = paste('data_descr %>%', vars_baseline_descr)))
-# data_descr_sub %>% colnames()
-# 
-# 
-# ## frequency table for categorical variables ##
-# #+++++++++++++++++++++++++++++++++++++++++++++#
-# 
-# vars_categoric <- data_descr_sub %>% ungroup() %>% dplyr::select_if(~ is.character(.)) %>% colnames()
-#   ## differentiated by treatment
-# data_descr_cat <-
-#   data_descr_sub %>%
-#   dplyr::select(treatment_sport, all_of(vars_categoric)) %>%
-#   pivot_longer(
-#     cols = -treatment_sport, 
-#     names_pattern = "([A-z]+)", names_to = c("variable")
-#   ) %>%
-#   group_by(treatment_sport, variable) %>%
-#   count(value) %>%
-#   arrange(variable, value) %>%
-#   mutate(n_rel = case_when(treatment_sport == 0 ~ as.double(n / obs_num_control), 
-#                            treatment_sport == 1 ~ as.double(n / obs_num_treatment),
-#                            TRUE ~ as.double(n))) %>%
-#   rename(n_abs = n)
-# data_descr_cat
-#   ## not differentiated by treatment
-# data_descr_cat_all <- 
-#   data_descr_cat %>%
-#   group_by(variable, value) %>%
-#   mutate(n_abs = sum(n_abs)) %>%
-#   dplyr::select(-c(treatment_sport)) %>% distinct() %>%
-#   mutate(n_rel = n_abs / obs_num)
-# data_descr_cat_all
-# 
-# 
-# 
-# ## summary for numeric variables ##
-# #+++++++++++++++++++++++++++++++++#
-# 
-# # extract numeric columns
-# vars_numeric <- data_descr_sub %>% ungroup() %>% dplyr::select_if(~ is.numeric(.))
-# vars_numeric_drop_expr <- paste("vars_numeric %>% dplyr::select(-c(", 
-#                                 paste0("starts_with('", vars_categoric, "')", collapse = "|"), 
-#                                 "))")
-# vars_numeric <- eval(parse(text = vars_numeric_drop_expr)) %>% colnames()
-# 
-# 
-# data_descr_sub %>%
-#   dplyr::select(all_of(vars_numeric)) %>%
-#   summary(.)
-# 
-# data_descr_sub %>%
-#   filter(treatment_sport == 1) %>%
-#   dplyr::select(all_of(vars_numeric)) %>%
-#   summary(.)
-# 
-# data_descr_sub %>%
-#   filter(treatment_sport == 0) %>%
-#   dplyr::select(all_of(vars_numeric)) %>%
-#   summary(.)
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### DESCRIPTIVES MOST IMPROTANT PREDICTORS ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+data_descr_sub <- data_descr
+
+
+## frequency table for categorical variables ##
+#+++++++++++++++++++++++++++++++++++++++++++++#
+
+vars_categoric <- data_descr_sub %>% ungroup() %>% dplyr::select_if(~ is.character(.)) %>% colnames()
+## differentiated by treatment
+data_descr_cat <-
+  data_descr_sub %>%
+  dplyr::select(treatment_sport, all_of(vars_categoric)) %>%
+  pivot_longer(
+    cols = -treatment_sport, 
+    names_pattern = "([A-z]+)", names_to = c("variable")
+  ) %>%
+  group_by(treatment_sport, variable) %>%
+  count(value) %>%
+  arrange(variable, value) %>%
+  mutate(n_rel = case_when(treatment_sport == 0 ~ as.double(n / obs_num_control), 
+                           treatment_sport == 1 ~ as.double(n / obs_num_treatment),
+                           TRUE ~ as.double(n))) %>%
+  rename(n_abs = n)
+data_descr_cat
+## not differentiated by treatment
+data_descr_cat_all <- 
+  data_descr_cat %>%
+  group_by(variable, value) %>%
+  mutate(n_abs = sum(n_abs)) %>%
+  dplyr::select(-c(treatment_sport)) %>% distinct() %>%
+  mutate(n_rel = n_abs / obs_num)
+data_descr_cat_all
+
+
+
+## summary for numeric variables ##
+#+++++++++++++++++++++++++++++++++#
+
+# extract numeric columns
+vars_numeric <- data_descr_sub %>% ungroup() %>% dplyr::select_if(~ is.numeric(.))
+vars_numeric_drop_expr <- paste("vars_numeric %>% dplyr::select(-c(", 
+                                paste0("starts_with('", vars_categoric, "')", collapse = "|"), 
+                                "))")
+vars_numeric <- eval(parse(text = vars_numeric_drop_expr)) %>% colnames()
+
+
+data_descr_sub %>%
+  dplyr::select(all_of(vars_numeric)) %>%
+  summary(.)
+
+data_descr_sub %>%
+  filter(treatment_sport == 1) %>%
+  dplyr::select(all_of(vars_numeric)) %>%
+  summary(.)
+
+data_descr_sub %>%
+  filter(treatment_sport == 0) %>%
+  dplyr::select(all_of(vars_numeric)) %>%
+  summary(.)
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -447,7 +461,7 @@ data_outcome_descr_multi_all <- func_mean_comp(data_descr_multi_mice1, vars_pers
 # calculate minimum, maximum, median etc.
 data_outcome_descr_multi_all_2 <- data.frame()
 for (vars_personality_sel in vars_personality) {
-  data_outcome_descr <- func_summary_stats(data_descr_mice1, "treatment_sport_freq", vars_personality_sel)
+  data_outcome_descr <- func_summary_stats(data_descr_multi_mice1, "treatment_sport_freq", vars_personality_sel)
   data_outcome_descr_multi_all_2 <- rbind(data_outcome_descr_multi_all_2, data_outcome_descr)
 }
 data_outcome_descr_multi_all_2
@@ -463,13 +477,13 @@ data_outcome_descr_multi_all <- left_join(
 # save
 if (file.exists("Output/Descriptives/Personality/PERSONALITY_OUTCOME_TREATMENT_MULTI.rds")) {
   data_outcome_descr_hist <- readRDS("Output/Descriptives/Personality/PERSONALITY_OUTCOME_TREATMENT_MULTI.rds")
-  data_outcome_descr_save <- rbind(data_outcome_descr_hist, data_outcome_descr_all) %>%
+  data_outcome_descr_save <- rbind(data_outcome_descr_hist, data_outcome_descr_multi_all) %>%
     group_by(variable, cohort_prep , treatment_repl, treatment_def, extra_act_save) %>%
     filter(time_stamp == max(time_stamp)) %>%
     distinct() %>% ungroup() %>% data.frame()
   saveRDS(data_outcome_descr_save, "Output/Descriptives/Personality/PERSONALITY_OUTCOME_TREATMENT_MULTI.rds")
 } else {
-  saveRDS(data_outcome_descr_all, "Output/Descriptives/Personality/PERSONALITY_OUTCOME_TREATMENT_MULTI.rds")
+  saveRDS(data_outcome_descr_multi_all, "Output/Descriptives/Personality/PERSONALITY_OUTCOME_TREATMENT_MULTI.rds")
 }
 
 
