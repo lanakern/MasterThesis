@@ -73,9 +73,12 @@ for (mice_data_sel in 1:5) {
     # group the observation belongs; this info is only used for sample splitting
     # in the cross-fitting procedure
     mutate(group = as.integer(factor(id_t,levels = unique(id_t))))  %>%
-    dplyr::select(-c(id_t, starts_with("interview_date"), starts_with("health_disability"),
+    dplyr::select(-c(id_t, starts_with("interview_date"), 
                      starts_with("na_count"), ends_with("_cat"), ends_with("_cat_lag"),
                      starts_with("uni_time_employment"), starts_with("uni_entrance_quali_access_")))
+  
+  # also drop big five lags because they are identical to true value
+  data_final <- data_final %>% dplyr::select(-c(starts_with("bigfive") & ends_with("lag")))
   
   # ensure all character variables are dropped
   treatment_sport_freq <- data_final$treatment_sport_freq # keep
