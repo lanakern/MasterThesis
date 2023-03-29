@@ -67,6 +67,10 @@
 func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tuning, S, mlalgo, 
                      trimming, save_trimming, probscore_separate = TRUE, mice_sel) {
   
+  # check for missings in date
+  if (sum(is.na(data)) > 0) {
+    stop("Data contains missing values.")
+  }
   
   ## FOR SAVING RESULTS ##
   
