@@ -245,7 +245,6 @@ for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
   treatment_def <- df_inputs_sel$treatment_def
   extra_act <- df_inputs_sel$extra_act
   
-  # Prepare control variables
   source("Scripts/Grades/08_Plausibility_Checks.R") 
   
   print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs_indiv)))
@@ -272,6 +271,25 @@ source("Scripts/Grades/09_Descriptive_Statistics.R")
 #### Final Estimation Samples ####
 #++++++++++++++++++++++++++++++++#
 
+# First create interaction and polynominals
+for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
+  
+  print(paste0("START COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs_indiv)))
+  
+  df_inputs_sel <- df_inputs_indiv[prep_sel_num, ]
+  cohort_prep <- df_inputs_sel$cohort_prep
+  treatment_repl <- df_inputs_sel$treatment_repl
+  treatment_def <- df_inputs_sel$treatment_def
+  extra_act <- df_inputs_sel$extra_act
+  
+  source("Scripts/Grades/10_a_Create_Interactions_Polys.R") 
+  
+  print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs_indiv)))
+  eval(parse(text = keep_after_file_run))
+  gc()
+}
+
+# Second create the final estimation samples
 for (prep_sel_num in 1:nrow(df_inputs)) {
   
   print(paste0("START COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs)))
@@ -282,11 +300,8 @@ for (prep_sel_num in 1:nrow(df_inputs)) {
   treatment_def <- df_inputs_sel$treatment_def
   extra_act <- df_inputs_sel$extra_act
   
-  # Decide if interactions should be created (takes a long time)
-  create_interactions <- "yes" # "yes"
-  
-  # Prepare control variables
-  source("Scripts/Grades/10_Estimation_Sample.R") 
+
+  source("Scripts/Grades/10_b_Estimation_Sample.R") 
   
   print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs)))
   eval(parse(text = keep_after_file_run))

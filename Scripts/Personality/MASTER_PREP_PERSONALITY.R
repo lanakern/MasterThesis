@@ -160,7 +160,7 @@ gc()
 #++++++++++++++++++++++++++++++++#
 
 # Decide if interactions should be created (takes a long time)
-create_interactions <- "no" # "yes"
+create_interactions <- "yes" # "yes"
   
 # Prepare control variables
 source("Scripts/Personality/10_Estimation_Sample_Personality.R") 
