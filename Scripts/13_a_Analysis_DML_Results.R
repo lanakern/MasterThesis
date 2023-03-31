@@ -10,19 +10,180 @@
 #+++
 
 
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### SUMMARY OF RESULTS ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+df_dml_main_binary <- 
+  read.xlsx("Output/DML/Treatment_Effects/DML_BINARY_ESTIMATION_RESULTS.xlsx", sheetName = "Sheet1")
+df_dml_main_binary
+
+df_dml_main_multi <- 
+  read.xlsx("Output/DML/Treatment_Effects/DML_MULTI_ESTIMATION_RESULTS.xlsx", sheetName = "Sheet1")
+df_dml_main_binary
+
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### DETAILED LASSO ANALYSIS FOR GPA SAMPLE ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+## MAIN RESULTS ##
+#++++++++++++++++#
+
+df_dml_main_binary %>% filter(model_algo == "lasso")
+
+
+## RESULT ACROSS REPETITIONS ##
+#+++++++++++++++++++++++++++++#
+
+lasso_main <- 
+  readRDS("Output/DML/Estimation/Grades/binary_grades_lasso_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming0.01_K4-2_Rep5.rds")
+
+lasso_theta_detail <- rbind(
+  lasso_main[[1]]$detail %>% filter(Type == "ATE") %>% mutate(MICE = 1),
+  lasso_main[[2]]$detail %>% filter(Type == "ATE") %>% mutate(MICE = 2)) %>%
+  rbind(lasso_main[[3]]$detail %>% filter(Type == "ATE") %>% mutate(MICE = 3)) %>%
+  rbind(lasso_main[[4]]$detail %>% filter(Type == "ATE") %>% mutate(MICE = 4)) %>%
+  rbind(lasso_main[[5]]$detail %>% filter(Type == "ATE") %>% mutate(MICE = 5)) 
+
+# replicate overall treatment effect
+lasso_theta_detail %>%
+  group_by(MICE) %>%
+  summarize(theta_median = median(Treatment_Effect)) %>%
+  ungroup() %>% pull(theta_median) %>% median()
+
+lasso_theta_detail %>%
+  group_by(MICE) %>%
+  summarize(theta_mean = mean(Treatment_Effect)) %>%
+  ungroup() %>% pull(theta_mean) %>% mean()
+
+
+# for paper: intermediate results
+lasso_theta_detail %>%
+  group_by(Rep) %>%
+  summarize(theta_median = median(Treatment_Effect)) 
+
+
+
+
+## COMMON SUPPORT ##
+#++++++++++++++++++#
+
+# MAIN MODEL: No treatment and outcome lags #
+lasso_main_pred <- data.frame()
+for (mice_sel in 1:5) {
+  lasso_main_pred_sub <- left_join(lasso_main[[mice_sel]]$pred, lasso_main[[mice_sel]]$trimming, by = "Repetition") %>%
+    mutate(MICE = mice_sel)
+  lasso_main_pred <- rbind(lasso_main_pred, lasso_main_pred_sub)
+}
+
+lasso_main_plot_common_support <- func_dml_common_support(
+  "binary", lasso_main_pred, unique(lasso_main_pred$min_trimming), 
+  unique(lasso_main_pred$max_trimming), "lasso")
+
+lasso_main_plot_common_support <- lasso_main_plot_common_support + 
+  ggtitle(bquote(paste(atop(bold(.("LASSO")), "Propensity Score Overlap without Treatment and Outcome Lags")))) +
+  theme(plot.title = element_text(hjust = 0.5, size = 10))
+
+
+# RC: Treatment and outcome lags #
+lasso_rc_treatoutlags <- 
+  readRDS("Output/DML/Estimation/Grades/binary_grades_lasso_all_controlssameoutcome_weekly_down_extradrop_all_all_endogyes_trimming0.01_K4-2_Rep5.rds")
+
+
+lasso_rc_treatoutlags_pred <- data.frame()
+for (mice_sel in 1:5) {
+  lasso_lasso_rc_treatoutlags_pred_sub <- left_join(lasso_rc_treatoutlags[[mice_sel]]$pred, lasso_rc_treatoutlags[[mice_sel]]$trimming, by = "Repetition") %>%
+    mutate(MICE = mice_sel)
+  lasso_rc_treatoutlags_pred <- rbind(lasso_rc_treatoutlags_pred, lasso_lasso_rc_treatoutlags_pred_sub)
+}
+
+lasso_rc_treatoutlags_plot_common_support <- func_dml_common_support(
+  "binary", lasso_rc_treatoutlags_pred, unique(lasso_rc_treatoutlags_pred$min_trimming), 
+  unique(lasso_rc_treatoutlags_pred$max_trimming), "lasso")
+
+
+lasso_rc_treatoutlags_plot_common_support <- lasso_rc_treatoutlags_plot_common_support + 
+  ggtitle("Propensity Score Overlap with Treatment and Outcome Lags") +
+  theme(plot.title = element_text(hjust = 0.5, size = 10))
+
+
+# MAIN BUT DIFFERENT TRIMMING #
+lasso_main_01 <- 
+  readRDS("Output/DML/Estimation/Grades/binary_grades_lasso_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming0.1_K4-2_Rep5.rds")
+
+lasso_main_pred_01 <- data.frame()
+for (mice_sel in 1:5) {
+  lasso_main_pred_01_sub <- left_join(lasso_main_01[[mice_sel]]$pred, lasso_main_01[[mice_sel]]$trimming, by = "Repetition") %>%
+    mutate(MICE = mice_sel)
+  lasso_main_pred_01 <- rbind(lasso_main_pred_01, lasso_main_pred_01_sub)
+}
+
+lasso_main_01_plot_common_support <- func_dml_common_support(
+  "binary", lasso_main_pred_01, unique(lasso_main_pred_01$min_trimming), 
+  unique(lasso_main_pred_01$max_trimming), "lasso")
+
+lasso_main_01_plot_common_support <- lasso_main_01_plot_common_support + 
+  ggtitle("Propensity Score Overlap with Trimming Threshold of 0.1") +
+  theme(plot.title = element_text(hjust = 0.5, size = 10))
+
+
+
+lasso_main_minmax <- 
+  readRDS("Output/DML/Estimation/Grades/binary_grades_lasso_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimmingmin-max_K4-2_Rep5.rds")
+
+lasso_main_pred_minmax <- data.frame()
+for (mice_sel in 1:5) {
+  lasso_main_pred_minmax_sub <- left_join(lasso_main_minmax[[mice_sel]]$pred, lasso_main_minmax[[mice_sel]]$trimming, by = "Repetition") %>%
+    mutate(MICE = mice_sel)
+  lasso_main_pred_minmax <- rbind(lasso_main_pred_minmax, lasso_main_pred_minmax_sub)
+}
+
+lasso_main_minmax_plot_common_support <- func_dml_common_support(
+  "binary", lasso_main_pred_minmax, unique(lasso_main_pred_minmax$min_trimming), 
+  unique(lasso_main_pred_minmax$max_trimming), "lasso")
+
+lasso_main_minmax_plot_common_support <- lasso_main_minmax_plot_common_support + 
+  ggtitle("Propensity Score Overlap with Min-Max Trimming") +
+  theme(plot.title = element_text(hjust = 0.5, size = 10))
+
+
+# subplot
+ggarrange(lasso_main_plot_common_support + rremove("xlab") +
+            ggtitle(bquote(paste(atop(bold(.("LASSO")), "Propensity Score Overlap with Trimming Threshold of 0.01")))) +
+            theme(plot.title = element_text(hjust = 0.5, size = 10)),
+          lasso_main_01_plot_common_support + rremove("xlab"),
+          lasso_main_minmax_plot_common_support, 
+          nrow = 3, common.legend = TRUE, legend = "bottom")
+
+
+lasso_main_pred %>% dplyr::select(starts_with("n_treats")) %>% distinct()
+lasso_main_pred_01 %>% dplyr::select(starts_with("n_treats")) %>% distinct() %>% arrange(n_treats_after)
+lasso_main_pred_minmax %>% dplyr::select(starts_with("n_treats")) %>% distinct() %>% arrange(n_treats_after)
+
+
+ggarrange(lasso_main_plot_common_support + rremove("xlab"),
+          lasso_rc_treatoutlags_plot_common_support, 
+          nrow = 2, common.legend = TRUE, legend = "bottom")
+
+lasso_main_pred %>% dplyr::select(starts_with("n_treats")) %>% distinct()
+lasso_rc_treatoutlags_pred %>% dplyr::select(starts_with("n_treats")) %>% distinct() %>% arrange(n_treats_after)
+
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### DETAILED XGBoost ANALYSIS ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+
+
+
 #%%%%%%%%%%%%%%%%%#
 #### LOAD DATA ####
 #%%%%%%%%%%%%%%%%%#
 
-#+++++++++++++++++++++#
-## MAIN LOAD RESULTS ##
-#+++++++++++++++++++++#
-
-df_dml_main_binary <- 
-  read.xlsx("Output/DML/DML_BINARY_ESTIMATION_RESULTS.xlsx", sheetName = "Sheet1")
-
-df_dml_main_multi <- 
-  read.xlsx("Output/DML/DML_MULTI_ESTIMATION_RESULTS.xlsx", sheetName = "Sheet1")
 
 
 #+++++++++++++++++++++++++++++#
