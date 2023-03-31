@@ -74,10 +74,10 @@ func_dml_pool_mice <- function(dml_result, N, mice_num) {
     dplyr::select(Treatment, Type, starts_with("theta"), starts_with("se"), matches(".*value")) %>%
     group_by(Treatment, Type) %>%
     summarize(
-      theta_mean = mean(theta_mean), theta_median = mean(theta_median),
-      se_mean = mean(se_mean), se_median = mean(se_median),
-      tvalue_mean = mean(tvalue_mean), tvalue_median = mean(tvalue_median),
-      pvalue_mean = mean(pvalue_mean), pvalue_median = mean(pvalue_median)
+      theta_mean = mean(theta_mean), theta_median = median(theta_median),
+      se_mean = mean(se_mean), se_median = median(se_median),
+      tvalue_mean = mean(tvalue_mean), tvalue_median = median(tvalue_median),
+      pvalue_mean = mean(pvalue_mean), pvalue_median = median(pvalue_median)
     ) %>%
     mutate(
       # confidence interval
