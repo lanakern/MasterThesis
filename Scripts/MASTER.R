@@ -161,6 +161,9 @@ library(MASS) # for ginv() function (-> weights for covariate balancing)
 if (!require("vip")) install.packages("vip")
 library(vip) # for feature importance
 
+if (!require("ggpubr")) install.packages("ggpubr") 
+library(ggpubr) # for arranging multipöe plots in one plot
+
 # set language for dates and times to German, since the NEPS month names
 # are written in German; otherwise date/time functions are not working
 # for German language
@@ -207,16 +210,15 @@ cronbach_a <- "yes" # "no" (not used anymore)
 
 # define variables which may be endogenous (only used in main model)
 # also outcome and treatment lags but they are dropped within the code
-vars_endogenous <- 'dplyr::select(starts_with("health"), starts_with("uni_time_courses"),
-  starts_with("uni_time_study"), starts_with("extracurricular_freq"), starts_with("extracurricular_num"),
+vars_endogenous <- 'dplyr::select(starts_with("health"), starts_with("uni_time"),
+  starts_with("extracurricular"), starts_with("social_integr"),
   starts_with("interest"), starts_with("comp"), starts_with("emp"), starts_with("personality"),
   starts_with("satisfaction_life"), starts_with("stress"), starts_with("uni_anxiety"),
   starts_with("bigfive"), starts_with("parents_degree_wish"), starts_with("parents_importance_success"), 
-  starts_with("parents_opinion_degree"),
+  starts_with("parents_opinion_degree"), starts_with("uni_achievement"),
   c("educ_school_grade_math", "educ_school_grade_ger", "educ_school_grade_final", 
     "educ_school_rep_grade", "educ_school_degree_general", "educ_school_degree_applied", 
-    "uni_best_student", "uni_best_student_lag", "uni_ects_current",
-    "extracurricular_music"))'
+    "uni_best_student", "uni_best_student_lag", "uni_ects_current"))'
     
 
 # define variables to keep after deleting environment
