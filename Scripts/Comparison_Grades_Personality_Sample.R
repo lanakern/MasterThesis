@@ -246,3 +246,75 @@ sum(str_detect(setdiff(colnames(data_perso_main_mice1), colnames(data_main_mice1
 
 colnames(data_perso_main_mice1)
 colnames(data_main_mice1)
+
+
+#### NUmber Predictors ####
+#+++++++++++++++++++++++++#
+
+prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice1 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice1.rds")
+ncol_mice1 <- ncol(prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice1)
+prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice1 <- prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice1 %>%
+  dplyr::select(-c(outcome_grade, treatment_sport, group))
+ncol_mice1_all <- ncol(prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice1)
+ncol_mice1_int <- prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice1 %>%
+  dplyr::select(contains(":")) %>% ncol()
+ncol_mice1_polys <- prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice1 %>%
+  dplyr::select(contains("_order")) %>% ncol()
+ncol_mice1_nointpolys <- ncol_mice1_all - ncol_mice1_int - ncol_mice1_polys
+
+prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice2 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice2.rds")
+ncol_mice2 <- ncol(prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice2)
+prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice2 <- prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice2 %>%
+  dplyr::select(-c(outcome_grade, treatment_sport, group))
+ncol_mice2_all <- ncol(prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice2)
+ncol_mice2_int <- prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice2 %>%
+  dplyr::select(contains(":")) %>% ncol()
+ncol_mice2_polys <- prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice2 %>%
+  dplyr::select(contains("_order")) %>% ncol()
+ncol_mice2_nointpolys <- ncol_mice2_all - ncol_mice2_int - ncol_mice2_polys
+
+prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice3 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice3.rds")
+ncol_mice3 <- ncol(prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice3)
+prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice3 <- prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice3 %>%
+  dplyr::select(-c(outcome_grade, treatment_sport, group))
+ncol_mice3_all <- ncol(prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice3)
+ncol_mice3_int <- prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice3 %>%
+  dplyr::select(contains(":")) %>% ncol()
+ncol_mice3_polys <- prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice3 %>%
+  dplyr::select(contains("_order")) %>% ncol()
+ncol_mice3_nointpolys <- ncol_mice3_all - ncol_mice3_int - ncol_mice3_polys
+
+prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice4 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice4.rds")
+ncol_mice4 <- ncol(prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice4)
+prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice4 <- prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice4 %>%
+  dplyr::select(-c(outcome_grade, treatment_sport, group))
+ncol_mice4_all <- ncol(prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice4)
+ncol_mice4_int <- prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice4 %>%
+  dplyr::select(contains(":")) %>% ncol()
+ncol_mice4_polys <- prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice4 %>%
+  dplyr::select(contains("_order")) %>% ncol()
+ncol_mice4_nointpolys <- ncol_mice4_all - ncol_mice4_int - ncol_mice4_polys
+
+prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice5 <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice5.rds")
+ncol_mice5 <- ncol(prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice5)
+prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice5 <- prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice5 %>%
+  dplyr::select(-c(outcome_grade, treatment_sport, group))
+ncol_mice5_all <- ncol(prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice5)
+ncol_mice5_int <- prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice5 %>%
+  dplyr::select(contains(":")) %>% ncol()
+ncol_mice5_polys <- prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice5 %>%
+  dplyr::select(contains("_order")) %>% ncol()
+ncol_mice5_nointpolys <- ncol_mice5_all - ncol_mice5_int - ncol_mice5_polys
+
+print(paste("Total number of variables:", round(mean(c(ncol_mice1, ncol_mice2, ncol_mice3, ncol_mice4, ncol_mice5)))))
+print(paste("Total number of control variables:", round(mean(c(ncol_mice1_all, ncol_mice2_all, ncol_mice3_all, ncol_mice4_all, ncol_mice5_all)))))
+print(paste("Total number of interaction effects:", round(mean(c(ncol_mice1_int, ncol_mice2_int, ncol_mice3_int, ncol_mice4_int, ncol_mice5_int)))))
+print(paste("Total number of polynominals:", round(mean(c(ncol_mice1_polys, ncol_mice2_polys, ncol_mice3_polys, ncol_mice4_polys, ncol_mice5_polys)))))
+print(paste("Total number of control variables without interactions and polynominals:", ncol_mice5_nointpolys))
+print(paste("Total number of control variables without interactions, polynominals, and treatment and outcome lags:", ncol_mice5_nointpolys - 4))
+print(paste("Total number of control variables without interactions, polynominals, and lags:", 
+            ncol_mice5_nointpolys - length(colnames(prep_10_dml_binary_allintpoly_weekly_down_extradrop_mice5 %>% 
+                                                      dplyr::select(-contains(":"), -contains("order")) %>%
+                                                      dplyr::select(ends_with("_lag"))))
+            ))
+
