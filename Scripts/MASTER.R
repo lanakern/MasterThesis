@@ -279,7 +279,7 @@ extra_act <- main_extra_act
 model_type <- main_model_type
 model_controls_lag <- main_model_controls_lag
 model_controls_endog <- main_model_controls_endog
-model_trimming <- 0.01
+model_trimming <- main_model_trimming
 
 # for lasso and xgboost higher K as they are computationally faster
 model_k <- 4 
