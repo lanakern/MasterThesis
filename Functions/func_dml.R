@@ -127,10 +127,10 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
   ## xgboost
   xgb_grid <- expand.grid(
     tree_depth = c(3, 6), # default: 6
-    trees = c(15), # default: 15
+    trees = c(15, 30), # default: 15
     learn_rate = c(0.01, 0.3), # default: 0.3
     mtry = c(floor(sqrt(num_X)), round(num_X)/2, round(num_X)), # default: p (X)
-    min_n = c(1) # default: 1
+    min_n = c(1, 3) # default: 1
   )
   # xgb_grid <- expand.grid(
   #   tree_depth = c(6), # default: 6
