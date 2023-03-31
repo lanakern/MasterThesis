@@ -169,11 +169,19 @@ if (str_detect(outcome_var, "grade")) {
   save_dml <- 
     paste0("Output/DML/Estimation/Grades/binary_grades_", model_algo, "_", 
            model_type, "_", str_replace_all(cohort_prep, "_", ""),
-           "_", treatment_def, "_", treatment_repl, extra_act_save, ".rds")
+           "_", treatment_def, "_", treatment_repl, extra_act_save, 
+           "_", model_type, "_", str_replace_all(model_controls_lag, "_", ""), "_endog",
+           model_controls_endog, "_trimming", model_trimming, "_K", model_k, 
+           "-", model_k_tuning, "_Rep", model_s_rep,
+           ".rds")
 } else if (str_detect(outcome_var, "bigfive")) {
   paste0("Output/DML/Estimation/Personality/binary_personality_", model_algo, "_", 
          model_type, "_", str_replace_all(cohort_prep, "_", ""),
-         "_", treatment_def, "_", treatment_repl, extra_act_save, ".rds")
+         "_", treatment_def, "_", treatment_repl, extra_act_save, 
+         "_", model_type, "_", str_replace_all(model_controls_lag, "_", ""), "_endog",
+         model_controls_endog, "_trimming", model_trimming, "_K", model_k, 
+         "-", model_k_tuning, "_Rep", model_s_rep,
+         ".rds")
 }
 
 saveRDS(dml_result_all, save_dml)
