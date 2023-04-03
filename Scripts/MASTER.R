@@ -162,7 +162,7 @@ if (!require("vip")) install.packages("vip")
 library(vip) # for feature importance
 
 if (!require("ggpubr")) install.packages("ggpubr") 
-library(ggpubr) # for arranging multipöe plots in one plot
+library(ggpubr) # for arranging multip?e plots in one plot
 
 # set language for dates and times to German, since the NEPS month names
 # are written in German; otherwise date/time functions are not working
@@ -274,19 +274,19 @@ outcome_var <- "outcome_grade"
 ## MAIN MODEL ##
 #++++++++++++++#
 
-cohort_prep <- main_cohort_prep
-treatment_repl <- main_treatment_repl
-treatment_def <- main_treatment_def
-extra_act <- main_extra_act
-model_type <- main_model_type
-model_controls_lag <- main_model_controls_lag
-model_controls_endog <- main_model_controls_endog
-model_trimming <- main_model_trimming
+cohort_prep <- main_cohort_prep # "controls_bef_outcome"
+treatment_repl <- main_treatment_repl # "no"
+treatment_def <- main_treatment_def # "all"
+extra_act <- main_extra_act # "no"
+model_type <- main_model_type # "all_int_polys"
+model_controls_lag <- main_model_controls_lag # "no_lags", "all"
+model_controls_endog <- main_model_controls_endog # "no"
+model_trimming <- main_model_trimming # 0.1, min-max
 
 # for lasso and xgboost higher K as they are computationally faster
 model_k <- 4 
-model_k_tuning <- 2
-model_s_rep <- 5 
+model_k_tuning <- 2 # 4
+model_s_rep <- 5 # 10
 
 ## LASSO ##
 model_algo <- "lasso"
@@ -301,9 +301,9 @@ eval(parse(text = keep_after_file_run))
 ## RANDOM FORESTS ##
 
 # for random forests smaller K and no parameter tuning as it is computationally expensive
-model_k <- 2 # 2, evtl. 4
+model_k <- 4 # 2, evtl. 4
 model_k_tuning <- 1 # 1
-model_s_rep <- 2 # 2
+model_s_rep <- 5 # 2
 model_algo <- "randomforests"
 source("Scripts/11_a_DML_Binary.R") 
 
