@@ -77,7 +77,7 @@ for (mice_data_sel in 1:5) {
     } else {
       data_dml <- data_dml %>% 
         dplyr::select(-c(starts_with("treatment") & contains("_lag"))) %>% 
-        dplyr::select(-c(starts_with(outcome_var) & contains("_lag"))) %>%
+        dplyr::select(-c(starts_with(str_remove(outcome_var, "outcome_")) & contains("_lag"))) %>%
         as.data.frame()
     }
   } else {
@@ -87,10 +87,13 @@ for (mice_data_sel in 1:5) {
   
   # drop endogeneous variables if desired by user
   if (model_controls_endog == "no") {
+    # drop variables defined as endogeneous
     colnames_endog_drop <- 
       eval(parse(text = paste(paste("data_dml_raw", "%>%"), vars_endogenous, "%>% colnames()")))
     colnames_endog_drop <- colnames_endog_drop[colnames_endog_drop %in% colnames(data_dml)]
     data_dml <- data_dml %>% dplyr::select(-all_of(colnames_endog_drop))
+    # also all interactions and polynominals are dropped
+    data_dml <- data_dml %>% dplyr::select(-contains(":")) %>% dplyr::select(-contains("_order"))
   } else {
     # keep endogeneous variables
     data_dml <- data_dml %>% as.data.frame()
@@ -102,15 +105,13 @@ for (mice_data_sel in 1:5) {
     data_dml <- data_dml
   } else if (str_detect(outcome_var, "bigfive")) {
     # for personality selected outcome variable needs to be declared
-    outcome_var_old <- outcome_var
-    outcome_var <- paste0("outcome_", outcome_var)
     data_dml <- data_dml %>%
-      rename_with(~ outcome_var, all_of(outcome_var_old))
-    # lags for all other personality variables are dropped
-    colnames_bigfive_lag_drop <- data_dml %>% 
-      dplyr::select(starts_with("bigfive") & ends_with("lag") & !matches(outcome_var_old)) %>% colnames()
-    data_dml <- data_dml %>% 
-      dplyr::select(-all_of(colnames_bigfive_lag_drop))
+      rename_with(~ outcome_var, all_of(str_remove(outcome_var, "outcome_")))
+    # # lags for all other personality variables are dropped
+    # colnames_bigfive_lag_drop <- data_dml %>% 
+    #   dplyr::select(starts_with("bigfive") & ends_with("lag") & !matches(outcome_var_old)) %>% colnames()
+    # data_dml <- data_dml %>% 
+    #   dplyr::select(-all_of(colnames_bigfive_lag_drop))
   }
   
 
@@ -152,7 +153,7 @@ for (mice_data_sel in 1:5) {
     outcome = outcome_var, treatment = "treatment_sport", group = "group", 
     K = model_k, K_tuning = model_k_tuning, S = model_s_rep, 
     mlalgo = model_algo, trimming = model_trimming, save_trimming = save_trimming_sel,
-    mice_sel = mice_data_sel
+    mice_sel = mice_data_sel, post = model_post_sel
   )
   
   # append APE
@@ -175,7 +176,8 @@ if (str_detect(outcome_var, "grade")) {
            "-", model_k_tuning, "_Rep", model_s_rep,
            ".rds")
 } else if (str_detect(outcome_var, "bigfive")) {
-  paste0("Output/DML/Estimation/Personality/binary_personality_", model_algo, "_", 
+  save_dml <- paste0("Output/DML/Estimation/Personality/binary_", 
+                     str_remove(outcome_var, "outcome_bigfive_"), "_", model_algo, "_", 
          model_type, "_", str_replace_all(cohort_prep, "_", ""),
          "_", treatment_def, "_", treatment_repl, extra_act_save, 
          "_", model_type, "_", str_replace_all(model_controls_lag, "_", ""), "_endog",
