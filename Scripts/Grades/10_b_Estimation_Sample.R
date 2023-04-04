@@ -6,24 +6,23 @@
 # by Lana Kern
 #+++
 # In this file, the estimation samples are established. 
-# Again, the preparations are made for the different MICE data sets.
-# The binary treatment setting contains one variable more than the multivalued
-# treatment setting because the monthly frequency is included as additional
-# control in the binary setting.
+# Again, the preparations are made for the different MICE data sets and differ
+# across the sample specifications. 
 #+++
 # 1.) Remove unnecessary variables like the id, character and constant variables.
 #+++
 # 2.) Binary Treatment Setting
-# -> Sample with all predictors
+# -> Sample with all predictors (saving also differs between lags and no lags)
 # -> Sample with all predictors + second order interactions + polynomial up
 # to degree 4
 #+++
 # 3.) Multivalud Treatment Setting
-# -> Sample with all predictors
+# -> Sample with all predictors (saving also differs between lags and no lags)
 # -> Sample with all predictors + second order interactions + polynomial up
 # to degree 4
 #+++
-# -> The resulting data frames are final data sets used for DML
+# -> The resulting data frames are final data sets used for DML. No further
+# adjustments are carried out. 
 #+++
 
 # extract extracurricular activity ending

@@ -16,6 +16,7 @@
 # -> Generate treatment period variable
 #++++
 # --> Resulting data frame is panel data frame
+#++++
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#

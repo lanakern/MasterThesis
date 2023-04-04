@@ -12,9 +12,6 @@
 #++++
 # 2.) Subset on age: 18-29 (emerging adulthood) at start of study
 #++++
-# -> Panel data set includes the final sample size.
-#++++
-
 
 # load data
 if (cohort_prep == "controls_same_outcome") {

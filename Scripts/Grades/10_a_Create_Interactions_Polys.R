@@ -5,11 +5,11 @@
 #+++
 # by Lana Kern
 #+++
-# In this file, interactions and polynominals are created. Those are stored
-# in an individual data set and can be appended to the set of predictors in
-# file 10_b_Estimation_Sample. This saves computation time.
-# Note that interaction terms and polynominals are not created for lagged 
-# variables.
+# In this file, interactions and polynominals are created. Note that this
+# file has a long computation time as over 100,000 interaction terms are created
+# which are finally subsetting based on empty cells.
+# Polynominals are created for all numeric variables.
+# NOTE: RESULTS ARE STORED IN PREP_9 TO NOT CONFUSE WITH FINAL PREP_10 DATA SETS.
 #+++
 
 # extract extracurricular activity ending
@@ -75,7 +75,7 @@ for (mice_data_sel in 1:5) {
   
   ## 1.) Drop treatment and outcome variables which are not used to generate interactions
   df_interaction <- data_final_all %>% 
-    dplyr::select(-c(starts_with("treatment"), starts_with("outcome"), id_t, ends_with("lags")))
+    dplyr::select(-c(starts_with("treatment"), starts_with("outcome"), id_t))
   ## 2.) Generate interactions
   # https://stackoverflow.com/questions/31905221/r-generate-all-possible-interaction-variables
   df_interaction <- do.call(cbind, combn(colnames(df_interaction), 2, FUN = function(x)

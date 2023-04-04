@@ -9,7 +9,7 @@
 # big five personality traits are made for both the binary and 
 # multivalued treatment setting. 
 # Everything is done for the main model and the five MICE data set. Those are
-# appended row-wise
+# appended row-wise,
 #+++
 
 

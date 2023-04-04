@@ -2,8 +2,6 @@
 #### PREPARE CHILD DATA FOR PERSONALITY ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-# IDENTICAL TO GRADES!
-
 #++++
 # by Lana Kern
 #++++

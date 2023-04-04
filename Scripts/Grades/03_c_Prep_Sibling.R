@@ -5,6 +5,10 @@
 #++++
 # by Lana Kern
 #++++
+# In this file information about siblings of each respondent are prepared. Note
+# that only students who have at least one sibling are included. Moreover, questions
+# about siblings are only asked in the first wave. 
+#++++
 # 1.) Merge birth month and year from CATI to sibling data. This is necessary
 # to identify younger and older siblings.
 #++++
@@ -19,6 +23,7 @@
 # -> For respondents with only one sibling sibling_2 dummies are set to 0. 
 #++++
 # --> Cross-sectional data set: one row for each respondent
+#++++
 
 
 #%%%%%%%%%%%%%%%%#
@@ -462,18 +467,6 @@ data_sibling_final_2 <- data_sibling_final_2 %>%
 data_sibling_final_2 %>% subset(ID_t == 7001969)
 data_sibling_final_2 %>% subset(ID_t == 7001970)
 
-# # for all other NAs, create NA dummys and then set NAs in those variables to zero
-# cols_NA <- names(colSums(is.na(data_sibling_final_2))[colSums(is.na(data_sibling_final_2)) > 0])
-# cols_NA <- cols_NA[!str_detect(cols_NA, "birth_date")]
-#   ## create NA dummies
-# for (cols_NA_sel in cols_NA) {
-#   cols_NA_mut <- paste0(cols_NA_sel, "_NA")
-#   data_sibling_final_2 <- data_sibling_final_2 %>%
-#     mutate(
-#       {{cols_NA_mut}} := ifelse(is.na(!!!syms(cols_NA_sel)), 1, 0),
-#       {{cols_NA_sel}} := ifelse(is.na(!!!syms(cols_NA_sel)), 0, !!!syms(cols_NA_sel))
-#     )
-# }
 
 # check for NAs
 colSums(is.na(data_sibling_final_2)) # only NAs for birth columns

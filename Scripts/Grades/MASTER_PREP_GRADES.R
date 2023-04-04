@@ -8,7 +8,8 @@
 # This master file is established to run all data preparation files for 
 # grades as outcome in the respective order.
 # Moreover, input parameters like the data preparation method can be 
-# changed in this file once so that it is valid for all other files.
+# changed in this file once so that it is valid for all other files. By
+# default all different data preparations are conducted.
 #+++
 
 
@@ -38,6 +39,8 @@ eval(parse(text = keep_after_file_run))
 #+++++++++++++++++++++++++#
 
 # Prepare treatment periods / cohort profile
+# 1.) CATI-CAWI combinations ("controls_same_outcome")
+# 2.) CAWI-CATI-CAWI combinations ("controls_bef_outcome")
 for (cohort_prep_sel in unique(na.omit(df_inputs$cohort_prep))) {
   cohort_prep <- cohort_prep_sel
   print(cohort_prep)
@@ -49,9 +52,8 @@ for (cohort_prep_sel in unique(na.omit(df_inputs$cohort_prep))) {
 #### Cati & Cawi ####
 #+++++++++++++++++++#
 
-# Prepare CATI and CAWI: iteration over cohort_prep and treatment_repl
-# Note: generated data sets differ across treatment_repl but number of students,
-# rows and columns only differ across cohort_prep
+# Prepare CATI and CAWI: iteration over cohort_prep and treatment_repl. However,
+# treatment_repl is always considered as "down". 
 df_inputs_indiv <- df_inputs %>% 
   dplyr::select(cohort_prep, treatment_repl) %>% 
   filter(treatment_repl == "down") %>%
@@ -116,9 +118,7 @@ for (cohort_prep_sel in unique(na.omit(df_inputs$cohort_prep))) {
 #### Merge ####
 #+++++++++++++#
 
-# Merge all individual data sets: iterate over cohort_prep and treatment_repl
-# Note: generated data sets differ across treatment_repl but number of students,
-# rows and columns only differ across cohort_prep
+# Merge all 02_* and 03_* data sets. This differs between cohort_preps. 
 
 for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
   
@@ -152,7 +152,11 @@ for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
 #+++++++++++++++++++++++++++++#
 
 # Prepare treatment and outcome 
-# Here I iterate over all combinations except extracurricular activity
+# Differs also only across cohort_prep. treatment_repl and treatment_def are
+# defined because file considers also other parameters which are not considered
+# anymore. Here, treatment variable is generated for weekly sport participation
+# and is adjusted in file 11.
+
 df_inputs_indiv <- df_inputs %>% 
   dplyr::select(cohort_prep, treatment_repl, treatment_def) %>% 
   filter(treatment_repl == "down", treatment_def == "weekly") %>%
@@ -176,8 +180,10 @@ for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
 #### Sample Selection ####
 #++++++++++++++++++++++++#
 
-# Conduct sample selection
-# Here I iterate over all combinations
+# Conduct sample selection.
+# For "controls_bef_outcome" students who do not participate in sports nor
+# any other extracurricular activity are dropped here. 
+# For "controls_same_outcome" all are kept and dropped in file 11.
 df_inputs_indiv <- rbind(
   df_inputs %>%
     filter(cohort_prep == "controls_same_outcome" & extra_act == "no"),
@@ -208,8 +214,8 @@ for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
 # now set language for dates and times to English
 Sys.setlocale("LC_TIME", "English")
 
-
-# perform further steps without sample selection reduction
+# create variables (differs for cohort_preps). Moreover, 5 different data sets
+# are created. 
 for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
   
   df_inputs_sel <- df_inputs_indiv[prep_sel_num, ]
@@ -235,6 +241,9 @@ df_excel_save_hist
 #### Plausibility analysis ####
 #+++++++++++++++++++++++++++++#
 
+# Plausibility analyses are conducted to ensure that valuesare plausible.
+# Again this differs across cohort_preps but also MICE data frames.
+
 for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
   
   print(paste0("START COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs_indiv)))
@@ -256,16 +265,15 @@ for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
 #### Descriptive Statistics ####
 #++++++++++++++++++++++++++++++#
 
-gc()
-eval(parse(text = keep_after_file_run))
 
-# only for main model
+# descriptive statistics are only made for main model
 cohort_prep <- main_cohort_prep
 treatment_repl <- main_treatment_repl
 treatment_def <- main_treatment_def
 extra_act <- main_extra_act
 source("Scripts/Grades/09_Descriptive_Statistics.R") 
-
+eval(parse(text = keep_after_file_run))
+gc()
 
 
 #### Final Estimation Samples ####
@@ -289,7 +297,9 @@ for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
   gc()
 }
 
-# Second create the final estimation samples
+# Second create the final estimation samples. Here subsetting takes place.
+# For example, regarding extracuriccular activities or treatment replacement.
+# Also treatment group definition of "all" is considered.
 for (prep_sel_num in 1:nrow(df_inputs)) {
   
   print(paste0("START COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs)))

@@ -2,8 +2,6 @@
 #### MERGE & PREPARE EPISODE FOR PERSONALITY  ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-# IDENTICAL FOR GRADES
-
 #++++
 # by Lana Kern
 #++++

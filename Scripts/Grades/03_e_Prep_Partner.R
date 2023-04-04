@@ -323,27 +323,6 @@ data_partner_final <- rbind(data_partner_current, data_partner_no_current)
 length(unique(data_partner_final$ID_t))
 
 
-#%%%%%%%%%%%%%%%%%%%%%%#
-#### Missing Values ####
-#%%%%%%%%%%%%%%%%%%%%%%#
-
-# # number of missing values per column
-# colSums(is.na(data_partner_final))
-# 
-# # remaining missing values are due to missing responses
-# # for those variables NA dummies are generated
-# # the NAs in original variable are set to zero
-# colnames_any_missing <- colSums(is.na(data_partner_final))
-# colnames_any_missing <- names(colnames_any_missing[colnames_any_missing > 0])
-# source("Functions/func_generate_NA_dummies.R")
-# for (col_sel in colnames_any_missing) {
-#   data_partner_final <- func_generate_NA_dummies(data_partner_final, col_sel)
-# }
-# data_partner_final <- data_partner_final %>% replace(is.na(.), 0)
-# 
-# sum(is.na(data_partner_final))
-
-
 #%%%%%%%%%%%%%%%%%%%#
 #### Final Steps ####
 #%%%%%%%%%%%%%%%%%%%#

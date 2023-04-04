@@ -6,25 +6,15 @@
 # by Lana Kern
 #++++
 # In this script, the remaining data sets, sibling, partner, child and competencies
-# are merged to the espisode+cati+cawi data set.
-# -> "Final" panel data frame with all control variables.
+# are merged to the "espisode+cati+cawi" data set.
 #++++
-# 1.) Merge sibling via ID_t: 
-# -> For all respondents who are not in the sibling data frame all columns from 
-# sibling are set to 0 (as they do not have an sibling).
-# -> Age of siblings is generated.
-# -> The activity variables (employment and study) only refer to the CATI interview 
-# in 2010/11. Hence, they are set NA for further waves. For school degree the
-# same is done if sibling is younger than 18. For the number of sibling variables,
-# they are assumed to be constant over time.
+# 1.) Merge sibling via ID_t:
 #++++
-# 2.) Merge child via ID_t and interview_date. All child variable values are NA 
-# for respondents who do not have children; they are all set to 0.
+# 2.) Merge child via ID_t and interview_date
 #++++
 # 3.) Merge partner: Same as for child
 #++++
-# 4.) Merge competencies: Merge same as for child and partner, but missing values
-# are kept missing (I deal with them later)
+# 4.) Merge competencies: Merge same as for child and partner
 #++++
 
 

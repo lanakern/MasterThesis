@@ -7,13 +7,11 @@
 #++++
 # In this file, the information about competence measures is prepared.
 # Competence measure tests are only conducted in wave 1 (2010/2011 (CATI+competencies)), 
-# wave 5 (2013 (CATI+competencies)), and wave 12 (2017 (CATI)). However, I am
-# only interested in wave 1 and wave 5 because for wave 12 only a few treatment
-# periods are left. Moreover, different competence measures are assessed across waves.
+# wave 5 (2013 (CATI+competencies)), and wave 12 (2017 (CATI)). Moreover, different 
+# competence measures are assessed across waves.
 #++++
 # 1.) Drop respondents:
-# -> Respondents who have missing values in all competence measures of interest
-# (that is wave 1 wand wave 5) are dropped.
+# -> Respondents who have missing values in all competence measures are dropped.
 # -> Respondents who are not in cohort profile are dropped.
 #++++
 # 2.) The competence measure data set is in wide-format, i.e., one row per
@@ -35,6 +33,7 @@
 # values are replaced across those survey methods.
 #++++
 # --> FINAL DATA FRAME IS A PANEL DATA SET (one row for each respondent-wave combination).
+#++++
 
 
 #%%%%%%%%%#

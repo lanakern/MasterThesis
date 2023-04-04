@@ -5,11 +5,10 @@
 #++++
 # by Lana Kern
 #++++
-# In this file, plausibility checks are made, e.g. if respondent
-# made realistic answers. For instance, if student reports of 
-# living alone he/she cannot live with a roommate. If this
-# appears adjustments are made.
-# Plausibility checks are made for every MICE data set
+# In this file, plausibility checks are made, e.g. if respondent made realistic answers. 
+# For instance, if student reports of  living alone he/she cannot live with a roommate. 
+# If this appears adjustments are made.
+# Plausibility checks are made for every MICE data set and across cohort_preps.
 #++++
 
 

@@ -6,6 +6,9 @@
 #++++
 # by Lana Kern
 #++++
+# In this file the CAWI data is prepared. Most importantly, missing values are
+# replaced downwards.
+#++++
 # 1.) Load data and join with cohort profile
 # -> CAWI data set is loaded
 # -> Cohort Profile data set is loaded based on selection 
@@ -14,8 +17,6 @@
 # -> Missing values are replaced downwards
 #++++
 # 2.) Data Preparation (also depends on selected cohort profile step)
-# -> In both types, missing values for treatment variable are also replaced
-# upwards, if user selects this option.
 # -> "controls_same_outcome": only treatment_starts variable is dropped as it
 # is always NA because treatment period starts with CATI and ends with CAWI
 # -> "controls_bef_outcome": treatment-outcome and control variables are
@@ -23,6 +24,7 @@
 # are merged via the treatment period indicator.
 #++++
 # --> Resulting data frame is panel data frame
+#++++
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#

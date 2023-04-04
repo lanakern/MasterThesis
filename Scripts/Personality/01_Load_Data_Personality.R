@@ -2,7 +2,7 @@
 #### LOAD DATA FILES FOR PERSONALITY ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-## IDENTICAL TO GRADES!
+# RESULTS ARE IDENTICAL TO GPA AS OUTCOME
 
 #++++
 # by Lana Kern

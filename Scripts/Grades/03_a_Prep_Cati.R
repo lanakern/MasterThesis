@@ -5,6 +5,9 @@
 #++++
 # by Lana Kern
 #++++
+# In this file, the CATI data is prepared. Most importantly, missing values
+# are replaced downwards (Last Value Carried Forward Method).
+#++++
 # 1.) Load data and join with cohort profile
 # -> CATI data set is loaded
 # -> Cohort Profile data set is loaded based on selection 
@@ -17,6 +20,7 @@
 # -> Missing values in treatment variable are also upward replaced (if selected by user)
 #++++
 # --> Resulting data frame is panel data frame.
+#++++
 
 
 

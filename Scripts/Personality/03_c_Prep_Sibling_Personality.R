@@ -2,8 +2,6 @@
 #### PREPARE SIBLING DATA FOR PERSONALITY ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-# IDENTICAL TO GRADES!
-
 #++++
 # by Lana Kern
 #++++
@@ -21,7 +19,7 @@
 # -> For respondents with only one sibling sibling_2 dummies are set to 0. 
 #++++
 # --> Cross-sectional data set: one row for each respondent
-
+#++++
 
 
 #%%%%%%%%%#
