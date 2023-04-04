@@ -18,6 +18,7 @@
 # -> "group": group variable included in data_train and data_test
 # -> "K": number of folds generated for parameter tuning
 # -> "lambda_val": number of lambda values used in tuning process
+# -> "post": determines if normal LASSO or post-LASSO is performed (post = TRUE)
 #++++
 # OUTPUT:
 # -> "pred": data frame with nuisance parameter predictions and true values
@@ -28,7 +29,8 @@
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome, treatment, group, K, lambda_val) {
+func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome, 
+                          treatment, group, K, lambda_val, post) {
   
   if (!treatment_setting %in% c("binary", "multi")) {
     stop("Treatment setting: binary or multi")
@@ -257,29 +259,86 @@ func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome, tre
     #### PREDICTIONS ####
     #%%%%%%%%%%%%%%%%%%%#
     
-    # make predictions on test data
-    lasso_pred_m <- predict(lasso_fit_final_m, data_test, type = "prob")
-    lasso_pred_m <- lasso_pred_m$.pred_1 # probability for class 1
+    # if post = TRUE, then post-lasso is performed meaning that union of
+    # variables is selected to make predictions using an OLS regression.
+    # Otherwise predictions are made using LASSO.
+    # POST-LASSO #
+    if (post == TRUE) {
+      lasso_coef_union <- colnames(data_train)[colnames(data_train) %in% unique(lasso_coef_all$term)]
+      data_train_final <- data_train %>% dplyr::select(all_of(outcome), all_of(treatment), all_of(lasso_coef_union))
+      data_train_final_m <- data_train_final %>% dplyr::select(-all_of(outcome))
+      data_train_final_g0 <- data_train_final %>% filter(treatment_sport == 0) %>% dplyr::select(-all_of(treatment))
+      data_train_final_g1 <- data_train_final %>% filter(treatment_sport == 1) %>% dplyr::select(-all_of(treatment))
+      
+      data_test_final_m <- data_test %>% dplyr::select(all_of(treatment), all_of(lasso_coef_union))
+      data_test_final_g <- data_test %>% dplyr::select(all_of(outcome), all_of(lasso_coef_union))
+      
+      model_m <- glm(paste(treatment, "~ ."), family = binomial(link = "logit"), data = data_train_final_m)
+      lasso_pred_m <- unname(predict(model_m, data_test_final_m, type = "response")) # return probability
+      
+      model_lm_0 <- lm(paste(outcome, "~ ."), data = data_train_final_g0)
+      lasso_pred_g0 <- unname(predict(model_lm_0, data_test_final_g))
+      
+      model_lm_1 <- lm(paste(outcome, "~ ."), data = data_train_final_g1)
+      lasso_pred_g1 <- unname(predict(model_lm_1, data_test_final_g))
+      
+      # create prediction data frame
+      df_pred <- data.frame(
+        # predictions
+        "m" = lasso_pred_m, "g0" = lasso_pred_g0, "g1" = lasso_pred_g1,
+        # true values
+        "treatment" = data_test %>% pull(treatment), 
+        "outcome" = data_test %>% pull(outcome),
+        # number of predictors
+        "num_pred_m" = length(lasso_coef_union),
+        "num_pred_g0" = length(lasso_coef_union),
+        "num_pred_g1" = length(lasso_coef_union) #ncol(lasso_fit_final_g1$pre$mold$predictors)
+      )
+      
+      # coefficients for feature importance
+      lasso_coef_all <- data.frame(
+        "term" = rownames(summary(model_m)$coefficients),
+        "estimate" = unname(summary(model_m)$coefficients[, "Estimate"]),
+        "model" = "m"
+        ) %>%
+        rbind(data.frame(
+          "term" = rownames(summary(model_lm_0)$coefficients),
+          "estimate" = unname(summary(model_lm_0)$coefficients[, "Estimate"]),
+          "model" = "g0")) %>%
+        rbind(data.frame(
+          "term" = rownames(summary(model_lm_1)$coefficients),
+          "estimate" = unname(summary(model_lm_1)$coefficients[, "Estimate"]),
+          "model" = "g1")) 
+    # LASSO #
+    } else {
+      # make predictions on test data
+      lasso_pred_m <- predict(lasso_fit_final_m, data_test, type = "prob")
+      lasso_pred_m <- lasso_pred_m$.pred_1 # probability for class 1
+      
+      lasso_pred_g0 <- predict(lasso_fit_final_g0, data_test)
+      lasso_pred_g0 <- lasso_pred_g0$.pred 
+      
+      lasso_pred_g1 <- predict(lasso_fit_final_g1, data_test)
+      lasso_pred_g1 <- lasso_pred_g1$.pred
+      
+      # create prediction data frame
+      df_pred <- data.frame(
+        # predictions
+        "m" = lasso_pred_m, "g0" = lasso_pred_g0, "g1" = lasso_pred_g1,
+        # true values
+        "treatment" = data_test %>% pull(treatment), 
+        "outcome" = data_test %>% pull(outcome),
+        # number of predictors
+        "num_pred_m" = nrow(lasso_coef_m),
+        "num_pred_g0" = nrow(lasso_coef_g0),
+        "num_pred_g1" = nrow(lasso_coef_g1) #ncol(lasso_fit_final_g1$pre$mold$predictors)
+      )
+      
+      # coefficients are as they are
+      lasso_coef_all <- lasso_coef_all
+    }
     
-    lasso_pred_g0 <- predict(lasso_fit_final_g0, data_test)
-    lasso_pred_g0 <- lasso_pred_g0$.pred 
-    
-    lasso_pred_g1 <- predict(lasso_fit_final_g1, data_test)
-    lasso_pred_g1 <- lasso_pred_g1$.pred
-    
-    # create prediction data frame
-    df_pred <- data.frame(
-      # predictions
-      "m" = lasso_pred_m, "g0" = lasso_pred_g0, "g1" = lasso_pred_g1,
-      # true values
-      "treatment" = data_test %>% pull(treatment), 
-      "outcome" = data_test %>% pull(outcome),
-      # number of predictors
-      "num_pred_m" = nrow(lasso_coef_m),
-      "num_pred_g0" = nrow(lasso_coef_g0),
-      "num_pred_g1" = nrow(lasso_coef_g1) #ncol(lasso_fit_final_g1$pre$mold$predictors)
-    )
-    
+
     # return data frame with predictions
     return(list("pred" = df_pred, "param" = df_best_param, "coef" = lasso_coef_all))
   
@@ -626,42 +685,124 @@ func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome, tre
     #### Predictions ####
     #%%%%%%%%%%%%%%%%%%%#
     
-    # make predictions on test data
-    lasso_pred_m1 <- predict(lasso_fit_final_m1, data_test, type = "prob")
-    lasso_pred_m1 <- lasso_pred_m1$.pred_1 # probability for class 1
-    
-    lasso_pred_m2 <- predict(lasso_fit_final_m2, data_test, type = "prob")
-    lasso_pred_m2 <- lasso_pred_m2$.pred_1 # probability for class 1
-    
-    lasso_pred_m3 <- predict(lasso_fit_final_m3, data_test, type = "prob")
-    lasso_pred_m3 <- lasso_pred_m3$.pred_1 # probability for class 1
-    
-    lasso_pred_g1 <- predict(lasso_fit_final_g1, data_test)
-    lasso_pred_g1 <- lasso_pred_g1$.pred
-    
-    lasso_pred_g2 <- predict(lasso_fit_final_g2, data_test)
-    lasso_pred_g2 <- lasso_pred_g2$.pred
-    
-    lasso_pred_g3 <- predict(lasso_fit_final_g3, data_test)
-    lasso_pred_g3 <- lasso_pred_g3$.pred
-    
-    
-    # create prediction data frame
-    df_pred <- data.frame(
-      # predictions
-      "m1" = lasso_pred_m1, "m2" = lasso_pred_m2, "m3" = lasso_pred_m3,
-      "g1" = lasso_pred_g1, "g2" = lasso_pred_g2, "g3" = lasso_pred_g3,
-      # true values
-      "treatment" = data_test %>% pull(treatment), 
-      "outcome" = data_test %>% pull(outcome),
-      # number of predictors
-      "num_pred_m1" = nrow(lasso_coef_m1),
-      "num_pred_m2" = nrow(lasso_coef_m2),
-      "num_pred_m3" = nrow(lasso_coef_m3),
-      "num_pred_g1" = nrow(lasso_coef_g1),
-      "num_pred_g2" = nrow(lasso_coef_g2),
-      "num_pred_g3" = nrow(lasso_coef_g3)
-    )
+    # POST-LASSO
+    if (post == TRUE) {
+      lasso_coef_union <- colnames(data_train)[colnames(data_train) %in% unique(lasso_coef_all$term)]
+      data_train_final_m1 <- data_train %>% dplyr::select(treatment_sport_freq_weekly_atleast, all_of(lasso_coef_union))
+      data_train_final_m2 <- data_train %>% dplyr::select(treatment_sport_freq_monthly_less, all_of(lasso_coef_union))
+      data_train_final_m3 <- data_train %>% dplyr::select(treatment_sport_freq_never, all_of(lasso_coef_union))
+      data_train_final_g1 <- data_train %>% filter(treatment_sport_freq == 1) %>% dplyr::select(all_of(outcome), all_of(lasso_coef_union))
+      data_train_final_g2 <- data_train %>% filter(treatment_sport_freq == 2) %>% dplyr::select(all_of(outcome), all_of(lasso_coef_union))
+      data_train_final_g3 <- data_train %>% filter(treatment_sport_freq == 3) %>% dplyr::select(all_of(outcome), all_of(lasso_coef_union))
+      
+      data_test_final_m1 <- data_test %>% dplyr::select(treatment_sport_freq_weekly_atleast, all_of(lasso_coef_union))
+      data_test_final_m2 <- data_test %>% dplyr::select(treatment_sport_freq_monthly_less, all_of(lasso_coef_union))
+      data_test_final_m3 <- data_test %>% dplyr::select(treatment_sport_freq_never, all_of(lasso_coef_union))
+      data_test_final_g <- data_test %>% dplyr::select(all_of(outcome), all_of(lasso_coef_union))
+      
+      
+      model_m1 <- glm(paste("treatment_sport_freq_weekly_atleast", "~ ."), family = binomial(link = "logit"), data = data_train_final_m1)
+      lasso_pred_m1 <- unname(predict(model_m1, data_test_final_m1, type = "response")) # return probability
+      
+      model_m2 <- glm(paste("treatment_sport_freq_monthly_less", "~ ."), family = binomial(link = "logit"), data = data_train_final_m2)
+      lasso_pred_m2 <- unname(predict(model_m2, data_test_final_m2, type = "response")) # return probability
+      
+      model_m3 <- glm(paste("treatment_sport_freq_never", "~ ."), family = binomial(link = "logit"), data = data_train_final_m3)
+      lasso_pred_m3 <- unname(predict(model_m3, data_test_final_m3, type = "response")) # return probability
+      
+      model_lm_1 <- lm(paste(outcome, "~ ."), data = data_train_final_g1)
+      lasso_pred_g1 <- unname(predict(model_lm_1, data_test_final_g))
+      
+      model_lm_2 <- lm(paste(outcome, "~ ."), data = data_train_final_g2)
+      lasso_pred_g2 <- unname(predict(model_lm_2, data_test_final_g))
+      
+      model_lm_3 <- lm(paste(outcome, "~ ."), data = data_train_final_g3)
+      lasso_pred_g3 <- unname(predict(model_lm_3, data_test_final_g))
+      
+      # create prediction data frame
+      df_pred <- data.frame(
+        # predictions
+        "m1" = lasso_pred_m1, "m2" = lasso_pred_m2, "m3" = lasso_pred_m3, 
+        "g1" = lasso_pred_g1, "g2" = lasso_pred_g2, "g3" = lasso_pred_g3,
+        # true values
+        "treatment" = data_test %>% pull(treatment), 
+        "outcome" = data_test %>% pull(outcome),
+        # number of predictors: union is used
+        "num_pred_m1" = length(lasso_coef_union),
+        "num_pred_m2" = length(lasso_coef_union),
+        "num_pred_m3" = length(lasso_coef_union),
+        "num_pred_g1" = length(lasso_coef_union),
+        "num_pred_g2" = length(lasso_coef_union),
+        "num_pred_g3" = length(lasso_coef_union)
+      )
+      
+      # coefficients for feature importance
+      lasso_coef_all <- data.frame(
+        "term" = rownames(summary(model_m1)$coefficients),
+        "estimate" = unname(summary(model_m1)$coefficients[, "Estimate"]),
+        "model" = "m1"
+      ) %>%
+        rbind(data.frame(
+          "term" = rownames(summary(model_m2)$coefficients),
+          "estimate" = unname(summary(model_m2)$coefficients[, "Estimate"]),
+          "model" = "m2")) %>% 
+        rbind(data.frame(
+          "term" = rownames(summary(model_m3)$coefficients),
+          "estimate" = unname(summary(model_m3)$coefficients[, "Estimate"]),
+          "model" = "m3")) %>% 
+        rbind(data.frame(
+          "term" = rownames(summary(model_lm_1)$coefficients),
+          "estimate" = unname(summary(model_lm_1)$coefficients[, "Estimate"]),
+          "model" = "g1")) %>%
+        rbind(data.frame(
+          "term" = rownames(summary(model_lm_2)$coefficients),
+          "estimate" = unname(summary(model_lm_2)$coefficients[, "Estimate"]),
+          "model" = "g2")) %>%
+        rbind(data.frame(
+          "term" = rownames(summary(model_lm_3)$coefficients),
+          "estimate" = unname(summary(model_lm_3)$coefficients[, "Estimate"]),
+          "model" = "g3"))
+    # NORMAL LASSO
+    } else {
+      # make predictions on test data
+      lasso_pred_m1 <- predict(lasso_fit_final_m1, data_test, type = "prob")
+      lasso_pred_m1 <- lasso_pred_m1$.pred_1 # probability for class 1
+      
+      lasso_pred_m2 <- predict(lasso_fit_final_m2, data_test, type = "prob")
+      lasso_pred_m2 <- lasso_pred_m2$.pred_1 # probability for class 1
+      
+      lasso_pred_m3 <- predict(lasso_fit_final_m3, data_test, type = "prob")
+      lasso_pred_m3 <- lasso_pred_m3$.pred_1 # probability for class 1
+      
+      lasso_pred_g1 <- predict(lasso_fit_final_g1, data_test)
+      lasso_pred_g1 <- lasso_pred_g1$.pred
+      
+      lasso_pred_g2 <- predict(lasso_fit_final_g2, data_test)
+      lasso_pred_g2 <- lasso_pred_g2$.pred
+      
+      lasso_pred_g3 <- predict(lasso_fit_final_g3, data_test)
+      lasso_pred_g3 <- lasso_pred_g3$.pred
+      
+      
+      # create prediction data frame
+      df_pred <- data.frame(
+        # predictions
+        "m1" = lasso_pred_m1, "m2" = lasso_pred_m2, "m3" = lasso_pred_m3,
+        "g1" = lasso_pred_g1, "g2" = lasso_pred_g2, "g3" = lasso_pred_g3,
+        # true values
+        "treatment" = data_test %>% pull(treatment), 
+        "outcome" = data_test %>% pull(outcome),
+        # number of predictors
+        "num_pred_m1" = nrow(lasso_coef_m1),
+        "num_pred_m2" = nrow(lasso_coef_m2),
+        "num_pred_m3" = nrow(lasso_coef_m3),
+        "num_pred_g1" = nrow(lasso_coef_g1),
+        "num_pred_g2" = nrow(lasso_coef_g2),
+        "num_pred_g3" = nrow(lasso_coef_g3)
+      )
+      
+      lasso_coef_all <- lasso_coef_all
+    }
     
     
     # propensity scores are normalized to sum to 1 within an individual

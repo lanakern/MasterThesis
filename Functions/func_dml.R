@@ -55,6 +55,7 @@
 # -> "pred": nuisance parameter predictions
 # -> "coef": if (post-)lasso algorithm is selected, all non-zero coefficients are returned
 # -> "cov_balance": if post-lasso is selected covariate balance assessment is returned
+# -> "post": determines if normal LASSO or post-LASSO is performed (post = TRUE)
 #+++
 # Further notes:
 # - The outcome variable is always standardized, i.e., to have mean zero and unit variance.
@@ -65,7 +66,7 @@
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tuning, S, mlalgo, 
-                     trimming, save_trimming, probscore_separate = TRUE, mice_sel) {
+                     trimming, save_trimming, probscore_separate = TRUE, mice_sel, post) {
   
   # check for missings in date
   if (sum(is.na(data)) > 0) {
@@ -126,8 +127,8 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
   
   ## xgboost
   xgb_grid <- expand.grid(
-    tree_depth = c(3, 6), # default: 6
-    trees = c(15, 30), # default: 15
+    tree_depth = c(3, 6, 9), # default: 6
+    trees = c(15, 50, 100), # default: 15
     learn_rate = c(0.01, 0.3), # default: 0.3
     mtry = c(floor(sqrt(num_X)), round(num_X)/2, round(num_X)), # default: p (X)
     min_n = c(1, 3) # default: 1
@@ -237,35 +238,36 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
       #++++++++++++++++++++++++++++++++++++++++++++#
       
       # select machine learning algorithm based on user selection and make predictions
-      if (mlalgo == "postlasso") {
-        
-        ## POST-LASSO ##
-        #++++++++++++++#
-        
-        # predict nuisance functions via lasso
-        pls_ml <- func_ml_postlasso(
-          treatment_setting = treatment_setting, data_train = data_train, data_test = data_test, 
-          outcome = outcome, treatment = treatment, group = group, K = K_tuning, lambda_val = lambda_val
-          )
-        
-        # append predictions to data frame
-        data_pred <- pls_ml$pred
-        data_pred <- data_pred %>% mutate(Repetition = S_rep, Fold = fold_sel)
-        df_pred_all <- rbind(df_pred_all, data_pred)
-        
-        # append tuning parameters to data frame
-        data_param <- pls_ml$param
-        data_param <- data_param %>% mutate(Fold = fold_sel, Repetition = S_rep) %>%
-          dplyr::select(Repetition, Fold, everything())
-        df_param_all <- rbind(df_param_all, data_param)
-        
-        # append non-zero coefficients to data frame
-        data_coef <- pls_ml$coef
-        data_coef <- data_coef %>% mutate(Fold = fold_sel, Repetition = S_rep) %>%
-          dplyr::select(Repetition, Fold, everything())
-        df_coef_all <- rbind(df_coef_all, data_coef)
-        
-      } else if (mlalgo == "lasso") {
+      # if (mlalgo == "postlasso") {
+      #   
+      #   ## POST-LASSO ##
+      #   #++++++++++++++#
+      #   
+      #   # predict nuisance functions via lasso
+      #   pls_ml <- func_ml_postlasso(
+      #     treatment_setting = treatment_setting, data_train = data_train, data_test = data_test, 
+      #     outcome = outcome, treatment = treatment, group = group, K = K_tuning, lambda_val = lambda_val
+      #     )
+      #   
+      #   # append predictions to data frame
+      #   data_pred <- pls_ml$pred
+      #   data_pred <- data_pred %>% mutate(Repetition = S_rep, Fold = fold_sel)
+      #   df_pred_all <- rbind(df_pred_all, data_pred)
+      #   
+      #   # append tuning parameters to data frame
+      #   data_param <- pls_ml$param
+      #   data_param <- data_param %>% mutate(Fold = fold_sel, Repetition = S_rep) %>%
+      #     dplyr::select(Repetition, Fold, everything())
+      #   df_param_all <- rbind(df_param_all, data_param)
+      #   
+      #   # append non-zero coefficients to data frame
+      #   data_coef <- pls_ml$coef
+      #   data_coef <- data_coef %>% mutate(Fold = fold_sel, Repetition = S_rep) %>%
+      #     dplyr::select(Repetition, Fold, everything())
+      #   df_coef_all <- rbind(df_coef_all, data_coef)
+      #   
+      # } 
+      if (str_detect(mlalgo, "lasso")) {
         
         ## LASSO ##
         #+++++++++#
@@ -273,7 +275,8 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
         # predict nuisance functions via lasso
         ls_ml <- func_ml_lasso(
           treatment_setting = treatment_setting, data_train = data_train, data_test = data_test, 
-          outcome = outcome, treatment = treatment, group = group, K = K_tuning, lambda_val = lambda_val
+          outcome = outcome, treatment = treatment, group = group, K = K_tuning, lambda_val = lambda_val,
+          post = TRUE
           )
 
         
@@ -382,7 +385,7 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
       # only prepare data set for postlasso
       if (mlalgo == "postlasso") {
         # extract coef
-        pls_coef_keep <- unique(pls_ml$coef$term)
+        pls_coef_keep <- unique(ls_ml$coef$term)
         pls_coef_keep <- pls_coef_keep[pls_coef_keep %in% colnames(data_test)]
         
         # data frame for covariate balance assessment with only controls
