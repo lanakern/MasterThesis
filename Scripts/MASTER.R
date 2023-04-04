@@ -216,6 +216,7 @@ vars_endogenous <- 'dplyr::select(starts_with("health"), starts_with("uni_time")
   starts_with("satisfaction_life"), starts_with("stress"), starts_with("uni_anxiety"),
   starts_with("bigfive"), starts_with("parents_degree_wish"), starts_with("parents_importance_success"), 
   starts_with("parents_opinion_degree"), starts_with("uni_achievement"),
+  starts_with("outcome_grade_lag"), starts_with("treatment_sport_lag"),
   c("educ_school_grade_math", "educ_school_grade_ger", "educ_school_grade_final", 
     "educ_school_rep_grade", "educ_school_degree_general", "educ_school_degree_applied", 
     "uni_best_student", "uni_best_student_lag", "uni_ects_current"))'
@@ -225,10 +226,10 @@ vars_endogenous <- 'dplyr::select(starts_with("health"), starts_with("uni_time")
 keep_after_file_run <- 'rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", 
 "treatment_def", "extra_act", "prep_sel_num", "aggr_vars", "cronbach_a",
 "df_inputs", "df_inputs_indiv", "df_inputs_dml", "df_inputs_dml_lasso",
- "keep_after_file_run", "vars_baseline", "model_type", "model_algo", 
+ "keep_after_file_run", "vars_baseline", "model_type", "model_algo", "model_post_sel",
 "model_k", "model_k_tuning", "model_s_rep", "model_trimming", "model_controls_lag", 
 "model_controls_endog", "model_outcome", "dml_num", "probscore_separate", 
-"treatment_setting", "outcome_var", "outcome_var_multi", "vars_endogenous", 
+"treatment_setting", "outcome_var", "outcome_var_multi", "vars_endogenous",  
 ls()[str_starts(ls(), "func_")], ls()[str_starts(ls(), "main_")])))'
 
 
@@ -282,6 +283,7 @@ model_type <- main_model_type # "all_int_polys"
 model_controls_lag <- main_model_controls_lag # "no_lags", "all"
 model_controls_endog <- main_model_controls_endog # "no"
 model_trimming <- main_model_trimming # 0.1, min-max
+model_post_sel <- FALSE
 
 # for lasso and xgboost higher K as they are computationally faster
 model_k <- 4 
@@ -301,9 +303,7 @@ eval(parse(text = keep_after_file_run))
 ## RANDOM FORESTS ##
 
 # for random forests smaller K and no parameter tuning as it is computationally expensive
-model_k <- 4 # 2, evtl. 4
 model_k_tuning <- 1 # 1
-model_s_rep <- 5 # 2
 model_algo <- "randomforests"
 source("Scripts/11_a_DML_Binary.R") 
 
@@ -311,35 +311,111 @@ source("Scripts/11_a_DML_Binary.R")
 ## POST-LASSO ##
 model_k_tuning <- 2 # parameter tuning
 model_algo <- "postlasso"
+model_post_sel <- TRUE
 source("Scripts/11_a_DML_Binary.R") 
-
+model_post_sel <- FALSE
 
 
 #%%%%%%%%%%%%%%%%%%%%%%#####%#
 #### Outcome: Personality ####
 #%%%%%%%%%%%%%%%%%%%%%%#####%#
 
-# There are five personality variables
+# There are five personality variables. Due to the high computational burden,
+# only the main model is applied to the personality sample.
+
+cohort_prep <- main_cohort_prep
+treatment_repl <- main_treatment_repl
+treatment_def <- main_treatment_def
+extra_act <- main_extra_act
+model_type <- main_model_type
+model_controls_lag <- main_model_controls_lag
+model_controls_endog <- main_model_controls_endog
+model_trimming <- main_model_trimming
+model_post_sel <- FALSE
+
+model_k <- 4 
+model_k_tuning <- 2 
+model_s_rep <- 5 
+
 
 #### Agreeableness ####
 #+++++++++++++++++++++#
 
-outcome_var <- "bigfive_agreeableness"
+outcome_var <- "outcome_bigfive_agreeableness"
 
-## XGBoost ##
-model_k <- 4 # 4
-model_k_tuning <- 2 # 4
-model_s_rep <- 2 # 20
+model_algo <- "lasso"
+source("Scripts/11_a_DML_Binary.R") 
+gc()
+eval(parse(text = keep_after_file_run))
+
 model_algo <- "xgboost"
-source("Scripts/11_a_Analysis_DML_Binary.R") 
+source("Scripts/11_a_DML_Binary.R") 
+gc()
+eval(parse(text = keep_after_file_run))
 
 
-outcome_var <- "bigfive_extraversion"
-outcome_var <- "bigfive_openness"
-outcome_var <- "bigfive_conscientiousness"
-outcome_var <- "bigfive_neuroticism"
+####  Extraversion ####
+#+++++++++++++++++++++#
+
+outcome_var <- "outcome_bigfive_extraversion"
+
+model_algo <- "lasso"
+source("Scripts/11_a_DML_Binary.R") 
+gc()
+eval(parse(text = keep_after_file_run))
+
+model_algo <- "xgboost"
+source("Scripts/11_a_DML_Binary.R") 
+gc()
+eval(parse(text = keep_after_file_run))
 
 
+####  Openness ####
+#+++++++++++++++++#
+
+outcome_var <- "outcome_bigfive_openness"
+
+model_algo <- "lasso"
+source("Scripts/11_a_DML_Binary.R") 
+gc()
+eval(parse(text = keep_after_file_run))
+
+model_algo <- "xgboost"
+source("Scripts/11_a_DML_Binary.R") 
+gc()
+eval(parse(text = keep_after_file_run))
+
+####  Conscientiousness ####
+#++++++++++++++++++++++++++#
+
+outcome_var <- "outcome_bigfive_conscientiousness"
+
+
+model_algo <- "lasso"
+source("Scripts/11_a_DML_Binary.R") 
+gc()
+eval(parse(text = keep_after_file_run))
+
+model_algo <- "xgboost"
+source("Scripts/11_a_DML_Binary.R") 
+gc()
+eval(parse(text = keep_after_file_run))
+
+
+#### Neuroticism ####
+#+++++++++++++++++++#
+
+outcome_var <- "outcome_bigfive_neuroticism"
+
+model_algo <- "lasso"
+source("Scripts/11_a_DML_Binary.R") 
+gc()
+eval(parse(text = keep_after_file_run))
+
+model_algo <- "xgboost"
+source("Scripts/11_a_DML_Binary.R") 
+gc()
+eval(parse(text = keep_after_file_run))
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -409,13 +485,19 @@ source("Scripts/11_b_DML_Multi.R")
 
 # only generated for main model
 eval(parse(text = keep_after_file_run))
-outcome_var <- "outcome_grade"
-cohort_prep <- main_cohort_prep
-treatment_def <- main_treatment_def
-treatment_repl <- main_treatment_repl
-extra_act <- main_extra_act
-model_controls_lag <- main_model_controls_lag
-model_controls_endog <- main_model_controls_endog
-n_features <- 20
+treatment_setting <- "binary"
+cohort_prep <- main_cohort_prep 
+treatment_repl <- main_treatment_repl 
+treatment_def <- main_treatment_def 
+extra_act <- main_extra_act 
+model_type <- main_model_type 
+model_controls_lag <- main_model_controls_lag 
+model_controls_endog <- main_model_controls_endog 
+model_trimming <- main_model_trimming 
+model_post_sel <- FALSE
+model_k <- 4 
+model_k_tuning <- 2 
+model_s_rep <- 5 
+n_features <- 30
 
 source("Scripts/13_c_DML_FeatureImportance.R") 
