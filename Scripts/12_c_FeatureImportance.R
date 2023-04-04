@@ -8,15 +8,22 @@
 # In this file, feature importance plots are created for all machine learning
 # models and grades as outcome in both the binary and multivalued treatment setting. 
 # However, this is only done for the main model (no robustness checks).
-# To do so, final models are trained using the "best" hyperparameter combinations 
-# and the full data set. This is done across all five mice data sets. 
-# The feature importance scores are then again aggregated by taking the mean.
+# For (post-)LASSO the coefficients were already saved during the DML estimation.
+# For xgboost and random forests, final models are trained using the "best" 
+# hyperparameter combinations and the full data set. This is done across all five 
+# mice data sets. The feature importance scores are then again aggregated by taking the mean.
+#+++
+# Sources:
+# -> https://medium.com/analytics-vidhya/feature-importance-explained-bfc8d874bcf
 #+++
 
 
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-#### BINARY TREATMENT SETTING ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### GRADES: BINARY TREATMENT SETTING ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+outcome_var <- "outcome_grade"
 
 # load data
 for (mice_data_sel in 1:5) {
@@ -52,9 +59,32 @@ for (mice_data_sel in 1:5) {
   data_dml <- readRDS(load_data)
   data_dml <- data_dml %>% mutate(treatment_sport = as.factor(treatment_sport))
   
-  if (model_controls == "no_lags") {
-    data_dml <- data_dml %>% dplyr::select(-ends_with("lag"))
+  # drop lags if desired by user
+  if (model_controls_lag == "no_lags") {
+    # drop all lags
+    data_dml <- data_dml %>% 
+      dplyr::select(-c(contains("_lag"))) %>% 
+      as.data.frame()
+  } else if (model_controls_lag == "no_treatment_outcome_lags") {
+    # drop only treatment and outcome lags
+    # here differentiate between GPA and personality outcome
+    if (str_detect(outcome_var, "grade")) {
+      data_dml <- data_dml %>% 
+        dplyr::select(-c(starts_with("treatment") & contains("_lag"))) %>% 
+        dplyr::select(-c(starts_with("outcome") & contains("_lag"))) %>%
+        as.data.frame()
+    } else {
+      data_dml <- data_dml %>% 
+        dplyr::select(-c(starts_with("treatment") & contains("_lag"))) %>% 
+        dplyr::select(-c(starts_with(str_remove(outcome_var, "outcome_")) & contains("_lag"))) %>%
+        as.data.frame()
+    }
+  } else {
+    # keep all lags
+    data_dml <- data_dml %>% as.data.frame()
   }
+  
+  # change name
   assign(as.character(paste0("data_dml_mice", mice_data_sel)), data_dml)
 }
 
@@ -64,7 +94,12 @@ for (mice_data_sel in 1:5) {
 
 # load all estimation results
 lasso_binary_results_all <- 
-  readRDS("Output/DML/Estimation/Grades/binary_grades_lasso_all_controlssameoutcome_weekly_down_extradrop.rds")
+  readRDS(paste0(
+    "Output/DML/Estimation/Grades/binary_grades_lasso_", model_type, "_",
+    str_replace_all(cohort_prep, "_", ""), "_", treatment_def, "_", treatment_repl, 
+    extra_act_save, "_", model_type, "_", str_replace_all(model_controls_lag, "_", ""),
+    "_endog", model_controls_endog, "_trimming", model_trimming, "_K", model_k,
+    "-", model_k_tuning, "_Rep", model_s_rep, ".rds"))
 
 # extract coefficients across MICE data frames
 lasso_binary_coef <- data.frame()
@@ -88,13 +123,17 @@ lasso_binary_coef <- lasso_binary_coef %>%
     TRUE ~ "Treatment Prediction"
   )) %>%
   group_by(Pred_Type) %>%
-  slice_max(order_by = Importance, n = n_features)
+  slice_max(order_by = Importance, n = n_features) %>%
+  ungroup()
   
 
 lasso_feature_imp_plot <- func_feature_importance_plot("binary", lasso_binary_coef, "LASSO", "separate")
-ggsave("Output/DML/Feature_Importance/lasso_binary_feature_importance_m.png", lasso_feature_imp_plot$m)
-ggsave("Output/DML/Feature_Importance/lasso_binary_feature_importance_g0.png", lasso_feature_imp_plot$g0)
-ggsave("Output/DML/Feature_Importance/lasso_binary_feature_importance_g1.png", lasso_feature_imp_plot$g1)
+ggsave("Output/DML/Feature_Importance/lasso_binary_feature_importance_m.png", lasso_feature_imp_plot$m + ggtitle("LASSO"),
+       width = 10, height = 8, dpi = 150, units = "in", device='png')
+ggsave("Output/DML/Feature_Importance/lasso_binary_feature_importance_g0.png", lasso_feature_imp_plot$g0 + ggtitle("LASSO"),
+       width = 10, height = 8, dpi = 150, units = "in", device='png')
+ggsave("Output/DML/Feature_Importance/lasso_binary_feature_importance_g1.png", lasso_feature_imp_plot$g1 + ggtitle("LASSO"),
+       width = 10, height = 8, dpi = 150, units = "in", device='png')
 
 
 # new training - almost identical result
@@ -183,7 +222,12 @@ ggsave("Output/DML/Feature_Importance/lasso_binary_feature_importance_g1.png", l
 # for post-lasso same predictors are used in treatment and outcome predictions
 # load all estimation results
 postlasso_binary_results_all <- 
-  readRDS("Output/DML/Estimation/Grades/binary_grades_postlasso_all_controlssameoutcome_weekly_down_extradrop.rds")
+  readRDS(paste0(
+    "Output/DML/Estimation/Grades/binary_grades_postlasso_", model_type, "_",
+    str_replace_all(cohort_prep, "_", ""), "_", treatment_def, "_", treatment_repl, 
+    extra_act_save, "_", model_type, "_", str_replace_all(model_controls_lag, "_", ""),
+    "_endog", model_controls_endog, "_trimming", model_trimming, "_K", model_k,
+    "-", model_k_tuning, "_Rep", model_s_rep, ".rds"))
 
 # extract coefficients across MICE data frames
 postlasso_binary_coef <- data.frame()
@@ -195,18 +239,36 @@ for (i in 1:5) {
 postlasso_binary_coef <- postlasso_binary_coef %>% filter(term != "(Intercept)")
 
 postlasso_binary_coef <- postlasso_binary_coef %>%
-  group_by(term) %>%
+  # group_by(term) %>%
+  # summarize(estimate = mean(estimate)) %>%
+  # ungroup() %>%
+  # rename(
+  #   Variable = term, Importance = estimate
+  # ) %>%
+  # slice_max(order_by = Importance, n = n_features)
+  group_by(model, term) %>%
   summarize(estimate = mean(estimate)) %>%
   ungroup() %>%
   rename(
-    Variable = term, Importance = estimate
+    Pred_Type = model, Variable = term, Importance = estimate
   ) %>%
-  slice_max(order_by = Importance, n = n_features)
+  mutate(Pred_Type = case_when(
+    Pred_Type == "g0" ~ "Outcome 0 Prediction", 
+    Pred_Type == "g1" ~ "Outcome 1 Prediction",
+    TRUE ~ "Treatment Prediction"
+  )) %>%
+  group_by(Pred_Type) %>%
+  slice_max(order_by = Importance, n = n_features) %>%
+  ungroup()
 
 
 postlasso_feature_imp_plot <- func_feature_importance_plot("binary", postlasso_binary_coef, "POST-LASSO", "separate")
-ggsave("Output/DML/Feature_Importance/postlasso_binary_feature_importance_all.png", postlasso_feature_imp_plot)
-
+ggsave("Output/DML/Feature_Importance/postlasso_binary_feature_importance_m.png", postlasso_feature_imp_plot$m + ggtitle("POST-LASSO"),
+       width = 10, height = 8, dpi = 150, units = "in", device='png')
+ggsave("Output/DML/Feature_Importance/postlasso_binary_feature_importance_g0.png", postlasso_feature_imp_plot$g0 + ggtitle("POST-LASSO"),
+       width = 10, height = 8, dpi = 150, units = "in", device='png')
+ggsave("Output/DML/Feature_Importance/postlasso_binary_feature_importance_g1.png", postlasso_feature_imp_plot$g1 + ggtitle("POST-LASSO"),
+       width = 10, height = 8, dpi = 150, units = "in", device='png')
 
 
 #### XGBoost ####
@@ -214,7 +276,12 @@ ggsave("Output/DML/Feature_Importance/postlasso_binary_feature_importance_all.pn
 
 # load all estimation results
 xgb_binary_results_all <- 
-  readRDS("Output/DML/Estimation/Grades/binary_grades_xgboost_all_controlssameoutcome_weekly_down_extradrop.rds")
+  readRDS(paste0(
+    "Output/DML/Estimation/Grades/binary_grades_xgboost_", model_type, "_",
+    str_replace_all(cohort_prep, "_", ""), "_", treatment_def, "_", treatment_repl, 
+    extra_act_save, "_", model_type, "_", str_replace_all(model_controls_lag, "_", ""),
+    "_endog", model_controls_endog, "_trimming", model_trimming, "_K", model_k,
+    "-", model_k_tuning, "_Rep", model_s_rep, ".rds"))
 
 # extract best hyperparameters and respective error metrics across folds, repetitions, and MICE
 xgb_binary_param <- data.frame()
@@ -372,13 +439,20 @@ xgb_scores_all <-
   group_by(Variable, Pred_Type) %>%
   summarize_all(mean) %>%
   arrange(Pred_Type, desc(Importance)) %>%
-  dplyr::select(-MICE)
+  dplyr::select(-MICE) %>%
+  arrange(desc(Importance)) %>%
+  group_by(Pred_Type) %>%
+  top_n(n_features, Importance) %>%
+  ungroup()
 
 # generate plot
 xgb_feature_imp_plot <- func_feature_importance_plot("binary", xgb_scores_all, "XGBoost", "separate")
-ggsave("Output/DML/Feature_Importance/xgboost_binary_feature_importance_m.png", xgb_feature_imp_plot$m)
-ggsave("Output/DML/Feature_Importance/xgboost_binary_feature_importance_g0.png", xgb_feature_imp_plot$g0)
-ggsave("Output/DML/Feature_Importance/xgboost_binary_feature_importance_g1.png", xgb_feature_imp_plot$g1)
+ggsave("Output/DML/Feature_Importance/xgboost_binary_feature_importance_m.png", xgb_feature_imp_plot$m + ggtitle("XGBoost"),
+       width = 10, height = 8, dpi = 150, units = "in", device='png')
+ggsave("Output/DML/Feature_Importance/xgboost_binary_feature_importance_g0.png", xgb_feature_imp_plot$g0 + ggtitle("XGBoost"),
+       width = 10, height = 8, dpi = 150, units = "in", device='png')
+ggsave("Output/DML/Feature_Importance/xgboost_binary_feature_importance_g1.png", xgb_feature_imp_plot$g1 + ggtitle("XGBoost"),
+       width = 10, height = 8, dpi = 150, units = "in", device='png')
 
 
 
@@ -387,7 +461,12 @@ ggsave("Output/DML/Feature_Importance/xgboost_binary_feature_importance_g1.png",
 
 # load all estimation results
 rf_binary_results_all <- 
-  readRDS("Output/DML/Estimation/Grades/binary_grades_randomforests_all_controlssameoutcome_weekly_down_extradrop.rds")
+  readRDS(paste0(
+    "Output/DML/Estimation/Grades/binary_grades_randomforests_", model_type, "_",
+    str_replace_all(cohort_prep, "_", ""), "_", treatment_def, "_", treatment_repl, 
+    extra_act_save, "_", model_type, "_", str_replace_all(model_controls_lag, "_", ""),
+    "_endog", model_controls_endog, "_trimming", model_trimming, "_K", model_k,
+    "-", 1, "_Rep", model_s_rep, ".rds"))
 
 # extract best hyperparameters and respective error metrics across folds, repetitions, and MICE
 rf_binary_param <- data.frame()
@@ -527,19 +606,48 @@ for (mice_data_sel in 1:5) {
   rf_scores_all <- rbind(rf_scores_all, rf_scores)
 }
 
-rf_scores_all <- 
+
+cbind(rownames(randomForest::importance(rf_fit_g1$fit, type=1, scale=F)) %>% as_tibble(), randomForest::importance(rf_model$fit, type=1, scale=F) %>% as_tibble())%>% arrange(desc(MeanDecreaseAccuracy)) %>% head()
+
+
+
+
+rf_scores_all_final <- 
   rf_scores_all %>%
   group_by(Variable, Pred_Type) %>%
   summarize_all(mean) %>%
   arrange(Pred_Type, desc(Importance)) %>%
-  dplyr::select(-MICE)
+  dplyr::select(-MICE) %>%
+  arrange(desc(Importance)) %>%
+  group_by(Pred_Type) %>%
+  top_n(n_features, Importance) %>%
+  ungroup()
 
 # generate plot
-rf_feature_imp_plot <- func_feature_importance_plot("binary", rf_scores_all, "Random Forests", "separate")
-ggsave("Output/DML/Feature_Importance/rf_binary_feature_importance_m.png", rf_feature_imp_plot$m)
-ggsave("Output/DML/Feature_Importance/rf_binary_feature_importance_g0.png", rf_feature_imp_plot$g0)
-ggsave("Output/DML/Feature_Importance/rf_binary_feature_importance_g1.png", rf_feature_imp_plot$g1)
+rf_feature_imp_plot <- func_feature_importance_plot("binary", rf_scores_all_final, "Random Forests", "separate")
+ggsave("Output/DML/Feature_Importance/rf_binary_feature_importance_m.png", rf_feature_imp_plot$m + ggtitle("RANDOM FORESTS"),
+       width = 10, height = 8, dpi = 150, units = "in", device='png')
+ggsave("Output/DML/Feature_Importance/rf_binary_feature_importance_g0.png", rf_feature_imp_plot$g0 + ggtitle("RANDOM FORESTS"),
+       width = 10, height = 8, dpi = 150, units = "in", device='png')
+ggsave("Output/DML/Feature_Importance/rf_binary_feature_importance_g1.png", rf_feature_imp_plot$g1 + ggtitle("RANDOM FORESTS"),
+       width = 10, height = 8, dpi = 150, units = "in", device='png')
 
+
+#### FINAL PLOTS ####
+#+++++++++++++++++++#
+
+feature_imp_binary_m <- grid.arrange(
+  lasso_feature_imp_plot$m + ggtitle("LASSO") + rremove("xlab"),
+  postlasso_feature_imp_plot$m + ggtitle("POST-LASSO") + rremove("xlab"),
+  rf_feature_imp_plot$m + ggtitle("RANDOM FORESTS") + rremove("xlab"),
+  xgb_feature_imp_plot$m + ggtitle("XGBOOST") + rremove("xlab"),
+  ncol = 2, 
+  widths = c(1/2, 1/2)) 
+
+ggsave("Output/DML/Feature_Importance/binary_feature_importance_m.png", feature_imp_binary_m,
+       width = 10, height = 8, dpi = 150, units = "in", device='png')
+ggsave("Output/DML/Feature_Importance/binary_feature_importance_g0.png", feature_imp_binary_g0)
+ggsave("Output/DML/Feature_Importance/binary_feature_importance_g1.png", feature_imp_binary_g1)
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
