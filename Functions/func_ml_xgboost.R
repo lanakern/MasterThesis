@@ -191,23 +191,254 @@ func_ml_xgboost <- function(treatment_setting, data_train, data_test, outcome, t
                 metrics = metric_set(rmse))
     
     
-    # select best penalty parameter: parameter with highest AUC
-    xgo_best_param_m <- xgb_grid_search_m %>% select_best("roc_auc")
-    xgb_best_param_g0 <- xgb_grid_search_g0 %>% select_best("rmse")
-    xgb_best_param_g1 <- xgb_grid_search_g1 %>% select_best("rmse")
-    
-    
-    df_best_param <- data.frame(
-      "m_learn_rate" = xgo_best_param_m$learn_rate, "m_trees" = xgo_best_param_m$trees,
-      "m_tree_depth" = xgo_best_param_m$tree_depth, "m_mtry" = xgo_best_param_m$mtry,
-      "m_min_n" = xgo_best_param_m$min_n,
-      "g0_learn_rate" = xgb_best_param_g0$learn_rate, "g0_trees" = xgb_best_param_g0$trees,
-      "g0_tree_depth" = xgb_best_param_g0$tree_depth, "g0_mtry" = xgb_best_param_g0$mtry,
-      "g0_min_n" = xgb_best_param_g0$min_n,
-      "g1_learn_rate" = xgb_best_param_g1$learn_rate, "g1_trees" = xgb_best_param_g1$trees,
-      "g1_tree_depth" = xgb_best_param_g1$tree_depth, "g1_mtry" = xgb_best_param_g1$mtry,
-      "g1_min_n" = xgb_best_param_g1$min_n
-    )
+    ## SELECT HYPERPARAMETERS FOR BEST COMBINATION ##
+    if (hyperparam_sel == "best") {
+      xgb_best_param_m <- xgb_grid_search_m %>% select_best("roc_auc")
+      xgb_best_param_g0 <- xgb_grid_search_g0 %>% select_best("rmse")
+      xgb_best_param_g1 <- xgb_grid_search_g1 %>% select_best("rmse")
+      
+      
+      df_best_param <- data.frame(
+        "m_learn_rate" = xgb_best_param_m$learn_rate, "m_trees" = xgb_best_param_m$trees,
+        "m_tree_depth" = xgb_best_param_m$tree_depth, "m_mtry" = xgb_best_param_m$mtry,
+        "m_min_n" = xgb_best_param_m$min_n,
+        "g0_learn_rate" = xgb_best_param_g0$learn_rate, "g0_trees" = xgb_best_param_g0$trees,
+        "g0_tree_depth" = xgb_best_param_g0$tree_depth, "g0_mtry" = xgb_best_param_g0$mtry,
+        "g0_min_n" = xgb_best_param_g0$min_n,
+        "g1_learn_rate" = xgb_best_param_g1$learn_rate, "g1_trees" = xgb_best_param_g1$trees,
+        "g1_tree_depth" = xgb_best_param_g1$tree_depth, "g1_mtry" = xgb_best_param_g1$mtry,
+        "g1_min_n" = xgb_best_param_g1$min_n
+      )
+      ## Apply 1SE Rule ##
+    } else if (hyperparam_sel == "1SE") {
+      
+      ## Treatment ##
+      #+++++++++++++#
+      
+      # append results from error metrics
+      m_error_metrics_all <- data.frame()
+      for (K_sel in 1:K) {
+        m_error_metrics_all <- rbind(m_error_metrics_all, xgb_grid_search_m$.metrics[[K_sel]])
+      }
+      
+      # aggregate across K
+      m_error_metrics_all <- m_error_metrics_all %>% group_by(mtry, trees, min_n, tree_depth, learn_rate) %>% summarize(
+        # average AUC
+        AUC = mean(`.estimate`), 
+        # standard error: standard deviation divided by the number of folds
+        se = sd(`.estimate`) / sqrt(K)
+      ) %>% ungroup()
+      m_error_metrics_all <- m_error_metrics_all %>% arrange(trees, tree_depth)
+      
+      # best: lambda which leads to best error metrics
+      xgb_best_m <- m_error_metrics_all %>% filter(AUC == max(AUC)) %>% head(1)
+      
+      # calculate standard error of best lambda
+      xgb_best_m_se <- xgb_best_m %>% pull(se) 
+      
+      # one-standard deviation rule: "largest value of lambda (-> simpler model) such that error is 
+      # within 1 standard error of the cross-validated errors for best lambda".
+      m_error_metrics_all_simpler <- m_error_metrics_all %>% filter(trees <= xgb_best_m$trees | tree_depth <= xgb_best_m$tree_depth)
+      xgb_se_m <- m_error_metrics_all_simpler %>%
+        filter(AUC > max(m_error_metrics_all %>% pull(AUC)) - xgb_best_m_se) %>%
+        arrange(trees, tree_depth, learn_rate, mtry, min_n) %>%
+        head(1) 
+      
+      
+      ## Outcome D = 0 ##
+      #+++++++++++++++++#
+      
+      # append results from error metrics
+      g0_error_metrics_all <- data.frame()
+      for (K_sel in 1:K) {
+        g0_error_metrics_all <- rbind(g0_error_metrics_all, xgb_grid_search_g0$.metrics[[K_sel]])
+      }
+      
+      # aggregate across K
+      g0_error_metrics_all <- g0_error_metrics_all %>% group_by(mtry, trees, min_n, tree_depth, learn_rate) %>% summarize(
+        # average AUC
+        RMSE = mean(`.estimate`), 
+        # standard error: standard deviation divided by the number of folds
+        se = sd(`.estimate`) / sqrt(K)
+      ) %>% ungroup()
+      g0_error_metrics_all <- g0_error_metrics_all %>% arrange(trees, tree_depth)
+      
+      # best: lambda which leads to best error metrics
+      xgb_best_g0 <- g0_error_metrics_all %>% filter(RMSE == min(RMSE)) 
+      
+      # calculate standard error of best lambda
+      xgb_best_g0_se <- xgb_best_g0 %>% pull(se) 
+      
+      # one-standard deviation rule: "largest value of lambda (-> simpler model) such that error is 
+      # within 1 standard error of the cross-validated errors for best lambda".
+      g0_error_metrics_all_simpler <- g0_error_metrics_all %>% filter(trees <= xgb_best_g0$trees | tree_depth <= xgb_best_g0$tree_depth)
+      xgb_se_g0 <- g0_error_metrics_all_simpler %>%
+        filter(RMSE < min(g0_error_metrics_all %>% pull(RMSE)) + xgb_best_g0_se) %>%
+        arrange(trees, tree_depth, learn_rate, mtry, min_n) %>%
+        head(1) 
+      
+      
+      ## Outcome D = 1 ##
+      #+++++++++++++++++#
+      
+      g1_error_metrics_all <- data.frame()
+      for (K_sel in 1:K) {
+        g1_error_metrics_all <- rbind(g1_error_metrics_all, xgb_grid_search_g1$.metrics[[K_sel]])
+      }
+      
+      # aggregate across K
+      g1_error_metrics_all <- g1_error_metrics_all %>% group_by(mtry, trees, min_n, tree_depth, learn_rate) %>% summarize(
+        # average AUC
+        RMSE = mean(`.estimate`), 
+        # standard error: standard deviation divided by the number of folds
+        se = sd(`.estimate`) / sqrt(K)
+      ) %>% ungroup()
+      g1_error_metrics_all <- g1_error_metrics_all %>% arrange(trees, tree_depth)
+      
+      # best: lambda which leads to best error metrics
+      xgb_best_g1 <- g1_error_metrics_all %>% filter(RMSE == min(RMSE)) 
+      
+      # calculate standard error of best lambda
+      xgb_best_g1_se <- xgb_best_g1 %>% pull(se) 
+      
+      # one-standard deviation rule: "largest value of lambda (-> simpler model) such that error is 
+      # within 1 standard error of the cross-validated errors for best lambda".
+      g1_error_metrics_all_simpler <- g1_error_metrics_all %>% filter(trees <= xgb_best_g0$trees | tree_depth <= xgb_best_g0$tree_depth)
+      xgb_se_g1 <- g1_error_metrics_all_simpler %>%
+        filter(RMSE < min(g1_error_metrics_all %>% pull(RMSE)) + xgb_best_g1_se) %>%
+        arrange(trees, tree_depth, learn_rate, mtry, min_n) %>%
+        head(1) 
+      
+      
+      df_best_param <- data.frame(
+        "m_learn_rate" = xgb_se_m$learn_rate, "m_trees" = xgb_se_m$trees,
+        "m_tree_depth" = xgb_se_m$tree_depth, "m_mtry" = xgb_se_m$mtry,
+        "m_min_n" = xgb_se_m$min_n,
+        "g0_learn_rate" = xgb_se_g0$learn_rate, "g0_trees" = xgb_se_g0$trees,
+        "g0_tree_depth" = xgb_se_g0$tree_depth, "g0_mtry" = xgb_se_g0$mtry,
+        "g0_min_n" = xgb_se_g0$min_n,
+        "g1_learn_rate" = xgb_se_g1$learn_rate, "g1_trees" = xgb_se_g1$trees,
+        "g1_tree_depth" = xgb_se_g1$tree_depth, "g1_mtry" = xgb_se_g1$mtry,
+        "g1_min_n" = xgb_se_g1$min_n
+      )
+      
+      
+      ## Apply 1SE Rule ##
+      #++++++++++++++++++#
+      
+    } else if (hyperparam_sel == "1SE_plus") {
+      
+      ## Treatment ##
+      #+++++++++++++#
+      
+      # append results from error metrics
+      m_error_metrics_all <- data.frame()
+      for (K_sel in 1:K) {
+        m_error_metrics_all <- rbind(m_error_metrics_all, xgb_grid_search_m$.metrics[[K_sel]])
+      }
+      
+      # aggregate across K
+      m_error_metrics_all <- m_error_metrics_all %>% group_by(mtry, trees, min_n, tree_depth, learn_rate) %>% summarize(
+        # average AUC
+        AUC = mean(`.estimate`), 
+        # standard error: standard deviation divided by the number of folds
+        se = sd(`.estimate`) / sqrt(K)
+      ) %>% ungroup()
+      m_error_metrics_all <- m_error_metrics_all %>% arrange(trees, tree_depth)
+      
+      # best: lambda which leads to best error metrics
+      xgb_best_m <- m_error_metrics_all %>% filter(AUC == max(AUC)) %>% head(1)
+      
+      # calculate standard error of best lambda
+      xgb_best_m_se <- xgb_best_m %>% pull(se) 
+      
+      # one-standard deviation rule: "largest value of lambda (-> simpler model) such that error is 
+      # within 1 standard error of the cross-validated errors for best lambda".
+      m_error_metrics_all_complexer <- m_error_metrics_all %>% filter(trees >= xgb_best_m$trees | tree_depth >= xgb_best_m$tree_depth)
+      xgb_se_m <- m_error_metrics_all_complexer %>%
+        filter(AUC > max(m_error_metrics_all %>% pull(AUC)) - xgb_best_m_se) %>%
+        arrange(trees, tree_depth, learn_rate, mtry, min_n) %>%
+        tail(1) 
+      
+      
+      ## Outcome D = 0 ##
+      #+++++++++++++++++#
+      
+      # append results from error metrics
+      g0_error_metrics_all <- data.frame()
+      for (K_sel in 1:K) {
+        g0_error_metrics_all <- rbind(g0_error_metrics_all, xgb_grid_search_g0$.metrics[[K_sel]])
+      }
+      
+      # aggregate across K
+      g0_error_metrics_all <- g0_error_metrics_all %>% group_by(mtry, trees, min_n, tree_depth, learn_rate) %>% summarize(
+        # average AUC
+        RMSE = mean(`.estimate`), 
+        # standard error: standard deviation divided by the number of folds
+        se = sd(`.estimate`) / sqrt(K)
+      ) %>% ungroup()
+      g0_error_metrics_all <- g0_error_metrics_all %>% arrange(trees, tree_depth)
+      
+      # best: lambda which leads to best error metrics
+      xgb_best_g0 <- g0_error_metrics_all %>% filter(RMSE == min(RMSE)) 
+      
+      # calculate standard error of best lambda
+      xgb_best_g0_se <- xgb_best_g0 %>% pull(se) 
+      
+      # one-standard deviation rule: "largest value of lambda (-> simpler model) such that error is 
+      # within 1 standard error of the cross-validated errors for best lambda".
+      g0_error_metrics_all_complexer <- g0_error_metrics_all %>% filter(trees >= xgb_best_g0$trees | tree_depth >= xgb_best_g0$tree_depth)
+      xgb_se_g0 <- g0_error_metrics_all_complexer %>%
+        filter(RMSE < min(g0_error_metrics_all %>% pull(RMSE)) + xgb_best_g0_se) %>%
+        arrange(trees, tree_depth, learn_rate, mtry, min_n) %>%
+        tail(1) 
+      
+      
+      ## Outcome D = 1 ##
+      #+++++++++++++++++#
+      
+      g1_error_metrics_all <- data.frame()
+      for (K_sel in 1:K) {
+        g1_error_metrics_all <- rbind(g1_error_metrics_all, xgb_grid_search_g1$.metrics[[K_sel]])
+      }
+      
+      # aggregate across K
+      g1_error_metrics_all <- g1_error_metrics_all %>% group_by(mtry, trees, min_n, tree_depth, learn_rate) %>% summarize(
+        # average AUC
+        RMSE = mean(`.estimate`), 
+        # standard error: standard deviation divided by the number of folds
+        se = sd(`.estimate`) / sqrt(K)
+      ) %>% ungroup()
+      g1_error_metrics_all <- g1_error_metrics_all %>% arrange(trees, tree_depth)
+      
+      # best: lambda which leads to best error metrics
+      xgb_best_g1 <- g1_error_metrics_all %>% filter(RMSE == min(RMSE)) 
+      
+      # calculate standard error of best lambda
+      xgb_best_g1_se <- xgb_best_g1 %>% pull(se) 
+      
+      # one-standard deviation rule: "largest value of lambda (-> simpler model) such that error is 
+      # within 1 standard error of the cross-validated errors for best lambda".
+      g1_error_metrics_all_complexer <- g1_error_metrics_all %>% filter(trees >= xgb_best_g0$trees | tree_depth >= xgb_best_g0$tree_depth)
+      xgb_se_g1 <- g1_error_metrics_all_complexer %>%
+        filter(RMSE < min(g1_error_metrics_all %>% pull(RMSE)) + xgb_best_g1_se) %>%
+        arrange(trees, tree_depth, learn_rate, mtry, min_n) %>%
+        tail(1) 
+      
+      
+      df_best_param <- data.frame(
+        "m_learn_rate" = xgb_se_m$learn_rate, "m_trees" = xgb_se_m$trees,
+        "m_tree_depth" = xgb_se_m$tree_depth, "m_mtry" = xgb_se_m$mtry,
+        "m_min_n" = xgb_se_m$min_n,
+        "g0_learn_rate" = xgb_se_g0$learn_rate, "g0_trees" = xgb_se_g0$trees,
+        "g0_tree_depth" = xgb_se_g0$tree_depth, "g0_mtry" = xgb_se_g0$mtry,
+        "g0_min_n" = xgb_se_g0$min_n,
+        "g1_learn_rate" = xgb_se_g1$learn_rate, "g1_trees" = xgb_se_g1$trees,
+        "g1_tree_depth" = xgb_se_g1$tree_depth, "g1_mtry" = xgb_se_g1$mtry,
+        "g1_min_n" = xgb_se_g1$min_n
+      )
+    }
+
     
     
     
@@ -895,16 +1126,16 @@ func_ml_xgboost <- function(treatment_setting, data_train, data_test, outcome, t
         tune_grid(resamples = K_folds_inner_g3, grid = xgb_grid, metrics = metric_set(rmse))
       
       # select best penalty parameter: parameter with highest AUC
-      xgo_best_param_m <- xgb_grid_search_m %>% select_best("roc_auc")
+      xgb_best_param_m <- xgb_grid_search_m %>% select_best("roc_auc")
       xgb_best_param_g1 <- xgb_grid_search_g1 %>% select_best("rmse")
       xgb_best_param_g2 <- xgb_grid_search_g2 %>% select_best("rmse")
       xgb_best_param_g3 <- xgb_grid_search_g3 %>% select_best("rmse")
       
       
       df_best_param <- data.frame(
-        "m_learn_rate" = xgo_best_param_m$learn_rate, "m_trees" = xgo_best_param_m$trees,
-        "m_tree_depth" = xgo_best_param_m$tree_depth, "m_mtry" = xgo_best_param_m$mtry,
-        "m_min_n" = xgo_best_param_m$min_n,
+        "m_learn_rate" = xgb_best_param_m$learn_rate, "m_trees" = xgb_best_param_m$trees,
+        "m_tree_depth" = xgb_best_param_m$tree_depth, "m_mtry" = xgb_best_param_m$mtry,
+        "m_min_n" = xgb_best_param_m$min_n,
         "g1_learn_rate" = xgb_best_param_g1$learn_rate, "g1_trees" = xgb_best_param_g1$trees,
         "g1_tree_depth" = xgb_best_param_g1$tree_depth, "g1_mtry" = xgb_best_param_g1$mtry,
         "g1_min_n" = xgb_best_param_g1$min_n,

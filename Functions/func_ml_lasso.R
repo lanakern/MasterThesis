@@ -18,6 +18,10 @@
 # -> "group": group variable included in data_train and data_test
 # -> "K": number of folds generated for parameter tuning
 # -> "lambda_val": number of lambda values used in tuning process
+# -> "hyperparam_sel": how to select hyperparameter combination in parameter tuning.
+# "best" according to smallest RMSE / highest AUC or "1SE" according to one standard
+# error rule in favor of more simpler model or "1SE_plus" in favor of more
+# complex model (used as sensitivity check).
 # -> "post": determines if normal LASSO or post-LASSO is performed (post = TRUE)
 #++++
 # OUTPUT:
@@ -30,7 +34,8 @@
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome, 
-                          treatment, group, K, lambda_val, post) {
+                          treatment, group, K, lambda_val, hyperparam_sel = "best", 
+                          post = FALSE) {
   
   if (!treatment_setting %in% c("binary", "multi")) {
     stop("Treatment setting: binary or multi")
@@ -165,22 +170,234 @@ func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome,
                 metrics = metric_set(rmse))
     
     
-    # select best penalty parameter: parameter with highest AUC
-    lasso_best_param_m <- lasso_grid_search_m %>% select_best("roc_auc")
-    lasso_best_param_m <- lasso_best_param_m$penalty
+    ## SELECT HYPERPARAMETERS FOR BEST COMBINATION ##
+    if (hyperparam_sel == "best") {
+      
+      # select best penalty parameter: parameter with highest AUC
+      lasso_best_param_m <- lasso_grid_search_m %>% select_best("roc_auc")
+      lasso_best_param_m <- lasso_best_param_m$penalty
+      
+      lasso_best_param_g0 <- lasso_grid_search_g0 %>% select_best("rmse")
+      lasso_best_param_g0 <- lasso_best_param_g0$penalty
+      
+      lasso_best_param_g1 <- lasso_grid_search_g1 %>% select_best("rmse")
+      lasso_best_param_g1 <- lasso_best_param_g1$penalty
+      
+      df_best_param <- data.frame(
+        "m" = lasso_best_param_m, "g0" = lasso_best_param_g0, "g1" = lasso_best_param_g1
+      )
     
-    lasso_best_param_g0 <- lasso_grid_search_g0 %>% select_best("rmse")
-    lasso_best_param_g0 <- lasso_best_param_g0$penalty
+    ## Apply 1SE Rule ##
+    } else if (hyperparam_sel == "1SE") {
+      
+      ## Treatment ##
+      #+++++++++++++#
+      
+      # append results from error metrics
+      m_error_metrics_all <- data.frame()
+      for (K_sel in 1:K) {
+        m_error_metrics_all <- rbind(m_error_metrics_all, lasso_grid_search_m$.metrics[[K_sel]])
+      }
+      
+      # aggregate across K
+      m_error_metrics_all <- m_error_metrics_all %>% group_by(penalty) %>% summarize(
+        # average AUC
+        AUC = mean(`.estimate`), 
+        # standard error: standard deviation divided by the number of folds
+        se = sd(`.estimate`) / sqrt(K)
+      ) %>% ungroup()
+      m_error_metrics_all <- m_error_metrics_all %>% arrange(penalty)
+      
+      # best: lambda which leads to best error metrics
+      lambda_best_m <- m_error_metrics_all %>% filter(AUC == max(AUC)) %>% pull(penalty)
+      
+      # calculate standard error of best lambda
+      lambda_best_m_se <- m_error_metrics_all %>% filter(penalty == lambda_best_m) %>% pull(se) 
+      
+      # one-standard deviation rule: "largest value of lambda (-> simpler model) such that error is 
+      # within 1 standard error of the cross-validated errors for best lambda".
+      m_error_metrics_all_simpler <- m_error_metrics_all %>% filter(penalty >= lambda_best_m)
+      lambda_se_m <- m_error_metrics_all_simpler %>%
+        filter(AUC > max(m_error_metrics_all %>% pull(AUC)) - lambda_best_m_se) %>%
+        tail(1) %>% pull(penalty) 
+      
+      
+      ## Outcome D = 0 ##
+      #+++++++++++++++++#
+      
+      # append results from error metrics
+      g0_error_metrics_all <- data.frame()
+      for (K_sel in 1:K) {
+        g0_error_metrics_all <- rbind(g0_error_metrics_all, lasso_grid_search_g0$.metrics[[K_sel]])
+      }
+      
+      # aggregate across K
+      g0_error_metrics_all <- g0_error_metrics_all %>% group_by(penalty) %>% summarize(
+        # average AUC
+        RMSE = mean(`.estimate`), 
+        # standard error: standard deviation divided by the number of folds
+        se = sd(`.estimate`) / sqrt(K)
+      ) %>% ungroup()
+      g0_error_metrics_all <- g0_error_metrics_all %>% arrange(penalty)
+      
+      # best: lambda which leads to best error metrics
+      lambda_best_g0 <- g0_error_metrics_all %>% filter(RMSE == min(RMSE)) %>% pull(penalty)
+      
+      # calculate standard error of best lambda
+      lambda_best_g0_se <- g0_error_metrics_all %>% filter(penalty == lambda_best_g0) %>% pull(se) 
+      
+      # one-standard deviation rule: "largest value of lambda (-> simpler model) such that error is 
+      # within 1 standard error of the cross-validated errors for best lambda".
+      g0_error_metrics_all_simpler <- g0_error_metrics_all %>% filter(penalty >= lambda_best_g0)
+      lambda_se_g0 <- g0_error_metrics_all_simpler %>%
+        filter(RMSE < min(g0_error_metrics_all %>% pull(RMSE)) + lambda_best_g0_se) %>%
+        tail(1) %>% pull(penalty) 
+      
+      
+      ## Outcome D = 1 ##
+      #+++++++++++++++++#
+      
+      g1_error_metrics_all <- data.frame()
+      for (K_sel in 1:K) {
+        g1_error_metrics_all <- rbind(g1_error_metrics_all, lasso_grid_search_g1$.metrics[[K_sel]])
+      }
+      
+      # aggregate across K
+      g1_error_metrics_all <- g1_error_metrics_all %>% group_by(penalty) %>% summarize(
+        # average AUC
+        RMSE = mean(`.estimate`), 
+        # standard error: standard deviation divided by the number of folds
+        se = sd(`.estimate`) / sqrt(K)
+      ) %>% ungroup()
+      g1_error_metrics_all <- g1_error_metrics_all %>% arrange(penalty)
+      
+      # best: lambda which leads to best error metrics
+      lambda_best_g1 <- g1_error_metrics_all %>% filter(RMSE == min(RMSE)) %>% pull(penalty)
+      
+      # calculate standard error of best lambda
+      lambda_best_g1_se <- g1_error_metrics_all %>% filter(penalty == lambda_best_g1) %>% pull(se) 
+      
+      # one-standard deviation rule: "largest value of lambda (-> simpler model) such that error is 
+      # within 1 standard error of the cross-validated errors for best lambda".
+      g1_error_metrics_all_simpler <- g1_error_metrics_all %>% filter(penalty >= lambda_best_g1)
+      lambda_se_g1 <- g1_error_metrics_all_simpler %>%
+        filter(RMSE < min(g1_error_metrics_all %>% pull(RMSE)) + lambda_best_g1_se) %>%
+        tail(1) %>% pull(penalty) 
+      
+      
+      df_best_param <- data.frame(
+        "m_best" = lambda_se_m, "g0_best" = lambda_se_g0, "g1_best" = lambda_se_g1
+      )
+      
+      
+    ## Apply 1SE Rule ##
+    #++++++++++++++++++#
     
-    lasso_best_param_g1 <- lasso_grid_search_g1 %>% select_best("rmse")
-    lasso_best_param_g1 <- lasso_best_param_g1$penalty
+    } else if (hyperparam_sel == "1SE_plus") {
+      
+      ## Treatment ##
+      #+++++++++++++#
+      
+      # append results from error metrics
+      m_error_metrics_all <- data.frame()
+      for (K_sel in 1:K) {
+        m_error_metrics_all <- rbind(m_error_metrics_all, lasso_grid_search_m$.metrics[[K_sel]])
+      }
+      
+      # aggregate across K
+      m_error_metrics_all <- m_error_metrics_all %>% group_by(penalty) %>% summarize(
+        # average AUC
+        AUC = mean(`.estimate`), 
+        # standard error: standard deviation divided by the number of folds
+        se = sd(`.estimate`) / sqrt(K)
+      ) %>% ungroup()
+      m_error_metrics_all <- m_error_metrics_all %>% arrange(penalty)
+      
+      # best: lambda which leads to best error metrics
+      lambda_best_m <- m_error_metrics_all %>% filter(AUC == max(AUC)) %>% pull(penalty)
+      
+      # calculate standard error of best lambda
+      lambda_best_m_se <- m_error_metrics_all %>% filter(penalty == lambda_best_m) %>% pull(se) 
+      
+      # 1SE+ -> more complex model, i.e., lower lambda. 
+      m_error_metrics_all_complex <- m_error_metrics_all %>% filter(penalty <= lambda_best_m)
+      lambda_se_plus_m <- m_error_metrics_all_complex %>%
+        # AUC is bigger than best_AUC - se: AUC_1SE < AUC_best
+        filter(AUC > max(m_error_metrics_all %>% pull(AUC)) - lambda_best_m_se) %>%
+        head(1) %>% pull(penalty) 
+      
+
+      ## Outcome D = 0 ##
+      #+++++++++++++++++#
     
-    df_best_param <- data.frame(
-      "m" = lasso_best_param_m, "g0" = lasso_best_param_g0, "g1" = lasso_best_param_g1
-    )
+      # append results from error metrics
+      g0_error_metrics_all <- data.frame()
+      for (K_sel in 1:K) {
+        g0_error_metrics_all <- rbind(g0_error_metrics_all, lasso_grid_search_g0$.metrics[[K_sel]])
+      }
+      
+      # aggregate across K
+      g0_error_metrics_all <- g0_error_metrics_all %>% group_by(penalty) %>% summarize(
+        # average AUC
+        RMSE = mean(`.estimate`), 
+        # standard error: standard deviation divided by the number of folds
+        se = sd(`.estimate`) / sqrt(K)
+      ) %>% ungroup()
+      g0_error_metrics_all <- g0_error_metrics_all %>% arrange(penalty)
+      
+      # best: lambda which leads to best error metrics
+      lambda_best_g0 <- g0_error_metrics_all %>% filter(RMSE == min(RMSE)) %>% pull(penalty)
+      
+      # calculate standard error of best lambda
+      lambda_best_g0_se <- g0_error_metrics_all %>% filter(penalty == lambda_best_g0) %>% pull(se) 
     
+      # 1SE+ -> more complex model, i.e., lower lambda. 
+      g0_error_metrics_all_complex <- g0_error_metrics_all %>% filter(penalty <= lambda_best_g0)
+      lambda_se_plus_g0 <- g0_error_metrics_all_complex %>%
+        filter(RMSE < min(g0_error_metrics_all %>% pull(RMSE)) + lambda_best_g0_se) %>%
+        head(1) %>% pull(penalty) 
+      
+      
+      
+      ## Outcome D = 1 ##
+      #+++++++++++++++++#
+      
+      g1_error_metrics_all <- data.frame()
+      for (K_sel in 1:K) {
+        g1_error_metrics_all <- rbind(g1_error_metrics_all, lasso_grid_search_g1$.metrics[[K_sel]])
+      }
+      
+      # aggregate across K
+      g1_error_metrics_all <- g1_error_metrics_all %>% group_by(penalty) %>% summarize(
+        # average AUC
+        RMSE = mean(`.estimate`), 
+        # standard error: standard deviation divided by the number of folds
+        se = sd(`.estimate`) / sqrt(K)
+      ) %>% ungroup()
+      g1_error_metrics_all <- g1_error_metrics_all %>% arrange(penalty)
+      
+      # best: lambda which leads to best error metrics
+      lambda_best_g1 <- g1_error_metrics_all %>% filter(RMSE == min(RMSE)) %>% pull(penalty)
+      
+      # calculate standard error of best lambda
+      lambda_best_g1_se <- g1_error_metrics_all %>% filter(penalty == lambda_best_g1) %>% pull(se) 
+      
+      # 1SE+ -> more complex model, i.e., lower lambda. 
+      g1_error_metrics_all_complex <- g1_error_metrics_all %>% filter(penalty <= lambda_best_g1)
+      lambda_se_plus_g1 <- g1_error_metrics_all_complex %>%
+        filter(RMSE < min(g1_error_metrics_all %>% pull(RMSE)) + lambda_best_g1_se) %>%
+        head(1) %>% pull(penalty) 
     
+      
+      ## Data Frame with Best Parameters ##
+      #+++++++++++++++++++++++++++++++++++#
+      
+      df_best_param <- data.frame(
+        "m_best" = lambda_se_plus_m, "g0_best" = lambda_se_plus_g0, "g1_best" = lambda_se_plus_g1
+      )
+    }
     
+
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     #### FINAL MODEL TRAINING ####
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
