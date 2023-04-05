@@ -55,6 +55,10 @@
 # -> "pred": nuisance parameter predictions
 # -> "coef": if (post-)lasso algorithm is selected, all non-zero coefficients are returned
 # -> "cov_balance": if post-lasso is selected covariate balance assessment is returned
+# -> "hyperparam_sel": how to select hyperparameter combination in parameter tuning.
+# "best" according to smallest RMSE / highest AUC or "1SE" according to one standard
+# error rule in favor of more simpler model or "1SE_plus" in favor of more
+# complex model (used as sensitivity check).
 # -> "post": determines if normal LASSO or post-LASSO is performed (post = TRUE)
 #+++
 # Further notes:
@@ -66,7 +70,8 @@
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tuning, S, mlalgo, 
-                     trimming, save_trimming, probscore_separate = TRUE, mice_sel, post) {
+                     trimming, save_trimming, probscore_separate = TRUE, mice_sel, 
+                     hyperparam_sel = "best", post = FALSE) {
   
   # check for missings in date
   if (sum(is.na(data)) > 0) {
@@ -119,20 +124,32 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
   }
   
   ## (post-)lasso
-  if (mlalgo == "lasso") {
-    lambda_val <- 100
-  } else {
-    lambda_val <- 20 # for post-lasso as it is computationally more expensive
-  }
+  lambda_val <- 100
+  # if (mlalgo == "lasso") {
+  #   lambda_val <- 100
+  # } else {
+  #   lambda_val <- 20 # for post-lasso as it is computationally more expensive
+  # }
   
   ## xgboost
-  xgb_grid <- expand.grid(
-    tree_depth = c(3, 6, 9), # default: 6
-    trees = c(15, 50, 100), # default: 15
-    learn_rate = c(0.01, 0.3), # default: 0.3
-    mtry = c(floor(sqrt(num_X)), round(num_X)/2, round(num_X)), # default: p (X)
-    min_n = c(1, 3) # default: 1
-  )
+  if (str_detect(outcome_var, "grade")) {
+    xgb_grid <- expand.grid(
+      tree_depth = c(3, 6, 9), # default: 6
+      trees = c(15, 50), # default: 15 
+      learn_rate = c(0.01, 0.3), # default: 0.3
+      mtry = c(floor(sqrt(num_X)), round(num_X)/2, round(num_X)), # default: p (X)
+      min_n = c(1, 3) # default: 1
+    )
+  } else {
+    xgb_grid <- expand.grid(
+      tree_depth = c(3, 6, 9), # default: 6
+      trees = c(50), # default: 15 (changed based on previous results, theory, and computation time)
+      learn_rate = c(0.01, 0.3), # default: 0.3
+      mtry = c(floor(sqrt(num_X)), round(num_X / 2), round(num_X)), # default: p (X)
+      min_n = c(1, 3) # default: 1
+    )
+  }
+
   # xgb_grid <- expand.grid(
   #   tree_depth = c(6), # default: 6
   #   trees = c(15), # default: 15
@@ -232,7 +249,6 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
       data_train <- data[indices_fold_sel, ]
       data_test <- data[-indices_fold_sel, ]
       
-      
       #++++++++++++++++++++++++++++++++++++++++++++#
       #### PREDICT NUISANCE PARAMETER FUNCTIONS ####
       #++++++++++++++++++++++++++++++++++++++++++++#
@@ -276,14 +292,14 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
         ls_ml <- func_ml_lasso(
           treatment_setting = treatment_setting, data_train = data_train, data_test = data_test, 
           outcome = outcome, treatment = treatment, group = group, K = K_tuning, lambda_val = lambda_val,
-          post = TRUE
+          hyperparam_sel = hyperparam_sel, post = post
           )
 
         
         # append predictions to data frame
         data_pred <- ls_ml$pred
         data_pred <- data_pred %>% mutate(Repetition = S_rep, Fold = fold_sel)
-        df_pred_all <- rbind(df_pred_all, data_pred)
+        # df_pred_all <- rbind(df_pred_all, data_pred)
         
         # append tuning parameters to data frame
         data_param <- ls_ml$param
@@ -311,7 +327,7 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
         # append predictions to data frame
         data_pred <- xgb_ml$pred
         data_pred <- data_pred %>% mutate(Repetition = S_rep, Fold = fold_sel)
-        df_pred_all <- rbind(df_pred_all, data_pred)
+        # df_pred_all <- rbind(df_pred_all, data_pred)
         
         # append tuning parameters to data frame
         data_param <- xgb_ml$param
@@ -331,7 +347,7 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
         # append predictions to data frame
         data_pred <- rf_ml$pred
         data_pred <- data_pred %>% mutate(Repetition = S_rep, Fold = fold_sel)
-        df_pred_all <- rbind(df_pred_all, data_pred)
+        # df_pred_all <- rbind(df_pred_all, data_pred)
         
         # append tuning parameters to data frame
         data_param <- rf_ml$param
@@ -362,6 +378,7 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
       
       ls_trimming <- func_dml_trimming(treatment_setting, data_pred, data_test, trimming)
       data_pred <- ls_trimming$data_pred
+      df_pred_all <- rbind(df_pred_all, data_pred)
       data_test <- ls_trimming$data_test
       min_trimming <- ls_trimming$min_trimming
       min_trimming_all <- c(min_trimming_all, min_trimming)
@@ -392,7 +409,7 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
         # selected in post-lasso
         data_cov_bal_pred <- data_pred %>% dplyr::select(-starts_with("num"))
         data_cov_bal_x <- data_test %>% 
-          dplyr::select(all_of(pls_coef_keep)) %>%
+          # dplyr::select(all_of(pls_coef_keep)) %>%
           mutate(Fold = fold_sel, Repetition = S_rep) %>%
           dplyr::select(Repetition, Fold, everything())
         
