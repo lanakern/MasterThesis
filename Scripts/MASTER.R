@@ -283,6 +283,7 @@ model_type <- main_model_type # "all_int_polys"
 model_controls_lag <- main_model_controls_lag # "no_lags", "all"
 model_controls_endog <- main_model_controls_endog # "no"
 model_trimming <- main_model_trimming # 0.1, min-max
+model_hyperparam_sel <- "best"
 model_post_sel <- FALSE
 
 # for lasso and xgboost higher K as they are computationally faster
@@ -331,6 +332,7 @@ model_type <- main_model_type
 model_controls_lag <- main_model_controls_lag
 model_controls_endog <- main_model_controls_endog
 model_trimming <- main_model_trimming
+model_hyperparam_sel <- "best"
 model_post_sel <- FALSE
 
 model_k <- 4 
@@ -390,8 +392,7 @@ eval(parse(text = keep_after_file_run))
 
 outcome_var <- "outcome_bigfive_conscientiousness"
 
-
-model_algo <- "lasso"
+model_algo <- "postlasso"
 source("Scripts/11_a_DML_Binary.R") 
 gc()
 eval(parse(text = keep_after_file_run))
@@ -476,15 +477,11 @@ source("Scripts/11_b_DML_Multi.R")
 
 
 
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-#### ANALYSIS DML RESULTS ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-
+#%%%%%%%%%%%%%%%%%%%%%%%%%%#
 #### Feature Importance ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 # only generated for main model
-eval(parse(text = keep_after_file_run))
 treatment_setting <- "binary"
 cohort_prep <- main_cohort_prep 
 treatment_repl <- main_treatment_repl 
@@ -501,3 +498,33 @@ model_s_rep <- 5
 n_features <- 30
 
 source("Scripts/13_c_DML_FeatureImportance.R") 
+
+eval(parse(text = keep_after_file_run))
+gc()
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### SENSITIVITY WRT HYPERPARAMETERS ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+outcome_var <- "outcome_grade"
+treatment_setting <- "binary"
+cohort_prep <- main_cohort_prep 
+treatment_repl <- main_treatment_repl 
+treatment_def <- main_treatment_def 
+extra_act <- main_extra_act 
+model_type <- main_model_type 
+model_controls_lag <- main_model_controls_lag 
+model_controls_endog <- main_model_controls_endog 
+model_trimming <- main_model_trimming 
+model_post_sel <- FALSE
+model_k <- 4 
+model_k_tuning <- 2 
+model_s_rep <- 5 
+model_hyperparam_sel <- "1SE"
+
+## LASSO ##
+model_algo <- "lasso"
+source("Scripts/11_a_DML_Binary.R") 
+
+model_hyperparam_sel <- "1SE_plus"
+source("Scripts/11_a_DML_Binary.R") 
