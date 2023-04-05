@@ -10,6 +10,8 @@
 # -> func_diff_means: calculation of difference in means
 # -> func_stand_factor: calculation of standardization factor
 # -> func_asdm: calculation of absolute mean standardized differences (asdm)
+# -> func_weights: calculate weights
+# -> func_weights_normalize: normalized weights
 # -> func_cov_balance: assessment of covariate balancing (runs all three
 # previous function).
 # Information about input and output is given in the respective section.
@@ -175,6 +177,68 @@ func_asdm <- function(treatment_setting, num_controls, adjustment, data, treatme
   return(list("smd_summary" = df_smd_summary, "smd_all" = df_smd_all))
   
 }
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### CALCULATE WEIGHTS ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+# normalization: input is vector and output vector with normalized values
+func_weights_normalize <- function(w) {
+  w <- w / sum(w) * length(w)
+  return(w)
+}
+
+# calculate weights
+# INPUTS:
+# -> "treatment_setting": binary or multi
+# -> "data_pred": data frame containing propensity score predictions.
+# -> "data_controls": data frame containing the control variables.
+
+func_weights <- function(treatment_setting, data_pred, data_controls) {
+  # extract and prepare information
+  prob_score <- as.matrix(data_pred$m)
+  prob_score <- cbind(1 - prob_score, prob_score)
+  y <- as.matrix(data_pred$outcome, ncol = 1) 
+  t <- data_pred$treatment %>% as.character() %>% as.numeric() 
+  t <- cbind(1 - t, t)
+  x <- data_controls %>% mutate(intercept = 1) %>% as.matrix()
+  n <- nrow(t)
+  num_t <- ncol(t)
+  
+  # Predict y's
+  w_ipw <- matrix(0, n, num_t)
+  w_ols <- matrix(0, n, num_t)
+  w_adj <- matrix(0, n, num_t)
+  
+  for (i in 1:num_t) {
+    
+    # IPW weights (w_t^p)
+    w_ipw[,i] <- as.matrix(t[,i] / prob_score[,i], ncol = 1)
+    w_ipw[,i] <- func_weights_normalize(w_ipw[,i])
+    
+    #  X_t'X_t 
+    XtX <- crossprod(x[t[,i] == 1,])
+    
+    # X_t(X_t'X_t)-1 for treated
+    XXtX <- x[t[,i] == 1,] %*% MASS::ginv(XtX)
+    
+    for (r in 1:n) {
+      w_ol <- matrix(0, n, 1)
+      XXtXX <- XXtX %*% x[r,]
+      w_ol[t[,i] == 1,] <- unname(XXtXX[, 1])
+      w_ols[,i] <- w_ols[,i] + w_ol
+      w_adj[,i] <- w_adj[,i] + w_ol * w_ipw[r,i]
+    }
+  } # End t
+  
+  # Calculate weight matrix
+  w_mat <- w_ipw + w_ols - w_adj
+  weights <- rowSums(w_mat)
+  
+  return(weights)
+}
+
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%#
