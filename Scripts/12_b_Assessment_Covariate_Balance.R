@@ -25,6 +25,8 @@
 #### BINARY TREATMENT SETTING ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
+#cov_bal_method <- "separate"
+cov_bal_method <- "union" # otherwise plot does not make sense
 
 #### Prepare Data ####
 #++++++++++++++++++++#
@@ -45,6 +47,14 @@ for (mice_data_sel in 1:5) {
   data_all_mice_sub <- readRDS(data_load)
   data_all_mice_sub <- data_all_mice_sub %>% ungroup() %>% mutate(MICE = mice_data_sel)
   data_all_mice_personality <- rbind(data_all_mice_personality, data_all_mice_sub)
+}
+
+data_all_mice_grades_multi <- data.frame()
+for (mice_data_sel in 1:5) {
+  data_load <- paste0("Data/Grades/Prep_10/prep_10_dml_multi_all_weekly_down_extradrop_mice", mice_data_sel, ".rds")
+  data_all_mice_sub <- readRDS(data_load)
+  data_all_mice_sub <- data_all_mice_sub %>% ungroup() %>% mutate(MICE = mice_data_sel)
+  data_all_mice_grades_multi <- rbind(data_all_mice_grades_multi, data_all_mice_sub)
 }
 
 
@@ -79,113 +89,110 @@ for (outcome_var_sel in c("grades")) {
       prep() %>%
       bake(new_data = NULL)
     
-    # control variables
-    controls_sel <- unique(dml_result_all[[mice_data_sel]]$coef$term)
+    # decide on method: union of variables or separately across folds
     
-    # # append predictions across repetitions and fold in dplyr::selected mice data frame
-    # df_pred_binary_all <- data.frame()
-    # #df_iterate <- data.frame("Rep" = c(1, 1, 2, 2), "Fold" = c(1, 2, 1, 2))
-    # df_iterate <- data.frame("Rep" = c(rep(1,4), rep(2,4), rep(3,4), rep(4,4), rep(5,4)), "Fold" = rep(c(1:4), 5))
-    # for (rep_fold in 1:nrow(df_iterate)) {
-    #   df_iterate_sel <- df_iterate[rep_fold, ]
-    #   df_pred_binary <- dml_result_all[[mice_data_sel]]$cov_balance[[mice_data_sel]][[df_iterate_sel$Rep]][[df_iterate_sel$Fold]]$pred
-    #   df_pred_binary_all <- rbind(df_pred_binary_all, df_pred_binary)
-    # }
+    #### UNION ####
+    #%%%%%%%%%%%%%#
     
-    # predictions
-    df_pred_binary_all <- dml_result_all[[mice_data_sel]]$pred
-    
-    # append columns: only columns in all data sets are used
-    df_controls_binary_all <- data.frame()
-    controls_sel_binary_all <- c()
-    df_iterate <- data.frame("Rep" = c(rep(1,4), rep(2,4), rep(3,4), rep(4,4), rep(5,4)), "Fold" = rep(c(1:4), 5))
-    for (rep_fold in 1:nrow(df_iterate)) {
+    if (cov_bal_method == "union") {
       
-      # extract covariates
-      df_iterate_sel <- df_iterate[rep_fold, ]
-      df_controls_binary <- dml_result_all[[mice_data_sel]]$cov_balance[[mice_data_sel]][[df_iterate_sel$Rep]][[df_iterate_sel$Fold]]$controls
+      # control variables
+      controls_sel <- unique(dml_result_all[[mice_data_sel]]$coef$term)
+      controls_sel <- controls_sel[!controls_sel  %in% "(Intercept)"]
+      controls_sel <- str_replace(sort(controls_sel), "`friends_study_share_(almost)half`", "friends_study_share_.almost.half")
       
-      # keep only covariates which are in all data frames
-      controls_sel_binary <- colnames(df_controls_binary)
-      if (rep_fold != 1) {
-        controls_sel_binary_all <- controls_sel_binary[controls_sel_binary %in% controls_sel_binary_all]
-      } else {
-        controls_sel_binary_all <- controls_sel_binary
+      # predictions
+      df_pred_binary_all <- dml_result_all[[mice_data_sel]]$pred
+      
+      # data with all columns in controls_sel
+      df_controls_binary_all <- data.frame()
+      df_iterate <- data.frame("Rep" = c(rep(1,4), rep(2,4), rep(3,4), rep(4,4), rep(5,4)), "Fold" = rep(c(1:4), 5))
+      for (rep_fold in 1:nrow(df_iterate)) {
+        
+        # extract covariates
+        df_iterate_sel <- df_iterate[rep_fold, ]
+        df_controls_binary <- dml_result_all[[mice_data_sel]]$cov_balance[[mice_data_sel]][[df_iterate_sel$Rep]][[df_iterate_sel$Fold]]$controls
+        controls_sel <- colnames(df_controls_binary)[colnames(df_controls_binary) %in% controls_sel]
+        df_controls_binary <- df_controls_binary %>% dplyr::select(all_of(controls_sel))
+        df_controls_binary_all <- rbind(df_controls_binary_all, df_controls_binary)
+        
       }
-      df_controls_binary <- df_controls_binary[, controls_sel_binary_all]
-      if (rep_fold != 1) {
-        df_controls_binary_all <- df_controls_binary_all[, controls_sel_binary_all]
-      } else {
-        df_controls_binary_all <- df_controls_binary_all
-      }
-      df_controls_binary_all <- rbind(df_controls_binary_all, df_controls_binary)
-    }
-    
-    controls_sel <- colnames(df_controls_binary_all)
-    
-    
-    #### Calculate weights ####
-    #+++++++++++++++++++++++++#
-    
-    func_weights_normalize <- function(w) {
-      w <- w / sum(w) * length(w)
-      return(w)
-    }
-    
-    # extract and prepare information
-    prob_score <- as.matrix(df_pred_binary_all$m)
-    prob_score <- cbind(1 - prob_score, prob_score)
-    y <- as.matrix(df_pred_binary_all$outcome, ncol = 1) 
-    t <- df_pred_binary_all$treatment %>% as.character() %>% as.numeric() 
-    t <- cbind(1 - t, t)
-    x <- df_controls_binary_all %>% dplyr::select(-c(Fold, Repetition)) %>% mutate(intercept = 1) %>% as.matrix()
-    n <- nrow(t)
-    num_t <- ncol(t)
-    
-    # Predict y's
-    w_ipw <- matrix(0, n, num_t)
-    w_ols <- matrix(0, n, num_t)
-    w_adj <- matrix(0, n, num_t)
-    
-    for (i in 1:num_t) {
       
-      # IPW weights (w_t^p)
-      w_ipw[,i] <- as.matrix(t[,i] / prob_score[,i], ncol = 1)
-      w_ipw[,i] <- func_weights_normalize(w_ipw[,i])
       
-      #  X_t'X_t 
-      XtX <- crossprod(x[t[,i] == 1,])
+      ## Calculate Weights ##
+      #+++++++++++++++++++++#
       
-      # X_t(X_t'X_t)-1 for treated
-      XXtX <- x[t[,i] == 1,] %*% MASS::ginv(XtX)
+      weights <- func_weights("binary", df_pred_binary_all, df_controls_binary_all)
       
-      for (r in 1:n) {
-        w_ol <- matrix(0, n, 1)
-        XXtXX <- XXtX %*% x[r,]
-        w_ol[t[,i] == 1,] <- unname(XXtXX[, 1])
-        w_ols[,i] <- w_ols[,i] + w_ol
-        w_adj[,i] <- w_adj[,i] + w_ol * w_ipw[r,i]
-      }
-    } # End t
+      
+      ## ASDM: Apply Own Function ##
+      #++++++++++++++++++++++++++++#
+      
+      list_smd_binary <- func_cov_balance("binary", data_dml_binary, controls_sel, weights)
+      df_smd_binary <- list_smd_binary$smd_summary %>% mutate(MICE = mice_data_sel)
+      df_smd_binary_all <- rbind(df_smd_binary_all, df_smd_binary)
+      df_smd_all_binary <- list_smd_binary$smd_values %>% mutate(MICE = mice_data_sel)
+      df_smd_all_binary_all <- rbind(df_smd_all_binary_all, df_smd_all_binary)
+      
+      
+    #### SEPARATE CALCULATIONS PER FOLD ####
+    #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+      
+    } else {
+      
+      # iteration
+      df_iterate <- data.frame("Rep" = c(rep(1,4), rep(2,4), rep(3,4), rep(4,4), rep(5,4)), "Fold" = rep(c(1:4), 5))
+      
+      for (iter_sel in 1:nrow(df_iterate)) {
+        
+        df_iterate_sel <- df_iterate[iter_sel, ]
+        
+        # control variables
+        controls_sel <- dml_result_all[[mice_data_sel]]$coef %>%
+          filter(Repetition == df_iterate_sel$Rep & Fold == df_iterate_sel$Fold) %>%
+          pull(term) %>%
+          unique()
+        controls_sel <- controls_sel[!controls_sel %in% "(Intercept)"]
+        controls_sel <- str_replace(sort(controls_sel), "`friends_study_share_(almost)half`", "friends_study_share_.almost.half")
+        
+        # predictions
+        df_pred_binary <- dml_result_all[[mice_data_sel]]$pred %>% 
+          filter(Repetition == df_iterate_sel$Rep & Fold == df_iterate_sel$Fold)
+
+        # extract covariates
+        df_controls_binary <- dml_result_all[[mice_data_sel]]$cov_balance[[mice_data_sel]][[df_iterate_sel$Rep]][[df_iterate_sel$Fold]]$controls
+        controls_sel <- colnames(df_controls_binary)[colnames(df_controls_binary) %in% controls_sel]
+        df_controls_binary <- df_controls_binary %>% dplyr::select(all_of(controls_sel))
+        
+        # calculate weights
+        weights <- func_weights("binary", df_pred_binary, df_controls_binary)
+        
+        # ASDM
+        list_smd_binary <- func_cov_balance("binary", data_dml_binary, controls_sel, weights)
+        df_smd_binary <- list_smd_binary$smd_summary %>% mutate(Fold = df_iterate_sel$Fold, Rep = df_iterate_sel$Rep, MICE = mice_data_sel)
+        df_smd_binary_all <- rbind(df_smd_binary_all, df_smd_binary)
+        df_smd_all_binary <- list_smd_binary$smd_values %>% mutate(Fold = df_iterate_sel$Fold, Rep = df_iterate_sel$Rep, MICE = mice_data_sel)
+        df_smd_all_binary_all <- rbind(df_smd_all_binary_all, df_smd_all_binary)
+        
+      } # close iteration over repetitions and folds
+      
+    } # close else()
     
-    # Calculate weight matrix
-    w_mat <- w_ipw + w_ols - w_adj
-    weights <- rowSums(w_mat)
-    
-    
-    ## ASDM: Apply Own Function ##
-    #++++++++++++++++++++++++++++#
-    
-    list_smd_binary <- func_cov_balance("binary", data_dml_binary, controls_sel, weights)
-    df_smd_binary <- list_smd_binary$smd_summary %>% mutate(MICE = mice_data_sel)
-    df_smd_binary_all <- rbind(df_smd_binary_all, df_smd_binary)
-    df_smd_all_binary <- list_smd_binary$smd_values %>% mutate(MICE = mice_data_sel)
-    df_smd_all_binary_all <- rbind(df_smd_all_binary_all, df_smd_all_binary)
+  } # close iteration over MICE data sets
+  
+  if (colnames(df_smd_binary_all) %in% c("Fold", "Rep")) {
+    df_smd_binary_all <- df_smd_binary_all %>%
+      dplyr::select(-c(Fold, Rep))
   }
+  df_smd_binary_final <- df_smd_binary_all %>%
+    dplyr::select(-MICE) %>%
+    group_by(treatment_setting, adjustment, controls) %>% 
+    summarise_all(mean) %>%
+    ungroup()
   
   # for all outcomes in one data frame
   df_smd_binary_sum_outcome <- rbind(df_smd_binary_sum_outcome, 
-                                         df_smd_binary_all %>% mutate(outcome = outcome_var_sel))
+                                     df_smd_binary_final %>% mutate(outcome = outcome_var_sel))
   
   df_smd_binary_all_outcome <- rbind(df_smd_binary_all_outcome, 
                                      df_smd_all_binary_all %>% mutate(outcome = outcome_var_sel))
@@ -199,8 +206,16 @@ for (outcome_var_sel in c("grades")) {
 #   # summarize_all(mean) %>% 
 #   dplyr::select(-MICE) 
 
-saveRDS(df_smd_binary_sum_outcome %>% dplyr::select(-MICE), "Output/DML/Covariate_Balancing/summary_covariate_balancing.rds")
-saveRDS(df_smd_binary_all_outcome %>% dplyr::select(-MICE), "Output/DML/Covariate_Balancing/asdm_covariate_balancing.rds")
+df_smd_binary_all_outcome <- 
+  df_smd_binary_all_outcome %>%
+  dplyr::select(-MICE) %>%
+  group_by(outcome, control_var) %>%
+  summarize_all(mean)
+
+saveRDS(df_smd_binary_sum_outcome, "Output/DML/Covariate_Balancing/summary_covariate_balancing.rds")
+saveRDS(df_smd_binary_all_outcome, "Output/DML/Covariate_Balancing/asdm_covariate_balancing.rds")
+
+
 
 
 #### Covariate Balancing: Cobalt Function ####
@@ -228,13 +243,13 @@ df_smd_after_binary %>% summarize_all(mean)
 #### Covariate Balancing: Plot ####
 #+++++++++++++++++++++++++++++++++#
 
-# create plots and store them in list
-plot_cov_bal_all <- list()
+# create plots and store them in list: First for SD_after
+plot_cov_bal_all_sel <- list()
 i <- 0
 for (outcome_var_sel in c("grades")) {
   df_smd_plot_grades <- df_smd_binary_all_outcome %>% filter(outcome == outcome_var_sel)
   i <- i + 1
-  plot_cov_bal_all[[i]] <- ggplot() +
+  plot_cov_bal_all_sel[[i]] <- ggplot() +
     geom_area(data = df_smd_plot_grades %>% arrange(desc(SD_before)) %>% 
                 mutate(var_num = 1:nrow(df_smd_plot_grades)),
               aes(x = var_num, y = SD_before, fill = "Before")) +
@@ -244,41 +259,74 @@ for (outcome_var_sel in c("grades")) {
     scale_fill_manual(" ", values = c(Before = "grey20", After = "grey90")) +
     ylab("ASDM") + xlab("Rank from highest to lowest ASDM") +
     ggtitle(str_to_title(outcome_var_sel)) + 
-    theme_bw() + theme(legend.position = "right", plot.title = element_text(hjust = 0.5)) +
+    theme_bw() + 
+    theme(legend.position = "right", 
+          plot.title = element_text(hjust = 0.5, size = 22),
+          axis.text = element_text(size = 20),
+          legend.text = element_text(size = 20)) +
     guides(fill = guide_legend(title = "ASDM")) 
 }
 
-# arrange plots
-plot_cov_bal_final <- plot_cov_bal_all[[1]]
+plot_cov_bal_final_sel <- plot_cov_bal_all_sel[[1]]
 
-# save plots
+ggsave("Output/DML/Covariate_Balancing/plot_cov_balance_sel.png", plot_cov_bal_final_sel)
+
+
+# For SD_after_all
+plot_cov_bal_al <- list()
+i <- 0
+for (outcome_var_sel in c("grades")) {
+  df_smd_plot_grades <- df_smd_binary_all_outcome %>% filter(outcome == outcome_var_sel)
+  i <- i + 1
+  plot_cov_bal_al[[i]] <- ggplot() +
+    geom_area(data = df_smd_plot_grades %>% arrange(desc(SD_before)) %>% 
+                mutate(var_num = 1:nrow(df_smd_plot_grades)),
+              aes(x = var_num, y = SD_before, fill = "Before")) +
+    geom_area(data = df_smd_plot_grades %>% arrange(desc(SD_after_all)) %>% 
+                mutate(var_num = 1:nrow(df_smd_plot_grades)),
+              aes(x = var_num, y = SD_after_all, fill = "After All")) + 
+    scale_fill_manual(" ", values = c(Before = "grey20", After = "grey90", `After All` = "grey95")) +
+    ylab("ASDM") + xlab("Rank from highest to lowest ASDM") +
+    ggtitle(str_to_title(outcome_var_sel)) + 
+    theme_bw() + 
+    theme(legend.position = "right", 
+          plot.title = element_text(hjust = 0.5, size = 22),
+          axis.text = element_text(size = 20),
+          legend.text = element_text(size = 20)) +
+    guides(fill = guide_legend(title = "ASDM")) 
+}
+
+plot_cov_bal_final <- plot_cov_bal_al[[1]]
+
 ggsave("Output/DML/Covariate_Balancing/plot_cov_balance.png", plot_cov_bal_final)
 
 
-  
-  
 #### Main Drivers of selection ####
 #+++++++++++++++++++++++++++++++++#
 
 # Unterschied zwischen grades & personality aufgrund unterschiedlichem
 # Kontrollvariablen Set
-# -> summarize?
+# -> aggregieren -> summarize?
   
-# extract 20 variables with highest ASDM 
-df_main_drivers_binary <- df_smd_binary_all_outcome %>% 
-  dplyr::select(-MICE) %>%
+# extract 50 variables with highest ASDM 
+df_main_drivers <- df_smd_binary_all_outcome %>% 
+  #dplyr::select(-MICE) %>%
   arrange(-SD_before) %>%
   group_by(outcome, control_var) %>% 
   summarize_all(mean) %>% 
   arrange(desc(SD_before)) %>% 
-  head(20)
+  head(50)
 
 
 # descriptive statistics for them
-df_descr_binary <- data_all_mice_grades %>% dplyr::select(treatment_sport, all_of(df_main_drivers_binary$control_var))
+cols_binary <- colnames(data_all_mice_grades)[colnames(data_all_mice_grades) %in% df_main_drivers$control_var]
+cols_multi <- colnames(data_all_mice_grades_multi)[colnames(data_all_mice_grades_multi) %in% df_main_drivers$control_var]
+
+df_descr_binary <- data_all_mice_grades %>% dplyr::select(treatment_sport, all_of(cols_binary))
+df_descr_multi <- data_all_mice_grades_multi %>% dplyr::select(treatment_sport_freq, all_of(cols_multi))
 
 df_main_drivers_binary <- left_join(
-  df_main_drivers_binary, 
+  df_main_drivers, 
   df_descr_binary %>%
     group_by(treatment_sport) %>%
     summarize_all(mean) %>%
@@ -288,7 +336,21 @@ df_main_drivers_binary <- left_join(
   by = "control_var"
 )
 
+df_main_drivers_multi <- left_join(
+  df_main_drivers, 
+  df_descr_multi %>%
+    group_by(treatment_sport_freq) %>%
+    summarize_all(mean) %>%
+    gather(-treatment_sport_freq, key = "control_var", value = "mean") %>%
+    spread(key = treatment_sport_freq, value = mean) %>%
+    rename(mean_weekly = "1", mean_monthly = "2", mean_never = "3"),
+  by = "control_var"
+)
+
+df_main_drivers_all <- inner_join(df_main_drivers_binary, df_main_drivers_multi)
+
 # save
+saveRDS("Output/DML/Covariate_Balancing/main_drivers.rds", df_main_drivers_all)
 
 
 
