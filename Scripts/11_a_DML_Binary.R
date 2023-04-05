@@ -153,7 +153,7 @@ for (mice_data_sel in 1:5) {
     outcome = outcome_var, treatment = "treatment_sport", group = "group", 
     K = model_k, K_tuning = model_k_tuning, S = model_s_rep, 
     mlalgo = model_algo, trimming = model_trimming, save_trimming = save_trimming_sel,
-    mice_sel = mice_data_sel, post = model_post_sel
+    mice_sel = mice_data_sel, hyperparam_sel = model_hyperparam_sel, post = model_post_sel
   )
   
   # append APE
@@ -164,6 +164,12 @@ for (mice_data_sel in 1:5) {
   
 }
 
+# sensitivity with respect to hyperparameter
+if (model_hyperparam_sel != "best") {
+  model_hyperparam_sel_save <- paste0("_", model_hyperparam_sel)
+} else {
+  model_hyperparam_sel_save <- ""
+}
 
 # save results
 if (str_detect(outcome_var, "grade")) {
@@ -173,7 +179,7 @@ if (str_detect(outcome_var, "grade")) {
            "_", treatment_def, "_", treatment_repl, extra_act_save, 
            "_", model_type, "_", str_replace_all(model_controls_lag, "_", ""), "_endog",
            model_controls_endog, "_trimming", model_trimming, "_K", model_k, 
-           "-", model_k_tuning, "_Rep", model_s_rep,
+           "-", model_k_tuning, "_Rep", model_s_rep, model_hyperparam_sel_save,
            ".rds")
 } else if (str_detect(outcome_var, "bigfive")) {
   save_dml <- paste0("Output/DML/Estimation/Personality/binary_", 
@@ -182,7 +188,7 @@ if (str_detect(outcome_var, "grade")) {
          "_", treatment_def, "_", treatment_repl, extra_act_save, 
          "_", model_type, "_", str_replace_all(model_controls_lag, "_", ""), "_endog",
          model_controls_endog, "_trimming", model_trimming, "_K", model_k, 
-         "-", model_k_tuning, "_Rep", model_s_rep,
+         "-", model_k_tuning, "_Rep", model_s_rep, model_hyperparam_sel_save,
          ".rds")
 }
 
@@ -205,6 +211,7 @@ dml_result_save <- dml_result_pooled %>%
     model_type = model_type, model_algo = model_algo, model_k = model_k, 
     model_k_tuning = model_k_tuning, model_s_rep = model_s_rep, model_trimming = model_trimming, 
     model_controls_lag = model_controls_lag, model_controls_endog = model_controls_endog,
+    model_hyperparam_sel = model_hyperparam_sel,
     # number of treatment periods before and after after trimming
     n_treats_before = min(unlist(lapply(lapply(dml_result_all, "[[" , "trimming"), "[[", "n_treats_before"))), 
     n_treats_after = min(unlist(lapply(lapply(dml_result_all, "[[" , "trimming"), "[[", "n_treats_after"))), 
