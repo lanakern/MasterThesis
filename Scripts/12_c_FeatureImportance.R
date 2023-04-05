@@ -15,6 +15,8 @@
 #+++
 # Sources:
 # -> https://medium.com/analytics-vidhya/feature-importance-explained-bfc8d874bcf
+# -> https://medium.com/the-artificial-impostor/feature-importance-measures-for-tree-models-part-i-47f187c1a2c3
+# -> https://becominghuman.ai/feature-importance-measures-for-tree-models-part-ii-20c9ff4329b
 #+++
 
 
