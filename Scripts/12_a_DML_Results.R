@@ -23,6 +23,25 @@ df_dml_main_multi <-
   read.xlsx("Output/DML/Treatment_Effects/DML_MULTI_ESTIMATION_RESULTS.xlsx", sheetName = "Sheet1")
 df_dml_main_multi
 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### LOAD DETAILED RESULTS ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+
+## LASSO ##
+#+++++++++#
+
+lasso_main <- 
+  readRDS("Output/DML/Estimation/Grades/binary_grades_lasso_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming0.01_K4-2_Rep5.rds")
+
+lasso_agree <- 
+  readRDS("Output/DML/Estimation/Personality/binary_agreeableness_lasso_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming0.01_K4-2_Rep5.rds")
+
+lasso_extra <- 
+  readRDS("Output/DML/Estimation/Personality/binary_extraversion_lasso_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming0.01_K4-2_Rep5.rds")
+
+lasso_open <- 
+  readRDS("Output/DML/Estimation/Personality/binary_openness_lasso_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming0.01_K4-2_Rep5.rds")
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -39,8 +58,6 @@ df_dml_main_binary %>% filter(model_algo == "lasso")
 #+++++++++++++++++++++++++++++#
 
 ## S = 5 ##
-lasso_main <- 
-  readRDS("Output/DML/Estimation/Grades/binary_grades_lasso_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming0.01_K4-2_Rep5.rds")
 
 lasso_theta_detail <- rbind(
   lasso_main[[1]]$detail %>% filter(Type == "ATE") %>% mutate(MICE = 1),
@@ -607,18 +624,112 @@ df_dml_main_multi %>% dplyr::select(
 #### PREDICTORS ####
 #%%%%%%%%%%%%%%%%%%#
 
+#### Grades ####
+#++++++++++++++#
 
 ## Binary Treatment Setting ##
-df_dml_main_binary %>% select(
-  cohort_prep, treatment_repl, treatment_def, extra_act, starts_with("model"), starts_with("num_predictors")
-) %>% distinct()
+df_dml_main_binary %>% 
+  filter(cohort_prep == main_cohort_prep, treatment_repl == main_treatment_repl, treatment_def == main_treatment_def,
+         extra_act == main_extra_act, model_type == main_model_type, str_detect(model_algo, "lasso"), 
+         model_k == 4, model_k_tuning %in% c(1,2), model_s_rep == 5, model_trimming == 0.01,
+         model_controls_lag == "no_treatment_outcome_lags", model_controls_endog == "yes") %>%
+  dplyr::select(outcome, starts_with("model"), starts_with("num_predictors")) %>% distinct()
 
+df_lasso_predictors <- 
+  rbind(lasso_main[[1]]$predictors, lasso_main[[2]]$predictors) %>%
+  rbind(lasso_main[[3]]$predictors) %>%
+  rbind(lasso_main[[4]]$predictors) %>%
+  rbind(lasso_main[[5]]$predictors)
+summary(df_lasso_predictors$num_pred_m)
+summary(c(df_lasso_predictors$num_pred_g0, df_lasso_predictors$num_pred_g1))
+
+df_postlasso_predictors <- 
+  rbind(postlasso_main[[1]]$predictors, postlasso_main[[2]]$predictors) %>%
+  rbind(postlasso_main[[3]]$predictors) %>%
+  rbind(postlasso_main[[4]]$predictors) %>%
+  rbind(postlasso_main[[5]]$predictors)
+summary(df_postlasso_predictors$num_pred_m)
+summary(c(df_postlasso_predictors$num_pred_g0, df_postlasso_predictors$num_pred_g1))
 
 ## Multivalued Treatment Setting ##
 df_dml_main_multi %>% select(
   cohort_prep, treatment_repl, treatment_def, extra_act, starts_with("model"), starts_with("num_predictors")
 ) %>% distinct()
 
+
+
+#### Agreeableness ####
+#+++++++++++++++++++++#
+
+## Binary ##
+df_lasso_predictors_agree <- 
+  rbind(lasso_agree[[1]]$predictors, lasso_agree[[2]]$predictors) %>%
+  rbind(lasso_agree[[3]]$predictors) %>%
+  rbind(lasso_agree[[4]]$predictors) %>%
+  rbind(lasso_agree[[5]]$predictors)
+summary(df_lasso_predictors_agree$num_pred_m)
+summary(c(df_lasso_predictors_agree$num_pred_g0, df_lasso_predictors_agree$num_pred_g1))
+
+df_postlasso_predictors_agree <- 
+  rbind(postlasso_agree[[1]]$predictors, postlasso_agree[[2]]$predictors) %>%
+  rbind(postlasso_agree[[3]]$predictors) %>%
+  rbind(postlasso_agree[[4]]$predictors) %>%
+  rbind(postlasso_agree[[5]]$predictors)
+summary(df_postlasso_predictors_agree$num_pred_m)
+summary(c(df_postlasso_predictors_agree$num_pred_g0, df_postlasso_predictors_agree$num_pred_g1))
+
+
+## Multivalued ##
+
+
+#### Extraversion ####
+#++++++++++++++++++++#
+
+## Binary ##
+
+df_lasso_predictors_extra <- 
+  rbind(lasso_extra[[1]]$predictors, lasso_extra[[2]]$predictors) %>%
+  rbind(lasso_extra[[3]]$predictors) %>%
+  rbind(lasso_extra[[4]]$predictors) %>%
+  rbind(lasso_extra[[5]]$predictors)
+summary(df_lasso_predictors_extra$num_pred_m)
+summary(c(df_lasso_predictors_extra$num_pred_g0, df_lasso_predictors_extra$num_pred_g1))
+
+df_postlasso_predictors_extra <- 
+  rbind(postlasso_extra[[1]]$predictors, postlasso_extra[[2]]$predictors) %>%
+  rbind(postlasso_extra[[3]]$predictors) %>%
+  rbind(postlasso_extra[[4]]$predictors) %>%
+  rbind(postlasso_extra[[5]]$predictors)
+summary(df_postlasso_predictors_extra$num_pred_m)
+summary(c(df_postlasso_predictors_extra$num_pred_g0, df_postlasso_predictors_extra$num_pred_g1))
+
+
+## Multivalued ##
+
+
+#### Openness ####
+#++++++++++++++++#
+
+
+## Binary ##
+df_lasso_predictors_open <- 
+  rbind(lasso_open[[1]]$predictors, lasso_open[[2]]$predictors) %>%
+  rbind(lasso_open[[3]]$predictors) %>%
+  rbind(lasso_open[[4]]$predictors) %>%
+  rbind(lasso_open[[5]]$predictors)
+summary(df_lasso_predictors_open$num_pred_m)
+summary(c(df_lasso_predictors_open$num_pred_g0, df_lasso_predictors_open$num_pred_g1))
+
+df_postlasso_predictors_open <- 
+  rbind(postlasso_open[[1]]$predictors, postlasso_open[[2]]$predictors) %>%
+  rbind(postlasso_open[[3]]$predictors) %>%
+  rbind(postlasso_open[[4]]$predictors) %>%
+  rbind(postlasso_open[[5]]$predictors)
+summary(df_postlasso_predictors_open$num_pred_m)
+summary(c(df_postlasso_predictors_open$num_pred_g0, df_postlasso_predictors_agree$num_pred_g1))
+
+
+## Multivalued ##
 
 
 #%%%%%%%%%%%%%%%%%%%%%%#
