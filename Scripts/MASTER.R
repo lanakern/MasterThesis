@@ -423,35 +423,34 @@ eval(parse(text = keep_after_file_run))
 #### RUN DML: MULTIVALUED TREATMENT SETTING ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-eval(parse(text = keep_after_file_run))
 treatment_setting <- "multi"
 
 
-#%%%%%%%%%%%%%%%%%%%%%%%#
-#### OUTCOME: GRADES ####
-#%%%%%%%%%%%%%%%%%%%%%%%#
+#%%%%%%%%%%%%%%%%%%%%%%#
+#### Outome: Grades ####
+#%%%%%%%%%%%%%%%%%%%%%%#
 
 outcome_var_multi <- "outcome_grade"
 
 
-#### MAIN MODEL ####
-#++++++++++++++++++#
+## MAIN MODEL ##
+#++++++++++++++#
 
-cohort_prep <- main_cohort_prep
-treatment_repl <- main_treatment_repl
-treatment_def <- main_treatment_def
-extra_act <- main_extra_act
-model_type <- "all"
-model_controls_lag <- "no_lags"
-model_controls_endog <- "yes"
-model_trimming <- 0.01
+cohort_prep <- main_cohort_prep # "controls_bef_outcome"
+treatment_repl <- main_treatment_repl # "no"
+treatment_def <- main_treatment_def # "all"
+extra_act <- main_extra_act # "no"
+model_type <- main_model_type # "all_int_polys"
+model_controls_lag <- main_model_controls_lag # "no_lags", "all"
+model_controls_endog <- main_model_controls_endog # "no"
+model_trimming <- main_model_trimming # 0.1, min-max
+model_post_sel <- FALSE
 probscore_separate <- TRUE
 
 # for lasso and xgboost higher K as they are computationally faster
-model_k <- 4 # 4
+model_k <- 4 
 model_k_tuning <- 2 # 4
-model_s_rep <- 2 # 20
-
+model_s_rep <- 5 # 10
 
 ## LASSO ##
 multi_model_algo <- "lasso"
@@ -463,18 +462,19 @@ source("Scripts/11_b_DML_Multi.R")
 
 
 ## Random Forests ##
-model_k <- 2 # 2, evtl. 4
-model_k_tuning <- 1 # 1
-model_s_rep <- 2 # 2
+model_k <- 4 
+model_k_tuning <- 1 
+model_s_rep <- 5 
 multi_model_algo <- "randomforests"
 source("Scripts/11_b_DML_Multi.R") 
 
 
 ## Post-Lasso ##
 model_k_tuning <- 2 # 2
+model_post_sel <- TRUE 
 multi_model_algo <- "postlasso"
 source("Scripts/11_b_DML_Multi.R") 
-
+model_post_sel <- FALSE
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%#

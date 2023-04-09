@@ -84,7 +84,7 @@ for (mice_data_sel in 1:5) {
   } else if (model_controls_lag == "no_treatment_outcome_lags") {
     # drop only treatment and outcome lags
     # here differentiate between GPA and personality outcome
-    if (str_detect(outcome_var, "grade")) {
+    if (str_detect(outcome_var_multi, "grade")) {
       data_dml <- data_dml %>% 
         dplyr::select(-c(starts_with("treatment_sport_freq") & contains("_lag"))) %>% 
         dplyr::select(-c(starts_with("outcome") & contains("_lag"))) %>%
@@ -92,7 +92,7 @@ for (mice_data_sel in 1:5) {
     } else {
       data_dml <- data_dml %>% 
         dplyr::select(-c(starts_with("treatment_sport_freq") & contains("_lag"))) %>% 
-        dplyr::select(-c(starts_with(outcome_var) & contains("_lag"))) %>%
+        dplyr::select(-c(starts_with(outcome_var_multi) & contains("_lag"))) %>%
         as.data.frame()
     }
   } else {
@@ -117,15 +117,8 @@ for (mice_data_sel in 1:5) {
     data_dml <- data_dml
   } else if (str_detect(outcome_var_multi, "bigfive")) {
     # for personality selected outcome variable needs to be declared
-    outcome_var_old <- outcome_var_multi
-    outcome_var_multi <- paste0("outcome_", outcome_var_multi)
     data_dml <- data_dml %>%
-      rename_with(~ outcome_var_multi, all_of(outcome_var_old))
-    # lags for all other personality variables are dropped
-    colnames_bigfive_lag_drop <- data_dml %>% 
-      dplyr::select(starts_with("bigfive") & ends_with("lag") & !matches(outcome_var_old)) %>% colnames()
-    data_dml <- data_dml %>% 
-      dplyr::select(-all_of(colnames_bigfive_lag_drop))
+      rename_with(~ outcome_var_multi, all_of(str_remove(outcome_var_multi, "outcome_")))
   }
   
   
@@ -166,7 +159,8 @@ for (mice_data_sel in 1:5) {
     # save common support plot
     save_trimming = save_trimming_sel,
     # model generation: separate 
-    probscore_separate = probscore_separate, mice_sel = mice_data_sel
+    probscore_separate = probscore_separate, mice_sel = mice_data_sel,
+    post = model_post_sel
   )
   
   # append APE
@@ -185,21 +179,29 @@ if (probscore_separate == FALSE) {
   probscore_separate_save <- ""
 }
 
+
+# save results
 if (str_detect(outcome_var_multi, "grade")) {
   save_dml <- 
-    paste0("Output/DML/Estimation/Grades/multi_grades_", multi_model_algo, 
-           "_", model_type, "_", str_replace_all(cohort_prep, "_", ""),
+    paste0("Output/DML/Estimation/Grades/multi_grades_", multi_model_algo, "_", 
+           model_type, "_", str_replace_all(cohort_prep, "_", ""),
            "_", treatment_def, "_", treatment_repl, extra_act_save, 
-           probscore_separate_save, ".rds")
-} else if (str_detect(outcome_var, "bigfive")) {
-  paste0("Output/DML/Estimation/Personality/multi_personality", multi_model_algo, 
-         "_", model_type, "_", str_replace_all(cohort_prep, "_", ""),
-         "_", treatment_def, "_", treatment_repl, extra_act_save, 
-         probscore_separate_save, ".rds")
+           "_", model_type, "_", str_replace_all(model_controls_lag, "_", ""), "_endog",
+           model_controls_endog, "_trimming", model_trimming, "_K", model_k, 
+           "-", model_k_tuning, "_Rep", model_s_rep, probscore_separate_save,
+           ".rds")
+} else if (str_detect(outcome_var_multi, "bigfive")) {
+  save_dml <- paste0("Output/DML/Estimation/Personality/multi__", 
+                     str_remove(outcome_var_multi, "outcome_bigfive_"), "_", multi_model_algo, "_", 
+                     model_type, "_", str_replace_all(cohort_prep, "_", ""),
+                     "_", treatment_def, "_", treatment_repl, extra_act_save, 
+                     "_", model_type, "_", str_replace_all(model_controls_lag, "_", ""), "_endog",
+                     model_controls_endog, "_trimming", model_trimming, "_K", model_k, 
+                     "-", model_k_tuning, "_Rep", model_s_rep, probscore_separate_save,
+                     ".rds")
 }
 
 saveRDS(dml_result_all, save_dml)
-
 
 # calculate pooled estimate over multiple mice data sets
 dml_result_pooled_all <- func_dml_pool_mice(dml_result_all, nrow(data_dml), 5)
