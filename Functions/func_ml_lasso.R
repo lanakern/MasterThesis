@@ -490,6 +490,43 @@ func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome,
       data_test_final_m <- data_test %>% dplyr::select(all_of(treatment), all_of(lasso_coef_union))
       data_test_final_g <- data_test %>% dplyr::select(all_of(outcome), all_of(lasso_coef_union))
       
+      # remove alias coefficients
+      model_m <- glm(paste(treatment, "~ ."), family = binomial(link = "logit"), data = data_train_final_m)
+      model_lm_0 <- lm(paste(outcome, "~ ."), data = data_train_final_g0)
+      model_lm_1 <- lm(paste(outcome, "~ ."), data = data_train_final_g1)
+
+      vars_multicoll_drop_1 <- c(
+        attributes(alias(model_mm)$Complete)$dimnames[[1]],
+        attributes(alias(model_lm_0)$Complete)$dimnames[[1]], 
+        attributes(alias(model_lm_1)$Complete)$dimnames[[1]]) %>%
+        unique()
+      lasso_coef_all <- lasso_coef_all %>% filter(!term %in% vars_multicoll_drop_1)
+      lasso_coef_union <- colnames(data_train)[colnames(data_train) %in% unique(lasso_coef_all$term)]
+      data_train_final <- data_train %>% dplyr::select(all_of(outcome), all_of(treatment), all_of(lasso_coef_union))
+      data_train_final_m <- data_train_final %>% dplyr::select(-all_of(outcome))
+      data_train_final_g0 <- data_train_final %>% filter(treatment_sport == 0) %>% dplyr::select(-all_of(treatment))
+      data_train_final_g1 <- data_train_final %>% filter(treatment_sport == 1) %>% dplyr::select(-all_of(treatment))
+      data_test_final_m <- data_test %>% dplyr::select(all_of(treatment), all_of(lasso_coef_union))
+      data_test_final_g <- data_test %>% dplyr::select(all_of(outcome), all_of(lasso_coef_union))
+    
+      # remove VIF
+      model_m <- glm(paste(treatment, "~ ."), family = binomial(link = "logit"), data = data_train_final_m)
+      model_lm_0 <- lm(paste(outcome, "~ ."), data = data_train_final_g0)
+      model_lm_1 <- lm(paste(outcome, "~ ."), data = data_train_final_g1)
+      
+      vars_multicoll_drop_2 <- c(
+        names(VIF(model_m)[VIF(model_m) > 5]), names(VIF(model_lm_0)[VIF(model_lm_0) > 5]), 
+        names(VIF(model_lm_1)[VIF(model_lm_1) > 5])) %>% unique()
+      lasso_coef_all <- lasso_coef_all %>% filter(!term %in% vars_multicoll_drop_2)
+      lasso_coef_union <- colnames(data_train_final)[colnames(data_train_final) %in% unique(lasso_coef_all$term)]
+      data_train_final <- data_train_final %>% dplyr::select(all_of(outcome), all_of(treatment), all_of(lasso_coef_union))
+      data_train_final_m <- data_train_final %>% dplyr::select(-all_of(outcome))
+      data_train_final_g0 <- data_train_final %>% filter(treatment_sport == 0) %>% dplyr::select(-all_of(treatment))
+      data_train_final_g1 <- data_train_final %>% filter(treatment_sport == 1) %>% dplyr::select(-all_of(treatment))
+      data_test_final_m <- data_test_final_m %>% dplyr::select(all_of(treatment), all_of(lasso_coef_union))
+      data_test_final_g <- data_test_final_g %>% dplyr::select(all_of(outcome), all_of(lasso_coef_union))
+      
+      # final
       model_m <- glm(paste(treatment, "~ ."), family = binomial(link = "logit"), data = data_train_final_m)
       lasso_pred_m <- unname(predict(model_m, data_test_final_m, type = "response")) # return probability
       
