@@ -6,14 +6,18 @@
 # by Lana Kern
 #+++
 # In this files, the DML results are analyzed and prepared so that they can
-# be copied within the final paper.
+# be copied within the final paper. For instance, error metrics are displayed,
+# common support plots are created etc. 
 #+++
 
 
+#%%%%%%%%%%%%%%%%%%%%#
+#### LOAD RESULTS ####
+#%%%%%%%%%%%%%%%%%%%%#
 
-#%%%%%%%%%%%%%%%%%%%%%%%%%%#
-#### SUMMARY OF RESULTS ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+## SUMMARY OF RESULTS ##
+#++++++++++++++++++++++#
 
 df_dml_main_binary <- 
   read.xlsx("Output/DML/Treatment_Effects/DML_BINARY_ESTIMATION_RESULTS.xlsx", sheetName = "Sheet1")
@@ -23,15 +27,12 @@ df_dml_main_multi <-
   read.xlsx("Output/DML/Treatment_Effects/DML_MULTI_ESTIMATION_RESULTS.xlsx", sheetName = "Sheet1")
 df_dml_main_multi
 
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-#### LOAD DETAILED RESULTS ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-
 
 ## LASSO ##
 #+++++++++#
 
-lasso_main <- 
+# BINARY
+lasso_grades <- 
   readRDS("Output/DML/Estimation/Grades/binary_grades_lasso_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming0.01_K4-2_Rep5.rds")
 
 lasso_agree <- 
@@ -42,6 +43,55 @@ lasso_extra <-
 
 lasso_open <- 
   readRDS("Output/DML/Estimation/Personality/binary_openness_lasso_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming0.01_K4-2_Rep5.rds")
+
+lasso_consc <- 
+  readRDS("Output/DML/Estimation/Personality/binary_conscientiousness_lasso_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming0.01_K4-2_Rep5.rds")
+
+lasso_neuro <- 
+  readRDS("Output/DML/Estimation/Personality/binary_neuroticism_lasso_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming0.01_K4-2_Rep5.rds")
+
+
+# MULTI
+lasso_grades_multi <- 
+  readRDS("Output/DML/Estimation/Grades/multi_grades_lasso_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming0.01_K4-2_Rep5.rds")
+
+
+## POST-LASSO ##
+#++++++++++++++#
+
+# BINARY
+postlasso_grades <- 
+  readRDS(paste0("Output/DML/Estimation/Grades/binary_grades_", "postlasso", "_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming0.01_K4-2_Rep5.rds"))
+
+# MULTI
+postlasso_grades_multi <- 
+  readRDS("Output/DML/Estimation/Grades/multi_grades_postlasso_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming0.01_K4-2_Rep5.rds")
+
+
+## XGBoosst ##
+#++++++++++++#
+
+# BINARY
+xgb_grades <- 
+  readRDS(paste0("Output/DML/Estimation/Grades/binary_grades_", "xgboost", "_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming0.01_K4-2_Rep5.rds"))
+
+# MULTI
+xgb_grades_multi <- 
+  readRDS("Output/DML/Estimation/Grades/multi_grades_xgb_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming0.01_K4-2_Rep5.rds")
+
+
+## Random Forests ##
+#++++++++++++++++++#
+
+# BINARY
+rf_grades <- 
+  readRDS(paste0("Output/DML/Estimation/Grades/binary_grades_", "randomforests", "_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming0.01_K4-1_Rep5.rds"))
+
+
+# MULTI
+rf_grades_multi <- 
+  readRDS("Output/DML/Estimation/Grades/multi_grades_randomforests_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming0.01_K4-1_Rep5.rds")
+
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -60,11 +110,11 @@ df_dml_main_binary %>% filter(model_algo == "lasso")
 ## S = 5 ##
 
 lasso_theta_detail <- rbind(
-  lasso_main[[1]]$detail %>% filter(Type == "ATE") %>% mutate(MICE = 1),
-  lasso_main[[2]]$detail %>% filter(Type == "ATE") %>% mutate(MICE = 2)) %>%
-  rbind(lasso_main[[3]]$detail %>% filter(Type == "ATE") %>% mutate(MICE = 3)) %>%
-  rbind(lasso_main[[4]]$detail %>% filter(Type == "ATE") %>% mutate(MICE = 4)) %>%
-  rbind(lasso_main[[5]]$detail %>% filter(Type == "ATE") %>% mutate(MICE = 5)) 
+  lasso_grades[[1]]$detail %>% filter(Type == "ATE") %>% mutate(MICE = 1),
+  lasso_grades[[2]]$detail %>% filter(Type == "ATE") %>% mutate(MICE = 2)) %>%
+  rbind(lasso_grades[[3]]$detail %>% filter(Type == "ATE") %>% mutate(MICE = 3)) %>%
+  rbind(lasso_grades[[4]]$detail %>% filter(Type == "ATE") %>% mutate(MICE = 4)) %>%
+  rbind(lasso_grades[[5]]$detail %>% filter(Type == "ATE") %>% mutate(MICE = 5)) 
 
 # replicate overall treatment effect
 lasso_theta_detail %>%
@@ -86,15 +136,15 @@ lasso_theta_detail %>%
 
 
 ## S = 10 ##
-lasso_main_10 <- 
+lasso_grades_10 <- 
   readRDS("Output/DML/Estimation/Grades/binary_grades_lasso_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming0.01_K4-4_Rep10.rds")
 
 lasso_theta_detail_10 <- rbind(
-  lasso_main_10[[1]]$detail %>% filter(Type == "ATE") %>% mutate(MICE = 1),
-  lasso_main_10[[2]]$detail %>% filter(Type == "ATE") %>% mutate(MICE = 2)) %>%
-  rbind(lasso_main_10[[3]]$detail %>% filter(Type == "ATE") %>% mutate(MICE = 3)) %>%
-  rbind(lasso_main_10[[4]]$detail %>% filter(Type == "ATE") %>% mutate(MICE = 4)) %>%
-  rbind(lasso_main_10[[5]]$detail %>% filter(Type == "ATE") %>% mutate(MICE = 5)) 
+  lasso_grades_10[[1]]$detail %>% filter(Type == "ATE") %>% mutate(MICE = 1),
+  lasso_grades_10[[2]]$detail %>% filter(Type == "ATE") %>% mutate(MICE = 2)) %>%
+  rbind(lasso_grades_10[[3]]$detail %>% filter(Type == "ATE") %>% mutate(MICE = 3)) %>%
+  rbind(lasso_grades_10[[4]]$detail %>% filter(Type == "ATE") %>% mutate(MICE = 4)) %>%
+  rbind(lasso_grades_10[[5]]$detail %>% filter(Type == "ATE") %>% mutate(MICE = 5)) 
 
 lasso_theta_detail_10 %>%
   group_by(Rep) %>%
@@ -106,18 +156,18 @@ lasso_theta_detail_10 %>%
 #++++++++++++++++++#
 
 # MAIN MODEL: No treatment and outcome lags #
-lasso_main_pred <- data.frame()
+lasso_grades_pred <- data.frame()
 for (mice_sel in 1:5) {
-  lasso_main_pred_sub <- left_join(lasso_main[[mice_sel]]$pred, lasso_main[[mice_sel]]$trimming, by = "Repetition") %>%
+  lasso_grades_pred_sub <- left_join(lasso_grades[[mice_sel]]$pred, lasso_grades[[mice_sel]]$trimming, by = "Repetition") %>%
     mutate(MICE = mice_sel)
-  lasso_main_pred <- rbind(lasso_main_pred, lasso_main_pred_sub)
+  lasso_grades_pred <- rbind(lasso_grades_pred, lasso_grades_pred_sub)
 }
 
-lasso_main_plot_common_support <- func_dml_common_support(
-  "binary", lasso_main_pred, unique(lasso_main_pred$min_trimming), 
-  unique(lasso_main_pred$max_trimming), "lasso")
+lasso_grades_plot_common_support <- func_dml_common_support(
+  "binary", lasso_grades_pred, unique(lasso_grades_pred$min_trimming), 
+  unique(lasso_grades_pred$max_trimming), "lasso")
 
-lasso_main_plot_common_support <- lasso_main_plot_common_support + 
+lasso_grades_plot_common_support <- lasso_grades_plot_common_support + 
   ggtitle(bquote(paste(atop(bold(.("LASSO")), "Propensity Score Overlap without Treatment and Outcome Lags")))) +
   theme(plot.title = element_text(hjust = 0.5, size = 10))
 
@@ -144,65 +194,90 @@ lasso_rc_treatoutlags_plot_common_support <- lasso_rc_treatoutlags_plot_common_s
   theme(plot.title = element_text(hjust = 0.5, size = 10))
 
 
-# MAIN BUT DIFFERENT TRIMMING #
-lasso_main_01 <- 
-  readRDS("Output/DML/Estimation/Grades/binary_grades_lasso_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming0.1_K4-2_Rep5.rds")
+# RC: No Lags at all #
+lasso_rc_nolags <- 
+  readRDS("Output/DML/Estimation/Grades/binary_grades_lasso_all_controlssameoutcome_weekly_down_extradrop_all_nolags_endogyes_trimming0.01_K4-2_Rep5.rds")
 
-lasso_main_pred_01 <- data.frame()
+lasso_rc_nolags_pred <- data.frame()
 for (mice_sel in 1:5) {
-  lasso_main_pred_01_sub <- left_join(lasso_main_01[[mice_sel]]$pred, lasso_main_01[[mice_sel]]$trimming, by = "Repetition") %>%
+  lasso_lasso_rc_nolags_pred_sub <- left_join(lasso_rc_nolags[[mice_sel]]$pred, lasso_rc_nolags[[mice_sel]]$trimming, by = "Repetition") %>%
     mutate(MICE = mice_sel)
-  lasso_main_pred_01 <- rbind(lasso_main_pred_01, lasso_main_pred_01_sub)
+  lasso_rc_nolags_pred <- rbind(lasso_rc_nolags_pred, lasso_lasso_rc_nolags_pred_sub)
 }
 
-lasso_main_01_plot_common_support <- func_dml_common_support(
-  "binary", lasso_main_pred_01, unique(lasso_main_pred_01$min_trimming), 
-  unique(lasso_main_pred_01$max_trimming), "lasso")
+lasso_rc_nolags_plot_common_support <- func_dml_common_support(
+  "binary", lasso_rc_nolags_pred, unique(lasso_rc_nolags_pred$min_trimming), 
+  unique(lasso_rc_nolags_pred$max_trimming), "lasso")
 
-lasso_main_01_plot_common_support <- lasso_main_01_plot_common_support + 
+
+lasso_rc_nolags_plot_common_support <- lasso_rc_nolags_plot_common_support + 
+  ggtitle("Propensity Score Overlap without any Lags") +
+  theme(plot.title = element_text(hjust = 0.5, size = 10))
+
+ggarrange(lasso_grades_plot_common_support, lasso_rc_nolags_plot_common_support,
+          lasso_rc_treatoutlags_plot_common_support,
+          nrow = 3)
+
+
+# MAIN BUT DIFFERENT TRIMMING #
+lasso_grades_01 <- 
+  readRDS("Output/DML/Estimation/Grades/binary_grades_lasso_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming0.1_K4-2_Rep5.rds")
+
+lasso_grades_pred_01 <- data.frame()
+for (mice_sel in 1:5) {
+  lasso_grades_pred_01_sub <- left_join(lasso_grades_01[[mice_sel]]$pred, lasso_grades_01[[mice_sel]]$trimming, by = "Repetition") %>%
+    mutate(MICE = mice_sel)
+  lasso_grades_pred_01 <- rbind(lasso_grades_pred_01, lasso_grades_pred_01_sub)
+}
+
+lasso_grades_01_plot_common_support <- func_dml_common_support(
+  "binary", lasso_grades_pred_01, unique(lasso_grades_pred_01$min_trimming), 
+  unique(lasso_grades_pred_01$max_trimming), "lasso")
+
+lasso_grades_01_plot_common_support <- lasso_grades_01_plot_common_support + 
   ggtitle("Propensity Score Overlap with Trimming Threshold of 0.1") +
   theme(plot.title = element_text(hjust = 0.5, size = 10))
 
 
 
-lasso_main_minmax <- 
+lasso_grades_minmax <- 
   readRDS("Output/DML/Estimation/Grades/binary_grades_lasso_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimmingmin-max_K4-2_Rep5.rds")
 
-lasso_main_pred_minmax <- data.frame()
+lasso_grades_pred_minmax <- data.frame()
 for (mice_sel in 1:5) {
-  lasso_main_pred_minmax_sub <- left_join(lasso_main_minmax[[mice_sel]]$pred, lasso_main_minmax[[mice_sel]]$trimming, by = "Repetition") %>%
+  lasso_grades_pred_minmax_sub <- left_join(lasso_grades_minmax[[mice_sel]]$pred, lasso_grades_minmax[[mice_sel]]$trimming, by = "Repetition") %>%
     mutate(MICE = mice_sel)
-  lasso_main_pred_minmax <- rbind(lasso_main_pred_minmax, lasso_main_pred_minmax_sub)
+  lasso_grades_pred_minmax <- rbind(lasso_grades_pred_minmax, lasso_grades_pred_minmax_sub)
 }
 
-lasso_main_minmax_plot_common_support <- func_dml_common_support(
-  "binary", lasso_main_pred_minmax, unique(lasso_main_pred_minmax$min_trimming), 
-  unique(lasso_main_pred_minmax$max_trimming), "lasso")
+lasso_grades_minmax_plot_common_support <- func_dml_common_support(
+  "binary", lasso_grades_pred_minmax, unique(lasso_grades_pred_minmax$min_trimming), 
+  unique(lasso_grades_pred_minmax$max_trimming), "lasso")
 
-lasso_main_minmax_plot_common_support <- lasso_main_minmax_plot_common_support + 
+lasso_grades_minmax_plot_common_support <- lasso_grades_minmax_plot_common_support + 
   ggtitle("Propensity Score Overlap with Min-Max Trimming") +
   theme(plot.title = element_text(hjust = 0.5, size = 10))
 
 
 # subplot
-ggarrange(lasso_main_plot_common_support + rremove("xlab") +
+ggarrange(lasso_grades_plot_common_support + rremove("xlab") +
             ggtitle(bquote(paste(atop(bold(.("LASSO")), "Propensity Score Overlap with Trimming Threshold of 0.01")))) +
             theme(plot.title = element_text(hjust = 0.5, size = 10)),
-          lasso_main_01_plot_common_support + rremove("xlab"),
-          lasso_main_minmax_plot_common_support, 
+          lasso_grades_01_plot_common_support + rremove("xlab"),
+          lasso_grades_minmax_plot_common_support, 
           nrow = 3, common.legend = TRUE, legend = "bottom")
 
 
-lasso_main_pred %>% dplyr::select(starts_with("n_treats")) %>% distinct()
-lasso_main_pred_01 %>% dplyr::select(starts_with("n_treats")) %>% distinct() %>% arrange(n_treats_after)
-lasso_main_pred_minmax %>% dplyr::select(starts_with("n_treats")) %>% distinct() %>% arrange(n_treats_after)
+lasso_grades_pred %>% dplyr::select(starts_with("n_treats")) %>% distinct()
+lasso_grades_pred_01 %>% dplyr::select(starts_with("n_treats")) %>% distinct() %>% arrange(n_treats_after)
+lasso_grades_pred_minmax %>% dplyr::select(starts_with("n_treats")) %>% distinct() %>% arrange(n_treats_after)
 
 
-ggarrange(lasso_main_plot_common_support + rremove("xlab"),
+ggarrange(lasso_grades_plot_common_support + rremove("xlab"),
           lasso_rc_treatoutlags_plot_common_support, 
           nrow = 2, common.legend = TRUE, legend = "bottom")
 
-lasso_main_pred %>% dplyr::select(starts_with("n_treats")) %>% distinct()
+lasso_grades_pred %>% dplyr::select(starts_with("n_treats")) %>% distinct()
 lasso_rc_treatoutlags_pred %>% dplyr::select(starts_with("n_treats")) %>% distinct() %>% arrange(n_treats_after)
 
 
@@ -458,9 +533,9 @@ readRDS("Output/DML/FUNCTION_DOUBLEML.rds")
 #%%%%%%%%%%%%%%%%%#
 
 
-#%%%%%%%%%%%%%%%%%%%%%#
-#### ERROR METRICS ####
-#%%%%%%%%%%%%%%%%%%%%%#
+#%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### ++ERROR METRICS++ ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 # The error metrics obtained in the Excel files are calculated based on the
 # standardized outcome variables. For better interpretability, the standardization
@@ -469,155 +544,437 @@ readRDS("Output/DML/FUNCTION_DOUBLEML.rds")
 
 # mean and standard deviation used for standardization (same across MICE data sets
 # as outcome vars are not replaced as they do not contain any missing values)
-data_stand <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_down_extradrop_mice1.rds")
-data_stand <- data_stand %>%
+data_stand_grade <- readRDS("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_down_extradrop_mice1.rds")
+data_stand_grade <- data_stand_grade %>%
   summarize(mean = mean(outcome_grade), sd = sd(outcome_grade)) 
+
+data_stand_pers <- readRDS("Data/Personality/Prep_10/prep_10_dml_binary_all_weekly_down_extradrop_mice1_personality.rds")
+data_stand_pers <- data_stand_pers %>%
+  summarize(agree_mean = mean(bigfive_agreeableness), agree_sd = sd(bigfive_agreeableness),
+            consc_mean = mean(bigfive_conscientiousness), consc_sd = sd(bigfive_conscientiousness),
+            extra_mean = mean(bigfive_extraversion), extra_sd = sd(bigfive_extraversion),
+            open_mean = mean(bigfive_openness), open_sd = sd(bigfive_openness),
+            neuro_mean = mean(bigfive_neuroticism), neuro_sd = sd(bigfive_neuroticism)) 
 
 
 #### GPA ####
 #+++++++++++#
 
-lasso_main <- 
-  readRDS(paste0("Output/DML/Estimation/Grades/binary_grades_", "lasso", "_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming0.01_K4-2_Rep5.rds"))
-postlasso_main <- 
-  readRDS(paste0("Output/DML/Estimation/Grades/binary_grades_", "postlasso", "_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming0.01_K4-2_Rep5.rds"))
-xgb_main <- 
-  readRDS(paste0("Output/DML/Estimation/Grades/binary_grades_", "xgboost", "_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming0.01_K4-2_Rep5.rds"))
-rf_main <- 
-  readRDS(paste0("Output/DML/Estimation/Grades/binary_grades_", "randomforests", "_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming0.01_K4-1_Rep5.rds"))
+## BINARY TREATMENT SETTING ##
+
+# errors from final data frame
+df_error_grade <- df_dml_main_binary %>% filter(
+  cohort_prep == "controls_same_outcome", treatment_repl == "down", treatment_def == "weekly",
+  extra_act == "yes", model_type == "all", model_k == 4, model_k_tuning %in% c(1,2), model_s_rep == 5,
+  model_trimming %in% c("0.01", 0.01), model_controls_lag == "no_treatment_outcome_lags", model_controls_endog == "yes",
+) %>% dplyr::select(outcome, model_algo, ends_with("m"), ends_with("g0"), ends_with("g1")) %>%
+  dplyr::select(-starts_with("num_pred")) %>% distinct()
 
 # load predictions
-lasso_main_pred <- data.frame()
+lasso_grades_pred <- data.frame()
 for (mice_sel in 1:5) {
-  lasso_main_pred_sub <- left_join(lasso_main[[mice_sel]]$pred, lasso_main[[mice_sel]]$trimming, by = "Repetition") %>%
+  lasso_grades_pred_sub <- left_join(lasso_grades[[mice_sel]]$pred, lasso_grades[[mice_sel]]$trimming, by = "Repetition") %>%
     mutate(MICE = mice_sel)
-  lasso_main_pred <- rbind(lasso_main_pred, lasso_main_pred_sub)
+  lasso_grades_pred <- rbind(lasso_grades_pred, lasso_grades_pred_sub)
 }
 
-postlasso_main_pred <- data.frame()
+postlasso_grades_pred <- data.frame()
 for (mice_sel in 1:5) {
-  postlasso_main_pred_sub <- left_join(postlasso_main[[mice_sel]]$pred, postlasso_main[[mice_sel]]$trimming, by = "Repetition") %>%
+  postlasso_grades_pred_sub <- left_join(postlasso_grades[[mice_sel]]$pred, postlasso_grades[[mice_sel]]$trimming, by = "Repetition") %>%
     mutate(MICE = mice_sel)
-  postlasso_main_pred <- rbind(postlasso_main_pred, postlasso_main_pred_sub)
+  postlasso_grades_pred <- rbind(postlasso_grades_pred, postlasso_grades_pred_sub)
 }
 
-xgb_main_pred <- data.frame()
+xgb_grades_pred <- data.frame()
 for (mice_sel in 1:5) {
-  xgb_main_pred_sub <- left_join(xgb_main[[mice_sel]]$pred, xgb_main[[mice_sel]]$trimming, by = "Repetition") %>%
+  xgb_grades_pred_sub <- left_join(xgb_grades[[mice_sel]]$pred, xgb_grades[[mice_sel]]$trimming, by = "Repetition") %>%
     mutate(MICE = mice_sel)
-  xgb_main_pred <- rbind(xgb_main_pred, xgb_main_pred_sub)
+  xgb_grades_pred <- rbind(xgb_grades_pred, xgb_grades_pred_sub)
 }
 
-rf_main_pred <- data.frame()
+rf_grades_pred <- data.frame()
 for (mice_sel in 1:5) {
-  rf_main_pred_sub <- left_join(rf_main[[mice_sel]]$pred, rf_main[[mice_sel]]$trimming, by = "Repetition") %>%
+  rf_grades_pred_sub <- left_join(rf_grades[[mice_sel]]$pred, rf_grades[[mice_sel]]$trimming, by = "Repetition") %>%
     mutate(MICE = mice_sel)
-  rf_main_pred <- rbind(rf_main_pred, rf_main_pred_sub)
+  rf_grades_pred <- rbind(rf_grades_pred, rf_grades_pred_sub)
 }
 
 # generate un-standardized outcome and the corresponding predictions
-lasso_main_pred <- lasso_main_pred %>%
+lasso_grades_pred <- lasso_grades_pred %>%
   mutate(
-    outcome_orig = outcome*data_stand$sd + data_stand$mean,
-    g0_orig = g0*data_stand$sd + data_stand$mean,
-    g1_orig = g1*data_stand$sd + data_stand$mean
+    outcome_orig = outcome*data_stand_grade$sd + data_stand_grade$mean,
+    g0_orig = g0*data_stand_grade$sd + data_stand_grade$mean,
+    g1_orig = g1*data_stand_grade$sd + data_stand_grade$mean
   )
 
-postlasso_main_pred <- postlasso_main_pred %>%
+postlasso_grades_pred <- postlasso_grades_pred %>%
   mutate(
-    outcome_orig = outcome*data_stand$sd + data_stand$mean,
-    g0_orig = g0*data_stand$sd + data_stand$mean,
-    g1_orig = g1*data_stand$sd + data_stand$mean
+    outcome_orig = outcome*data_stand_grade$sd + data_stand_grade$mean,
+    g0_orig = g0*data_stand_grade$sd + data_stand_grade$mean,
+    g1_orig = g1*data_stand_grade$sd + data_stand_grade$mean
   )
 
-xgb_main_pred <- xgb_main_pred %>%
+xgb_grades_pred <- xgb_grades_pred %>%
   mutate(
-    outcome_orig = outcome*data_stand$sd + data_stand$mean,
-    g0_orig = g0*data_stand$sd + data_stand$mean,
-    g1_orig = g1*data_stand$sd + data_stand$mean
+    outcome_orig = outcome*data_stand_grade$sd + data_stand_grade$mean,
+    g0_orig = g0*data_stand_grade$sd + data_stand_grade$mean,
+    g1_orig = g1*data_stand_grade$sd + data_stand_grade$mean
   )
 
-rf_main_pred <- rf_main_pred %>%
+rf_grades_pred <- rf_grades_pred %>%
   mutate(
-    outcome_orig = outcome*data_stand$sd + data_stand$mean,
-    g0_orig = g0*data_stand$sd + data_stand$mean,
-    g1_orig = g1*data_stand$sd + data_stand$mean
+    outcome_orig = outcome*data_stand_grade$sd + data_stand_grade$mean,
+    g0_orig = g0*data_stand_grade$sd + data_stand_grade$mean,
+    g1_orig = g1*data_stand_grade$sd + data_stand_grade$mean
   )
 
 # calculate error metrics for paper
-df_error_main_lasso <- data.frame(
-  "MAPE_g0" = yardstick::mape(lasso_main_pred %>% filter(treatment == 0), truth = outcome_orig, estimate = g0_orig) %>%
+df_error_main_lasso <- cbind(
+  df_error_grade %>% filter(model_algo == "lasso" & outcome == "grade") %>% dplyr::select(-starts_with("RMSE"), -starts_with("MAPE")),
+  data.frame(
+  "MAPE_g0" = yardstick::mape(lasso_grades_pred %>% filter(treatment == 0), truth = outcome_orig, estimate = g0_orig) %>%
     dplyr::select(.estimate) %>% pull(), 
-  "MAPE_g1" = yardstick::mape(lasso_main_pred %>% filter(treatment == 1), truth = outcome_orig, estimate = g1_orig) %>%
+  "MAPE_g1" = yardstick::mape(lasso_grades_pred %>% filter(treatment == 1), truth = outcome_orig, estimate = g1_orig) %>%
     dplyr::select(.estimate) %>% pull(),
-  "RMSE_g0" = lasso_main_pred %>% filter(treatment == 0) %>% summarize(mean((outcome_orig - g0_orig)^2)) %>% pull() %>% sqrt(), 
-  "RMSE_g1" = lasso_main_pred %>% filter(treatment == 1) %>% summarize(mean((outcome_orig - g1_orig)^2)) %>% pull() %>% sqrt()
-) %>% mutate(model = "Lasso")
+  "RMSE_g0" = lasso_grades_pred %>% filter(treatment == 0) %>% summarize(mean((outcome_orig - g0_orig)^2)) %>% pull() %>% sqrt(), 
+  "RMSE_g1" = lasso_grades_pred %>% filter(treatment == 1) %>% summarize(mean((outcome_orig - g1_orig)^2)) %>% pull() %>% sqrt()
+  ))
 
-df_error_main_postlasso <- data.frame(
-  "MAPE_g0" = yardstick::mape(postlasso_main_pred %>% filter(treatment == 0), truth = outcome_orig, estimate = g0_orig) %>%
+df_error_main_postlasso <- cbind(
+  df_error_grade %>% filter(model_algo == "postlasso" & outcome == "grade") %>% dplyr::select(-starts_with("RMSE"), -starts_with("MAPE")),
+  data.frame(
+  "MAPE_g0" = yardstick::mape(postlasso_grades_pred %>% filter(treatment == 0), truth = outcome_orig, estimate = g0_orig) %>%
     dplyr::select(.estimate) %>% pull(), 
-  "MAPE_g1" = yardstick::mape(postlasso_main_pred %>% filter(treatment == 1), truth = outcome_orig, estimate = g1_orig) %>%
+  "MAPE_g1" = yardstick::mape(postlasso_grades_pred %>% filter(treatment == 1), truth = outcome_orig, estimate = g1_orig) %>%
     dplyr::select(.estimate) %>% pull(),
-  "RMSE_g0" = postlasso_main_pred %>% filter(treatment == 0) %>% summarize(mean((outcome_orig - g0_orig)^2)) %>% pull() %>% sqrt(), 
-  "RMSE_g1" = postlasso_main_pred %>% filter(treatment == 1) %>% summarize(mean((outcome_orig - g1_orig)^2)) %>% pull() %>% sqrt()
-) %>% mutate(model = "Post-Lasso")
+  "RMSE_g0" = postlasso_grades_pred %>% filter(treatment == 0) %>% summarize(mean((outcome_orig - g0_orig)^2)) %>% pull() %>% sqrt(), 
+  "RMSE_g1" = postlasso_grades_pred %>% filter(treatment == 1) %>% summarize(mean((outcome_orig - g1_orig)^2)) %>% pull() %>% sqrt()
+))
 
-df_error_main_rf <- data.frame(
-  "MAPE_g0" = yardstick::mape(rf_main_pred %>% filter(treatment == 0), truth = outcome_orig, estimate = g0_orig) %>%
+df_error_main_rf <- cbind(
+  df_error_grade %>% filter(model_algo == "randomforests" & outcome == "grade") %>% dplyr::select(-starts_with("RMSE"), -starts_with("MAPE")),
+  data.frame(
+  "MAPE_g0" = yardstick::mape(rf_grades_pred %>% filter(treatment == 0), truth = outcome_orig, estimate = g0_orig) %>%
     dplyr::select(.estimate) %>% pull(), 
-  "MAPE_g1" = yardstick::mape(rf_main_pred %>% filter(treatment == 1), truth = outcome_orig, estimate = g1_orig) %>%
+  "MAPE_g1" = yardstick::mape(rf_grades_pred %>% filter(treatment == 1), truth = outcome_orig, estimate = g1_orig) %>%
     dplyr::select(.estimate) %>% pull(),
-  "RMSE_g0" = rf_main_pred %>% filter(treatment == 0) %>% summarize(mean((outcome_orig - g0_orig)^2)) %>% pull() %>% sqrt(), 
-  "RMSE_g1" = rf_main_pred %>% filter(treatment == 1) %>% summarize(mean((outcome_orig - g1_orig)^2)) %>% pull() %>% sqrt()
-) %>% mutate(model = "Random Forests")
+  "RMSE_g0" = rf_grades_pred %>% filter(treatment == 0) %>% summarize(mean((outcome_orig - g0_orig)^2)) %>% pull() %>% sqrt(), 
+  "RMSE_g1" = rf_grades_pred %>% filter(treatment == 1) %>% summarize(mean((outcome_orig - g1_orig)^2)) %>% pull() %>% sqrt()
+))
 
-df_error_main_xgb <- data.frame(
-  "MAPE_g0" = yardstick::mape(xgb_main_pred %>% filter(treatment == 0), truth = outcome_orig, estimate = g0_orig) %>%
+df_error_main_xgb <- cbind(
+  df_error_grade %>% filter(model_algo == "xgboost" & outcome == "grade") %>% dplyr::select(-starts_with("RMSE"), -starts_with("MAPE")),
+  data.frame(
+  "MAPE_g0" = yardstick::mape(xgb_grades_pred %>% filter(treatment == 0), truth = outcome_orig, estimate = g0_orig) %>%
     dplyr::select(.estimate) %>% pull(), 
-  "MAPE_g1" = yardstick::mape(xgb_main_pred %>% filter(treatment == 1), truth = outcome_orig, estimate = g1_orig) %>%
+  "MAPE_g1" = yardstick::mape(xgb_grades_pred %>% filter(treatment == 1), truth = outcome_orig, estimate = g1_orig) %>%
     dplyr::select(.estimate) %>% pull(),
-  "RMSE_g0" = xgb_main_pred %>% filter(treatment == 0) %>% summarize(mean((outcome_orig - g0_orig)^2)) %>% pull() %>% sqrt(), 
-  "RMSE_g1" = xgb_main_pred %>% filter(treatment == 1) %>% summarize(mean((outcome_orig - g1_orig)^2)) %>% pull() %>% sqrt()
-) %>% mutate(model = "XGBoost")
-
-df_error_main <- rbind(df_error_main_lasso, df_error_main_postlasso) %>% rbind(df_error_main_rf) %>% rbind(df_error_main_xgb)
+  "RMSE_g0" = xgb_grades_pred %>% filter(treatment == 0) %>% summarize(mean((outcome_orig - g0_orig)^2)) %>% pull() %>% sqrt(), 
+  "RMSE_g1" = xgb_grades_pred %>% filter(treatment == 1) %>% summarize(mean((outcome_orig - g1_orig)^2)) %>% pull() %>% sqrt()
+))
 
 
-## With Standardized Values ##
 
-df_dml_main_binary %>% dplyr::select(
-  cohort_prep, treatment_repl, treatment_def, extra_act, starts_with("model"), 
-  starts_with("ACC"), starts_with("KAPPA"), starts_with("BACC"), starts_with("AUC"),
-  starts_with("MAE"), starts_with("MAPE"), starts_with("MSE"), starts_with("RMSE")
-) %>% distinct()
+## MULTIVALUED TREATMENT SETTING ##
+
+# errors from final data frame
+df_error_grade_multi <- df_dml_main_multi %>% filter(
+  cohort_prep == "controls_same_outcome", treatment_repl == "down", treatment_def == "weekly",
+  extra_act == "yes", model_type == "all", model_k == 4, model_k_tuning %in% c(1,2), model_s_rep == 5,
+  model_trimming %in% c("0.01", 0.01), model_controls_lag == "no_treatment_outcome_lags", model_controls_endog == "yes",
+) %>% dplyr::select(outcome, model_algo, ends_with("m1"), ends_with("m2"), ends_with("m3"), ends_with("g1"), ends_with("g2"), ends_with("g3")) %>%
+  dplyr::select(-starts_with("num_pred")) %>% distinct()
+
+# load predictions
+lasso_grades_multi_pred <- data.frame()
+for (mice_sel in 1:5) {
+  lasso_grades_multi_pred_sub <- left_join(lasso_grades_multi[[mice_sel]]$pred, lasso_grades_multi[[mice_sel]]$trimming, by = "Repetition") %>%
+    mutate(MICE = mice_sel)
+  lasso_grades_multi_pred <- rbind(lasso_grades_multi_pred, lasso_grades_multi_pred_sub)
+}
+
+postlasso_grades_multi_pred <- data.frame()
+for (mice_sel in 1:5) {
+  postlasso_grades_multi_pred_sub <- left_join(postlasso_grades_multi[[mice_sel]]$pred, postlasso_grades_multi[[mice_sel]]$trimming, by = "Repetition") %>%
+    mutate(MICE = mice_sel)
+  postlasso_grades_multi_pred <- rbind(postlasso_grades_multi_pred, postlasso_grades_multi_pred_sub)
+}
+
+xgb_grades_multi_pred <- data.frame()
+for (mice_sel in 1:5) {
+  xgb_grades_multi_pred_sub <- left_join(xgb_grades_multi[[mice_sel]]$pred, xgb_grades_multi[[mice_sel]]$trimming, by = "Repetition") %>%
+    mutate(MICE = mice_sel)
+  xgb_grades_multi_pred <- rbind(xgb_grades_multi_pred, xgb_grades_multi_pred_sub)
+}
+
+rf_grades_multi_pred <- data.frame()
+for (mice_sel in 1:5) {
+  rf_grades_multi_pred_sub <- left_join(rf_grades_multi[[mice_sel]]$pred, rf_grades_multi[[mice_sel]]$trimming, by = "Repetition") %>%
+    mutate(MICE = mice_sel)
+  rf_grades_multi_pred <- rbind(rf_grades_multi_pred, rf_grades_multi_pred_sub)
+}
+
+# generate un-standardized outcome and the corresponding predictions
+lasso_grades_multi_pred <- lasso_grades_multi_pred %>%
+  mutate(
+    outcome_orig = outcome*data_stand_grade$sd + data_stand_grade$mean,
+    g1_orig = g1*data_stand_grade$sd + data_stand_grade$mean,
+    g2_orig = g2*data_stand_grade$sd + data_stand_grade$mean,
+    g3_orig = g3*data_stand_grade$sd + data_stand_grade$mean,
+  )
+
+postlasso_grades_multi_pred <- postlasso_grades_multi_pred %>%
+  mutate(
+    outcome_orig = outcome*data_stand_grade$sd + data_stand_grade$mean,
+    g1_orig = g1*data_stand_grade$sd + data_stand_grade$mean,
+    g2_orig = g2*data_stand_grade$sd + data_stand_grade$mean,
+    g3_orig = g3*data_stand_grade$sd + data_stand_grade$mean,
+  )
+
+xgb_grades_multi_pred <- xgb_grades_multi_pred %>%
+  mutate(
+    outcome_orig = outcome*data_stand_grade$sd + data_stand_grade$mean,
+    g1_orig = g1*data_stand_grade$sd + data_stand_grade$mean,
+    g2_orig = g2*data_stand_grade$sd + data_stand_grade$mean,
+    g3_orig = g3*data_stand_grade$sd + data_stand_grade$mean,
+  )
+
+rf_grades_multi_pred <- rf_grades_multi_pred %>%
+  mutate(
+    outcome_orig = outcome*data_stand_grade$sd + data_stand_grade$mean,
+    g1_orig = g1*data_stand_grade$sd + data_stand_grade$mean,
+    g2_orig = g2*data_stand_grade$sd + data_stand_grade$mean,
+    g3_orig = g3*data_stand_grade$sd + data_stand_grade$mean,
+  )
+
+# calculate error metrics for paper
+df_error_grade_multis_multi_lasso <- cbind(
+  df_error_grade_multi %>% filter(model_algo == "lasso" & outcome == "grade") %>% dplyr::select(-starts_with("RMSE"), -starts_with("MAPE")),
+  data.frame(
+    "MAPE_g1" = yardstick::mape(lasso_grades_multi_pred %>% filter(treatment == 1), truth = outcome_orig, estimate = g1_orig) %>%
+      dplyr::select(.estimate) %>% pull(),
+    "MAPE_g2" = yardstick::mape(lasso_grades_multi_pred %>% filter(treatment == 2), truth = outcome_orig, estimate = g2_orig) %>%
+      dplyr::select(.estimate) %>% pull(),
+    "MAPE_g3" = yardstick::mape(lasso_grades_multi_pred %>% filter(treatment == 3), truth = outcome_orig, estimate = g3_orig) %>%
+      dplyr::select(.estimate) %>% pull(),
+    "RMSE_g1" = lasso_grades_multi_pred %>% filter(treatment == 1) %>% summarize(mean((outcome_orig - g1_orig)^2)) %>% pull() %>% sqrt(),
+    "RMSE_g2" = lasso_grades_multi_pred %>% filter(treatment == 2) %>% summarize(mean((outcome_orig - g1_orig)^2)) %>% pull() %>% sqrt(),
+    "RMSE_g3" = lasso_grades_multi_pred %>% filter(treatment == 3) %>% summarize(mean((outcome_orig - g1_orig)^2)) %>% pull() %>% sqrt()
+  )) %>%
+  mutate(
+    AUC = mean(c(AUC_m1, AUC_m2, AUC_m3)), BACC = mean(c(BACC_m1, BACC_m2, BACC_m3)),
+    MAPE = mean(MAPE_g1, MAPE_g2, MAPE_g3),  RMSE = mean(RMSE_g1, RMSE_g2, RMSE_g3)
+  ) %>% dplyr::select(model_algo, outcome, AUC, BACC, RMSE, MAPE)
+
+df_error_grade_multis_multi_postlasso <- cbind(
+  df_error_grade_multi %>% filter(model_algo == "postlasso" & outcome == "grade") %>% dplyr::select(-starts_with("RMSE"), -starts_with("MAPE")),
+  data.frame(
+    "MAPE_g1" = yardstick::mape(postlasso_grades_multi_pred %>% filter(treatment == 1), truth = outcome_orig, estimate = g1_orig) %>%
+      dplyr::select(.estimate) %>% pull(),
+    "MAPE_g2" = yardstick::mape(postlasso_grades_multi_pred %>% filter(treatment == 2), truth = outcome_orig, estimate = g1_orig) %>%
+      dplyr::select(.estimate) %>% pull(),
+    "MAPE_g3" = yardstick::mape(postlasso_grades_multi_pred %>% filter(treatment == 3), truth = outcome_orig, estimate = g1_orig) %>%
+      dplyr::select(.estimate) %>% pull(),
+    "RMSE_g1" = postlasso_grades_multi_pred %>% filter(treatment == 1) %>% summarize(mean((outcome_orig - g1_orig)^2)) %>% pull() %>% sqrt(),
+    "RMSE_g2" = postlasso_grades_multi_pred %>% filter(treatment == 2) %>% summarize(mean((outcome_orig - g1_orig)^2)) %>% pull() %>% sqrt(),
+    "RMSE_g3" = postlasso_grades_multi_pred %>% filter(treatment == 3) %>% summarize(mean((outcome_orig - g1_orig)^2)) %>% pull() %>% sqrt()
+  )) %>%
+  mutate(
+    AUC = mean(c(AUC_m1, AUC_m2, AUC_m3)), BACC = mean(c(BACC_m1, BACC_m2, BACC_m3)),
+    MAPE = mean(MAPE_g1, MAPE_g2, MAPE_g3),  RMSE = mean(RMSE_g1, RMSE_g2, RMSE_g3)
+  ) %>% dplyr::select(model_algo, outcome, AUC, BACC, RMSE, MAPE)
+
+df_error_grade_multis_multi_rf <- cbind(
+  df_error_grade_multi %>% filter(model_algo == "randomforests" & outcome == "grade") %>% dplyr::select(-starts_with("RMSE"), -starts_with("MAPE")),
+  data.frame(
+    "MAPE_g1" = yardstick::mape(rf_grades_multi_pred %>% filter(treatment == 1), truth = outcome_orig, estimate = g1_orig) %>%
+      dplyr::select(.estimate) %>% pull(),
+    "MAPE_g2" = yardstick::mape(rf_grades_multi_pred %>% filter(treatment == 2), truth = outcome_orig, estimate = g1_orig) %>%
+      dplyr::select(.estimate) %>% pull(),
+    "MAPE_g3" = yardstick::mape(rf_grades_multi_pred %>% filter(treatment == 3), truth = outcome_orig, estimate = g1_orig) %>%
+      dplyr::select(.estimate) %>% pull(),
+    "RMSE_g1" = rf_grades_multi_pred %>% filter(treatment == 1) %>% summarize(mean((outcome_orig - g1_orig)^2)) %>% pull() %>% sqrt(),
+    "RMSE_g2" = rf_grades_multi_pred %>% filter(treatment == 2) %>% summarize(mean((outcome_orig - g1_orig)^2)) %>% pull() %>% sqrt(),
+    "RMSE_g3" = rf_grades_multi_pred %>% filter(treatment == 3) %>% summarize(mean((outcome_orig - g1_orig)^2)) %>% pull() %>% sqrt()
+  )) %>%
+  mutate(
+    AUC = mean(c(AUC_m1, AUC_m2, AUC_m3)), BACC = mean(c(BACC_m1, BACC_m2, BACC_m3)),
+    MAPE = mean(MAPE_g1, MAPE_g2, MAPE_g3),  RMSE = mean(RMSE_g1, RMSE_g2, RMSE_g3)
+  ) %>% dplyr::select(model_algo, outcome, AUC, BACC, RMSE, MAPE)
+
+df_error_grade_multis_multi_xgb <- cbind(
+  df_error_grade_multi %>% filter(model_algo == "xgboost" & outcome == "grade") %>% dplyr::select(-starts_with("RMSE"), -starts_with("MAPE")),
+  data.frame(
+    "MAPE_g1" = yardstick::mape(xgb_grades_multi_pred %>% filter(treatment == 1), truth = outcome_orig, estimate = g1_orig) %>%
+      dplyr::select(.estimate) %>% pull(),
+    "MAPE_g2" = yardstick::mape(xgb_grades_multi_pred %>% filter(treatment == 2), truth = outcome_orig, estimate = g1_orig) %>%
+      dplyr::select(.estimate) %>% pull(),
+    "MAPE_g3" = yardstick::mape(xgb_grades_multi_pred %>% filter(treatment == 3), truth = outcome_orig, estimate = g1_orig) %>%
+      dplyr::select(.estimate) %>% pull(),
+    "RMSE_g1" = xgb_grades_multi_pred %>% filter(treatment == 1) %>% summarize(mean((outcome_orig - g1_orig)^2)) %>% pull() %>% sqrt(),
+    "RMSE_g2" = xgb_grades_multi_pred %>% filter(treatment == 2) %>% summarize(mean((outcome_orig - g1_orig)^2)) %>% pull() %>% sqrt(),
+    "RMSE_g3" = xgb_grades_multi_pred %>% filter(treatment == 3) %>% summarize(mean((outcome_orig - g1_orig)^2)) %>% pull() %>% sqrt()
+  ))
 
 
-df_dml_main_multi %>% dplyr::select(
-  cohort_prep, treatment_repl, treatment_def, extra_act, starts_with("model"), 
-  starts_with("ACC"), starts_with("KAPPA"), starts_with("BACC"), starts_with("AUC"),
-  starts_with("MAE"), starts_with("MAPE"), starts_with("MSE"), starts_with("RMSE")
-) %>% distinct()
+#### Agreeableness ####
+#+++++++++++++++++++++#
+
+# load predictions
+lasso_agree_pred <- data.frame()
+for (mice_sel in 1:5) {
+  lasso_agree_pred_sub <- left_join(lasso_agree[[mice_sel]]$pred, lasso_agree[[mice_sel]]$trimming, by = "Repetition") %>%
+    mutate(MICE = mice_sel)
+  lasso_agree_pred <- rbind(lasso_agree_pred, lasso_agree_pred_sub)
+}
 
 
-#%%%%%%%%%%%%%%%%#
-#### TRIMMING ####
-#%%%%%%%%%%%%%%%%#
+# generate un-standardized outcome and the corresponding predictions
+lasso_agree_pred <- lasso_agree_pred %>%
+  mutate(
+    outcome_orig = outcome*data_stand_pers$agree_sd + data_stand_pers$agree_mean,
+    g0_orig = g0*data_stand_pers$agree_sd + data_stand_pers$agree_mean,
+    g1_orig = g1*data_stand_pers$agree_sd + data_stand_pers$agree_mean
+  )
 
-## Binary Treatment Setting ##
-df_dml_main_binary %>% dplyr::select(
-  cohort_prep, treatment_repl, treatment_def, extra_act, starts_with("model"), 
-  n_treats_before, n_treats_after
-) %>% distinct() %>%
-  filter(
-    cohort_prep == "controls_same_outcome", treatment_repl == "down", treatment_def == "weekly", extra_act == "yes") %>%
-  mutate(n_treats_diff = n_treats_before - n_treats_after)
+# calculate error metrics for paper
+df_error_agree_lasso <- cbind(
+  df_error_grade %>% filter(model_algo == "lasso" & outcome == "bigfive_agreeableness") %>% dplyr::select(-starts_with("RMSE"), -starts_with("MAPE")),
+  data.frame(
+    "MAPE_g0" = yardstick::mape(lasso_agree_pred %>% filter(treatment == 0), truth = outcome_orig, estimate = g0_orig) %>%
+      dplyr::select(.estimate) %>% pull(), 
+    "MAPE_g1" = yardstick::mape(lasso_agree_pred %>% filter(treatment == 1), truth = outcome_orig, estimate = g1_orig) %>%
+      dplyr::select(.estimate) %>% pull(),
+    "RMSE_g0" = lasso_agree_pred %>% filter(treatment == 0) %>% summarize(mean((outcome_orig - g0_orig)^2)) %>% pull() %>% sqrt(), 
+    "RMSE_g1" = lasso_agree_pred %>% filter(treatment == 1) %>% summarize(mean((outcome_orig - g1_orig)^2)) %>% pull() %>% sqrt()
+  ))
 
 
-## Multivalued Treatment Setting ##
-df_dml_main_multi %>% dplyr::select(
-  cohort_prep, treatment_repl, treatment_def, extra_act, starts_with("model"), n_treats_min
-) %>% distinct()
+#### Conscientiousness ####
+#+++++++++++++++++++++++++#
+
+lasso_consc_pred <- data.frame()
+for (mice_sel in 1:5) {
+  lasso_consc_pred_sub <- left_join(lasso_consc[[mice_sel]]$pred, lasso_consc[[mice_sel]]$trimming, by = "Repetition") %>%
+    mutate(MICE = mice_sel)
+  lasso_consc_pred <- rbind(lasso_consc_pred, lasso_consc_pred_sub)
+}
+
+
+# generate un-standardized outcome and the corresponding predictions
+lasso_consc_pred <- lasso_consc_pred %>%
+  mutate(
+    outcome_orig = outcome*data_stand_pers$consc_sd + data_stand_pers$consc_mean,
+    g0_orig = g0*data_stand_pers$consc_sd + data_stand_pers$consc_mean,
+    g1_orig = g1*data_stand_pers$consc_sd + data_stand_pers$consc_mean
+  )
+
+# calculate error metrics for paper
+df_error_consc_lasso <- cbind(
+  df_error_grade %>% filter(model_algo == "lasso" & outcome == "bigfive_conscientiousness") %>% dplyr::select(-starts_with("RMSE"), -starts_with("MAPE")),
+  data.frame(
+    "MAPE_g0" = yardstick::mape(lasso_consc_pred %>% filter(treatment == 0), truth = outcome_orig, estimate = g0_orig) %>%
+      dplyr::select(.estimate) %>% pull(), 
+    "MAPE_g1" = yardstick::mape(lasso_consc_pred %>% filter(treatment == 1), truth = outcome_orig, estimate = g1_orig) %>%
+      dplyr::select(.estimate) %>% pull(),
+    "RMSE_g0" = lasso_consc_pred %>% filter(treatment == 0) %>% summarize(mean((outcome_orig - g0_orig)^2)) %>% pull() %>% sqrt(), 
+    "RMSE_g1" = lasso_consc_pred %>% filter(treatment == 1) %>% summarize(mean((outcome_orig - g1_orig)^2)) %>% pull() %>% sqrt()
+  ))
+
+
+#### Extraversion ####
+#++++++++++++++++++++#
+
+lasso_extra_pred <- data.frame()
+for (mice_sel in 1:5) {
+  lasso_extra_pred_sub <- left_join(lasso_extra[[mice_sel]]$pred, lasso_extra[[mice_sel]]$trimming, by = "Repetition") %>%
+    mutate(MICE = mice_sel)
+  lasso_extra_pred <- rbind(lasso_extra_pred, lasso_extra_pred_sub)
+}
+
+
+# generate un-standardized outcome and the corresponding predictions
+lasso_extra_pred <- lasso_extra_pred %>%
+  mutate(
+    outcome_orig = outcome*data_stand_pers$extra_sd + data_stand_pers$extra_mean,
+    g0_orig = g0*data_stand_pers$extra_sd + data_stand_pers$extra_mean,
+    g1_orig = g1*data_stand_pers$extra_sd + data_stand_pers$extra_mean
+  )
+
+# calculate error metrics for paper
+df_error_extra_lasso <- cbind(
+  df_error_grade %>% filter(model_algo == "lasso" & outcome == "bigfive_extraversion") %>% dplyr::select(-starts_with("RMSE"), -starts_with("MAPE")),
+  data.frame(
+    "MAPE_g0" = yardstick::mape(lasso_extra_pred %>% filter(treatment == 0), truth = outcome_orig, estimate = g0_orig) %>%
+      dplyr::select(.estimate) %>% pull(), 
+    "MAPE_g1" = yardstick::mape(lasso_extra_pred %>% filter(treatment == 1), truth = outcome_orig, estimate = g1_orig) %>%
+      dplyr::select(.estimate) %>% pull(),
+    "RMSE_g0" = lasso_extra_pred %>% filter(treatment == 0) %>% summarize(mean((outcome_orig - g0_orig)^2)) %>% pull() %>% sqrt(), 
+    "RMSE_g1" = lasso_extra_pred %>% filter(treatment == 1) %>% summarize(mean((outcome_orig - g1_orig)^2)) %>% pull() %>% sqrt()
+  ))
+
+#### Neuroticism ####
+#+++++++++++++++++++#
+
+lasso_neuro_pred <- data.frame()
+for (mice_sel in 1:5) {
+  lasso_neuro_pred_sub <- left_join(lasso_neuro[[mice_sel]]$pred, lasso_neuro[[mice_sel]]$trimming, by = "Repetition") %>%
+    mutate(MICE = mice_sel)
+  lasso_neuro_pred <- rbind(lasso_neuro_pred, lasso_neuro_pred_sub)
+}
+
+
+# generate un-standardized outcome and the corresponding predictions
+lasso_neuro_pred <- lasso_neuro_pred %>%
+  mutate(
+    outcome_orig = outcome*data_stand_pers$neuro_sd + data_stand_pers$neuro_mean,
+    g0_orig = g0*data_stand_pers$neuro_sd + data_stand_pers$neuro_mean,
+    g1_orig = g1*data_stand_pers$neuro_sd + data_stand_pers$neuro_mean
+  )
+
+# calculate error metrics for paper
+df_error_neuro_lasso <- cbind(
+  df_error_grade %>% filter(model_algo == "lasso" & outcome == "bigfive_neuroticism") %>% dplyr::select(-starts_with("RMSE"), -starts_with("MAPE")),
+  data.frame(
+    "MAPE_g0" = yardstick::mape(lasso_neuro_pred %>% filter(treatment == 0), truth = outcome_orig, estimate = g0_orig) %>%
+      dplyr::select(.estimate) %>% pull(), 
+    "MAPE_g1" = yardstick::mape(lasso_neuro_pred %>% filter(treatment == 1), truth = outcome_orig, estimate = g1_orig) %>%
+      dplyr::select(.estimate) %>% pull(),
+    "RMSE_g0" = lasso_neuro_pred %>% filter(treatment == 0) %>% summarize(mean((outcome_orig - g0_orig)^2)) %>% pull() %>% sqrt(), 
+    "RMSE_g1" = lasso_neuro_pred %>% filter(treatment == 1) %>% summarize(mean((outcome_orig - g1_orig)^2)) %>% pull() %>% sqrt()
+  ))
+
+
+#### Openness ####
+#++++++++++++++++#
+
+lasso_open_pred <- data.frame()
+for (mice_sel in 1:5) {
+  lasso_open_pred_sub <- left_join(lasso_open[[mice_sel]]$pred, lasso_open[[mice_sel]]$trimming, by = "Repetition") %>%
+    mutate(MICE = mice_sel)
+  lasso_open_pred <- rbind(lasso_open_pred, lasso_open_pred_sub)
+}
+
+
+# generate un-standardized outcome and the corresponding predictions
+lasso_open_pred <- lasso_open_pred %>%
+  mutate(
+    outcome_orig = outcome*data_stand_pers$open_sd + data_stand_pers$open_mean,
+    g0_orig = g0*data_stand_pers$open_sd + data_stand_pers$open_mean,
+    g1_orig = g1*data_stand_pers$open_sd + data_stand_pers$open_mean
+  )
+
+# calculate error metrics for paper
+df_error_open_lasso <- cbind(
+  df_error_grade %>% filter(model_algo == "lasso" & outcome == "bigfive_openness") %>% dplyr::select(-starts_with("RMSE"), -starts_with("MAPE")),
+  data.frame(
+    "MAPE_g0" = yardstick::mape(lasso_open_pred %>% filter(treatment == 0), truth = outcome_orig, estimate = g0_orig) %>%
+      dplyr::select(.estimate) %>% pull(), 
+    "MAPE_g1" = yardstick::mape(lasso_open_pred %>% filter(treatment == 1), truth = outcome_orig, estimate = g1_orig) %>%
+      dplyr::select(.estimate) %>% pull(),
+    "RMSE_g0" = lasso_open_pred %>% filter(treatment == 0) %>% summarize(mean((outcome_orig - g0_orig)^2)) %>% pull() %>% sqrt(), 
+    "RMSE_g1" = lasso_open_pred %>% filter(treatment == 1) %>% summarize(mean((outcome_orig - g1_orig)^2)) %>% pull() %>% sqrt()
+  ))
 
 
 #%%%%%%%%%%%%%%%%%%#
@@ -636,26 +993,41 @@ df_dml_main_binary %>%
   dplyr::select(outcome, starts_with("model"), starts_with("num_predictors")) %>% distinct()
 
 df_lasso_predictors <- 
-  rbind(lasso_main[[1]]$predictors, lasso_main[[2]]$predictors) %>%
-  rbind(lasso_main[[3]]$predictors) %>%
-  rbind(lasso_main[[4]]$predictors) %>%
-  rbind(lasso_main[[5]]$predictors)
+  rbind(lasso_grades[[1]]$predictors, lasso_grades[[2]]$predictors) %>%
+  rbind(lasso_grades[[3]]$predictors) %>%
+  rbind(lasso_grades[[4]]$predictors) %>%
+  rbind(lasso_grades[[5]]$predictors)
 summary(df_lasso_predictors$num_pred_m)
 summary(c(df_lasso_predictors$num_pred_g0, df_lasso_predictors$num_pred_g1))
 
 df_postlasso_predictors <- 
-  rbind(postlasso_main[[1]]$predictors, postlasso_main[[2]]$predictors) %>%
-  rbind(postlasso_main[[3]]$predictors) %>%
-  rbind(postlasso_main[[4]]$predictors) %>%
-  rbind(postlasso_main[[5]]$predictors)
-summary(df_postlasso_predictors$num_pred_m)
-summary(c(df_postlasso_predictors$num_pred_g0, df_postlasso_predictors$num_pred_g1))
+  rbind(postlasso_grades[[1]]$predictors, postlasso_grades[[2]]$predictors) %>%
+  rbind(postlasso_grades[[3]]$predictors) %>%
+  rbind(postlasso_grades[[4]]$predictors) %>%
+  rbind(postlasso_grades[[5]]$predictors)
+summary(c(df_postlasso_predictors$num_pred_m, df_postlasso_predictors$num_pred_g0, df_postlasso_predictors$num_pred_g1))
 
 ## Multivalued Treatment Setting ##
-df_dml_main_multi %>% select(
+df_dml_main_multi %>% dplyr::select(
   cohort_prep, treatment_repl, treatment_def, extra_act, starts_with("model"), starts_with("num_predictors")
 ) %>% distinct()
 
+
+df_lasso_predictors_multi <- 
+  rbind(lasso_grades_multi[[1]]$predictors, lasso_grades_multi[[2]]$predictors) %>%
+  rbind(lasso_grades_multi[[3]]$predictors) %>%
+  rbind(lasso_grades_multi[[4]]$predictors) %>%
+  rbind(lasso_grades_multi[[5]]$predictors)
+summary(c(df_lasso_predictors_multi$num_pred_m1, df_lasso_predictors_multi$num_pred_m2, df_lasso_predictors_multi$num_pred_m3))
+summary(c(df_lasso_predictors_multi$num_pred_g1, df_lasso_predictors_multi$num_pred_g2, df_lasso_predictors_multi$num_pred_g3))
+
+df_postlasso_predictors_multi <- 
+  rbind(postlasso_grades_multi[[1]]$predictors, postlasso_grades_multi[[2]]$predictors) %>%
+  rbind(postlasso_grades_multi[[3]]$predictors) %>%
+  rbind(postlasso_grades_multi[[4]]$predictors) %>%
+  rbind(postlasso_grades_multi[[5]]$predictors)
+summary(c(df_postlasso_predictors_multi$num_pred_m1, df_postlasso_predictors_multi$num_pred_m2, df_postlasso_predictors_multi$num_pred_m3,
+          df_postlasso_predictors_multi$num_pred_g1, df_postlasso_predictors_multi$num_pred_g2, df_postlasso_predictors_multi$num_pred_g3))
 
 
 #### Agreeableness ####
@@ -726,30 +1098,143 @@ df_postlasso_predictors_open <-
   rbind(postlasso_open[[4]]$predictors) %>%
   rbind(postlasso_open[[5]]$predictors)
 summary(df_postlasso_predictors_open$num_pred_m)
-summary(c(df_postlasso_predictors_open$num_pred_g0, df_postlasso_predictors_agree$num_pred_g1))
+summary(c(df_postlasso_predictors_open$num_pred_g0, postlasso_open$num_pred_g1))
 
 
 ## Multivalued ##
 
 
-#%%%%%%%%%%%%%%%%%%%%%%#
-#### COMMON SUPPORT ####
-#%%%%%%%%%%%%%%%%%%%%%%#
+
+#### Conscientiousness ####
+#++++++++++++++++++++++++#
+
+## Binary ##
+df_lasso_predictors_consc <- 
+  rbind(lasso_consc[[1]]$predictors, lasso_consc[[2]]$predictors) %>%
+  rbind(lasso_consc[[3]]$predictors) %>%
+  rbind(lasso_consc[[4]]$predictors) %>%
+  rbind(lasso_consc[[5]]$predictors)
+summary(df_lasso_predictors_consc$num_pred_m)
+summary(c(df_lasso_predictors_consc$num_pred_g0, df_lasso_predictors_consc$num_pred_g1))
+
+df_postlasso_predictors_consc_multi <- 
+  rbind(postlasso_consc_multi[[1]]$predictors, postlasso_consc_multi[[2]]$predictors) %>%
+  rbind(postlasso_consc_multi[[3]]$predictors) %>%
+  rbind(postlasso_consc_multi[[4]]$predictors) %>%
+  rbind(postlasso_consc_multi[[5]]$predictors)
+summary(df_postlasso_predictors_consc_multi$num_pred_m)
+summary(c(df_postlasso_predictors_consc_multi$num_pred_g0, df_postlasso_predictors_consc_multi$num_pred_g1))
+
+
+## Multivalued ##
+
+
+
+#### Neuroticism ####
+#+++++++++++++++++++#
+
+## Binary ##
+df_lasso_predictors_neuro <- 
+  rbind(lasso_neuro[[1]]$predictors, lasso_neuro[[2]]$predictors) %>%
+  rbind(lasso_neuro[[3]]$predictors) %>%
+  rbind(lasso_neuro[[4]]$predictors) %>%
+  rbind(lasso_neuro[[5]]$predictors)
+summary(df_lasso_predictors_neuro$num_pred_m)
+summary(c(df_lasso_predictors_neuro$num_pred_g0, df_lasso_predictors_neuro$num_pred_g1))
+
+df_postlasso_predictors_neuro_multi <- 
+  rbind(postlasso_neuro_multi[[1]]$predictors, postlasso_neuro_multi[[2]]$predictors) %>%
+  rbind(postlasso_neuro_multi[[3]]$predictors) %>%
+  rbind(postlasso_neuro_multi[[4]]$predictors) %>%
+  rbind(postlasso_neuro_multi[[5]]$predictors)
+summary(df_postlasso_predictors_neuro_multi$num_pred_m)
+summary(c(df_postlasso_predictors_neuro_multi$num_pred_g0, df_postlasso_predictors_neuro_multi$num_pred_g1))
+
+
+## Multivalued ##
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### ++COMMON SUPPORT++ ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+#### Check for dropped observations ####
+#++++++++++++++++++++++++++++++++++++++#
+
+## Binary Treatment Setting ##
+df_dml_main_binary %>% dplyr::select(
+  outcome, cohort_prep, treatment_repl, treatment_def, extra_act, starts_with("model"), 
+  n_treats_before, n_treats_after
+) %>% distinct() %>%
+  filter(
+    cohort_prep == "controls_same_outcome", treatment_repl == "down", treatment_def == "weekly", extra_act == "yes") %>%
+  mutate(n_treats_diff = n_treats_before - n_treats_after, n_treats_diff_perf = (n_treats_before - n_treats_after) / n_treats_before)
+
+
+## Multivalued Treatment Setting ##
+df_dml_main_multi %>% dplyr::select(
+  cohort_prep, treatment_repl, treatment_def, extra_act, starts_with("model"), n_treats_before, n_treats_after
+) %>% distinct() %>%
+  mutate(n_treats_diff = n_treats_before - n_treats_after)
+
+
+#### Create Plots ####
+#++++++++++++++++++++#
 
 ## Binary Treatment Setting ##
 
+list_binary_plot_common_support <- list()
 # common support plot across all mice data frames and all repetitions
-for (model_algo_sel in c("lasso", "postlasso", "randomforests", "xgboost")) {
-  df_dml_pred_all_binary_sub <- df_dml_pred_all_binary %>% 
-    filter(modelalgo %in% model_algo_sel) %>%
-    left_join(df_dml_trimming_all_binary, by = "modelalgo")
-
-  binary_plot_common_support <- func_dml_common_support(
-    "binary", df_dml_pred_all_binary_sub, df_dml_pred_all_binary_sub$min_trimming, 
-    df_dml_pred_all_binary_sub$max_trimming)
-  ggsave(paste0("Output/DML/binary_all_dml_plot_common_support_binary_", model_algo_sel, ".png"), 
-         binary_plot_common_support)
+# All machine learning models and outcome are considered
+for (model_algo_sel in c("lasso", "postlasso", "rf", "xgb")) {
+  
+  for (outcome_var_sel in c("grades", "agree", "extra", "consc", "open", "neuro")) {
+    # name
+    load_pred_algo <- paste0(model_algo_sel, "_", outcome_var_sel)
+    
+    tryCatch({
+      print(load_pred_algo)
+      if (exists(load_pred_algo) == FALSE) stop("Does not exist")
+      
+      # extract predictions
+      df_dml_pred_all_binary <- data.frame()
+      for (mice_sel in 1:5) {
+        df_dml_pred_sub <- get(load_pred_algo)[[mice_sel]]$pred %>% mutate(MICE = mice_sel) 
+        df_dml_pred_all_binary <- rbind(df_dml_pred_all_binary, df_dml_pred_sub)
+      }
+      
+      # extract trimming information
+      df_dml_trimming_all_binary <- data.frame()
+      for (mice_sel in 1:5) {
+        df_dml_pred_sub <- get(load_pred_algo)[[mice_sel]]$trimming %>% mutate(MICE = mice_sel) 
+        df_dml_trimming_all_binary <- rbind(df_dml_trimming_all_binary, df_dml_pred_sub)
+      }
+      
+      df_dml_pred_all_binary_sub <- df_dml_pred_all_binary %>% 
+        left_join(df_dml_trimming_all_binary, by = c("Repetition", "MICE"))
+      
+      binary_plot_common_support_sub <- func_dml_common_support(
+        "binary", df_dml_pred_all_binary_sub, 
+        unique(df_dml_pred_all_binary_sub$min_trimming), unique(df_dml_pred_all_binary_sub$max_trimming), 
+        model_algo_sel)
+      list_binary_plot_common_support[[outcome_var_sel]][[model_algo_sel]] <- binary_plot_common_support_sub
+    
+    }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
+    
+  }
+    
 }
+
+# Grades
+binary_plot_common_support <- ggarrange(
+  list_binary_plot_common_support$lasso + xlab("") + ggtitle("LASSO"), 
+  list_binary_plot_common_support$postlasso + xlab("") + ggtitle("POST-LASSO"),
+  list_binary_plot_common_support$rf + ggtitle("RANDOM FORESTS"), 
+  list_binary_plot_common_support$xgb + ggtitle("XGBOOST"),
+  nrow = 2, ncol = 2, common.legend = T, legend = "bottom"
+) 
+ggsave(paste0("Output/DML/Common_Support/dml_plot_common_support_binary_allalgos.png"), 
+       binary_plot_common_support,
+       width = 20, height = 15, dpi = 300, units = "in", device = 'png')
 
 
 ## Multivalued Treatment Setting ##
@@ -766,6 +1251,44 @@ for (model_algo_sel in c("lasso", "postlasso", "randomforests", "xgboost")) {
     df_dml_pred_all_multi_sub$max_trimming)
   ggsave(paste0("Output/DML/binary_all_dml_plot_common_support_multi_", model_algo_sel, ".png"), 
          multi_plot_common_support)
+}
+
+
+#### Check Means ####
+#+++++++++++++++++++#
+
+## Binary Treatment Setting ##
+df_quantiles_binary <- data.frame()
+for (model_algo_sel in c("lasso", "postlasso", "rf", "xgb")) {
+  
+  for (outcome_var_sel in c("grades", "agree", "extra", "consc", "open", "neuro")) {
+    # name
+    load_pred_algo <- paste0(model_algo_sel, "_", outcome_var_sel)
+    
+    tryCatch({
+      print(load_pred_algo)
+      if (exists(load_pred_algo) == FALSE) stop("Does not exist")
+      
+      df_quantiles_aggr <- data.frame()
+      for (micel_sel in 1:5) {
+        df_pred_m <- get(load_pred_algo)[[1]]$pred %>% dplyr::select(m, treatment) %>% arrange(m)
+        df_quantiles <- df_pred_m %>% mutate(quint = ntile(m, 20))
+        df_quantiles <- df_quantiles %>% 
+          group_by(quint, treatment) %>% 
+          summarize(mean_prob = mean(m)) %>%
+          mutate(MICE = micel_sel)
+        df_quantiles_aggr <- rbind(df_quantiles_aggr, df_quantiles) 
+      }
+      df_quantiles_aggr <- df_quantiles_aggr %>%
+        group_by(quint, treatment) %>%
+        summarize(mean_prob = mean(mean_prob)) %>%
+        mutate(model_algo = model_algo_sel, outcome = outcome_var_sel) %>%
+        dplyr::select(outcome, model_algo, everything())
+      
+      df_quantiles_binary <- rbind(df_quantiles_binary, df_quantiles_aggr)
+      
+    }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
+  }
 }
 
 
