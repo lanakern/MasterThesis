@@ -164,6 +164,9 @@ library(vip) # for feature importance
 if (!require("ggpubr")) install.packages("ggpubr") 
 library(ggpubr) # for arranging multip?e plots in one plot
 
+if (!require("regclass")) install.packages("regclass") 
+library(regclass) # for arranging multip?e plots in one plot
+
 # set language for dates and times to German, since the NEPS month names
 # are written in German; otherwise date/time functions are not working
 # for German language
@@ -350,6 +353,11 @@ source("Scripts/11_a_DML_Binary.R")
 gc()
 eval(parse(text = keep_after_file_run))
 
+model_algo <- "postlasso"
+model_post_sel <- TRUE
+source("Scripts/11_a_DML_Binary.R") 
+model_post_sel <- FALSE
+
 model_algo <- "xgboost"
 source("Scripts/11_a_DML_Binary.R") 
 gc()
@@ -365,6 +373,11 @@ model_algo <- "lasso"
 source("Scripts/11_a_DML_Binary.R") 
 gc()
 eval(parse(text = keep_after_file_run))
+
+model_algo <- "postlasso"
+model_post_sel <- TRUE
+source("Scripts/11_a_DML_Binary.R") 
+model_post_sel <- FALSE
 
 model_algo <- "xgboost"
 source("Scripts/11_a_DML_Binary.R") 
@@ -382,6 +395,14 @@ source("Scripts/11_a_DML_Binary.R")
 gc()
 eval(parse(text = keep_after_file_run))
 
+model_algo <- "postlasso"
+model_post_sel <- TRUE
+source("Scripts/11_a_DML_Binary.R") 
+model_post_sel <- FALSE
+gc()
+eval(parse(text = keep_after_file_run))
+
+
 model_algo <- "xgboost"
 source("Scripts/11_a_DML_Binary.R") 
 gc()
@@ -392,10 +413,18 @@ eval(parse(text = keep_after_file_run))
 
 outcome_var <- "outcome_bigfive_conscientiousness"
 
-model_algo <- "postlasso"
+model_algo <- "lasso"
 source("Scripts/11_a_DML_Binary.R") 
 gc()
 eval(parse(text = keep_after_file_run))
+
+model_algo <- "postlasso"
+model_post_sel <- TRUE
+source("Scripts/11_a_DML_Binary.R") 
+model_post_sel <- FALSE
+gc()
+eval(parse(text = keep_after_file_run))
+
 
 model_algo <- "xgboost"
 source("Scripts/11_a_DML_Binary.R") 
@@ -410,6 +439,13 @@ outcome_var <- "outcome_bigfive_neuroticism"
 
 model_algo <- "lasso"
 source("Scripts/11_a_DML_Binary.R") 
+gc()
+eval(parse(text = keep_after_file_run))
+
+model_algo <- "postlasso"
+model_post_sel <- TRUE
+source("Scripts/11_a_DML_Binary.R") 
+model_post_sel <- FALSE
 gc()
 eval(parse(text = keep_after_file_run))
 
@@ -446,6 +482,7 @@ model_controls_endog <- main_model_controls_endog # "no"
 model_trimming <- main_model_trimming # 0.1, min-max
 model_post_sel <- FALSE
 probscore_separate <- TRUE
+hyperparam_sel <- "best"
 
 # for lasso and xgboost higher K as they are computationally faster
 model_k <- 4 
@@ -496,8 +533,9 @@ model_k <- 4
 model_k_tuning <- 2 
 model_s_rep <- 5 
 n_features <- 30
+n_features_multi <- 10
 
-source("Scripts/13_c_DML_FeatureImportance.R") 
+source("Scripts/12_c_FeatureImportance.R") 
 
 eval(parse(text = keep_after_file_run))
 gc()
