@@ -214,13 +214,13 @@ dml_result_save <- dml_result_pooled %>%
     # append outcome
     outcome = str_remove(outcome_var_multi, "outcome_"),
     # append model selections
-    cohort_prep = main_cohort_prep, treatment_repl = main_treatment_repl, 
-    treatment_def = main_treatment_def, extra_act = main_extra_act, 
+    cohort_prep = cohort_prep, treatment_repl = treatment_repl, 
+    treatment_def = treatment_def, extra_act = extra_act, 
     # append user selections
-    model_type = main_model_type, model_algo = multi_model_algo, model_k = main_model_k, 
-    model_k_tuning = main_model_k_tuning, model_s_rep = main_model_s_rep, 
-    model_trimming = main_model_trimming, model_controls_lag = main_model_controls_lag,
-    model_controls_endog = main_model_controls_endog,
+    model_type = model_type, model_algo = multi_model_algo, model_k = model_k, 
+    model_k_tuning = model_k_tuning, model_s_rep = model_s_rep, 
+    model_trimming = model_trimming, model_controls_lag = model_controls_lag,
+    model_controls_endog = model_controls_endog,
     # number of treatment periods before and after after trimming
     n_treats_before = min(unlist(lapply(lapply(dml_result_all, "[[" , "trimming"), "[[", "n_treats_before"))), 
     n_treats_after = min(unlist(lapply(lapply(dml_result_all, "[[" , "trimming"), "[[", "n_treats_after"))), 
