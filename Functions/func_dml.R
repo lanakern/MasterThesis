@@ -132,7 +132,7 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
   # }
   
   ## xgboost
-  if (str_detect(outcome_var, "grade")) {
+  if (str_detect(outcome, "grade")) {
     xgb_grid <- expand.grid(
       tree_depth = c(3, 6, 9), # default: 6
       trees = c(15, 50), # default: 15 
