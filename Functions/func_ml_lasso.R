@@ -897,7 +897,6 @@ func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome,
     lasso_coef_all <- rbind(lasso_coef_all, lasso_coef_g3)
     
     
-    
     #%%%%%%%%%%%%%%%%%%%#
     #### Predictions ####
     #%%%%%%%%%%%%%%%%%%%#
@@ -917,7 +916,59 @@ func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome,
       data_test_final_m3 <- data_test %>% dplyr::select(treatment_sport_freq_never, all_of(lasso_coef_union))
       data_test_final_g <- data_test %>% dplyr::select(all_of(outcome), all_of(lasso_coef_union))
       
+      # remove alias coefficients
+      model_m1 <- glm(paste("treatment_sport_freq_weekly_atleast", "~ ."), family = binomial(link = "logit"), data = data_train_final_m1)
+      model_m2 <- glm(paste("treatment_sport_freq_monthly_less", "~ ."), family = binomial(link = "logit"), data = data_train_final_m2)
+      model_m3 <- glm(paste("treatment_sport_freq_never", "~ ."), family = binomial(link = "logit"), data = data_train_final_m3)
+      model_lm_1 <- lm(paste(outcome, "~ ."), data = data_train_final_g1)
+      model_lm_2 <- lm(paste(outcome, "~ ."), data = data_train_final_g2)
+      model_lm_3 <- lm(paste(outcome, "~ ."), data = data_train_final_g3)
+      vars_multicoll_drop_1 <- c(
+        attributes(alias(model_m1)$Complete)$dimnames[[1]], attributes(alias(model_m2)$Complete)$dimnames[[1]], 
+        attributes(alias(model_m3)$Complete)$dimnames[[1]], attributes(alias(model_lm_1)$Complete)$dimnames[[1]],
+        attributes(alias(model_lm_2)$Complete)$dimnames[[1]], attributes(alias(model_lm_3)$Complete)$dimnames[[1]]) %>%
+        unique()
+      lasso_coef_all <- lasso_coef_all %>% filter(!term %in% vars_multicoll_drop_1)
+      lasso_coef_union <- colnames(data_train)[colnames(data_train) %in% unique(lasso_coef_all$term)]
+      data_train_final_m1 <- data_train %>% dplyr::select(treatment_sport_freq_weekly_atleast, all_of(lasso_coef_union))
+      data_train_final_m2 <- data_train %>% dplyr::select(treatment_sport_freq_monthly_less, all_of(lasso_coef_union))
+      data_train_final_m3 <- data_train %>% dplyr::select(treatment_sport_freq_never, all_of(lasso_coef_union))
+      data_train_final_g1 <- data_train %>% filter(treatment_sport_freq == 1) %>% dplyr::select(all_of(outcome), all_of(lasso_coef_union))
+      data_train_final_g2 <- data_train %>% filter(treatment_sport_freq == 2) %>% dplyr::select(all_of(outcome), all_of(lasso_coef_union))
+      data_train_final_g3 <- data_train %>% filter(treatment_sport_freq == 3) %>% dplyr::select(all_of(outcome), all_of(lasso_coef_union))
+      data_test_final_m1 <- data_test %>% dplyr::select(treatment_sport_freq_weekly_atleast, all_of(lasso_coef_union))
+      data_test_final_m2 <- data_test %>% dplyr::select(treatment_sport_freq_monthly_less, all_of(lasso_coef_union))
+      data_test_final_m3 <- data_test %>% dplyr::select(treatment_sport_freq_never, all_of(lasso_coef_union))
+      data_test_final_g <- data_test %>% dplyr::select(all_of(outcome), all_of(lasso_coef_union))
       
+  
+      # remove VIF
+      model_m1 <- glm(paste("treatment_sport_freq_weekly_atleast", "~ ."), family = binomial(link = "logit"), data = data_train_final_m1)
+      model_m2 <- glm(paste("treatment_sport_freq_monthly_less", "~ ."), family = binomial(link = "logit"), data = data_train_final_m2)
+      model_m3 <- glm(paste("treatment_sport_freq_never", "~ ."), family = binomial(link = "logit"), data = data_train_final_m3)
+      model_lm_1 <- lm(paste(outcome, "~ ."), data = data_train_final_g1)
+      model_lm_2 <- lm(paste(outcome, "~ ."), data = data_train_final_g2)
+      model_lm_3 <- lm(paste(outcome, "~ ."), data = data_train_final_g3)
+      vars_multicoll_drop_2 <- c(
+        names(VIF(model_m1)[VIF(model_m1) > 5]), names(VIF(model_m2)[VIF(model_m2) > 5]), 
+        names(VIF(model_m3)[VIF(model_m3) > 5]), names(VIF(model_lm_1)[VIF(model_lm_1) > 5]),
+        names(VIF(model_lm_2)[VIF(model_lm_2) > 5]), names(VIF(model_lm_3)[VIF(model_lm_3) > 5])
+      ) %>% unique()
+      lasso_coef_all <- lasso_coef_all %>% filter(!term %in% vars_multicoll_drop_2)
+      lasso_coef_union <- colnames(data_train)[colnames(data_train) %in% unique(lasso_coef_all$term)]
+      data_train_final_m1 <- data_train_final_m1 %>% dplyr::select(treatment_sport_freq_weekly_atleast, all_of(lasso_coef_union))
+      data_train_final_m2 <- data_train_final_m2 %>% dplyr::select(treatment_sport_freq_monthly_less, all_of(lasso_coef_union))
+      data_train_final_m3 <- data_train_final_m3 %>% dplyr::select(treatment_sport_freq_never, all_of(lasso_coef_union))
+      data_train_final_g1 <- data_train_final_g1 %>% dplyr::select(all_of(outcome), all_of(lasso_coef_union))
+      data_train_final_g2 <- data_train_final_g2 %>% dplyr::select(all_of(outcome), all_of(lasso_coef_union))
+      data_train_final_g3 <- data_train_final_g3 %>% dplyr::select(all_of(outcome), all_of(lasso_coef_union))
+      data_test_final_m1 <- data_test_final_m1 %>% dplyr::select(treatment_sport_freq_weekly_atleast, all_of(lasso_coef_union))
+      data_test_final_m2 <- data_test_final_m2 %>% dplyr::select(treatment_sport_freq_monthly_less, all_of(lasso_coef_union))
+      data_test_final_m3 <- data_test_final_m3 %>% dplyr::select(treatment_sport_freq_never, all_of(lasso_coef_union))
+      data_test_final_g <- data_test_final_g %>% dplyr::select(all_of(outcome), all_of(lasso_coef_union))
+      
+      
+      # final
       model_m1 <- glm(paste("treatment_sport_freq_weekly_atleast", "~ ."), family = binomial(link = "logit"), data = data_train_final_m1)
       lasso_pred_m1 <- unname(predict(model_m1, data_test_final_m1, type = "response")) # return probability
       
