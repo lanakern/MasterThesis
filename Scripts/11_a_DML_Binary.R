@@ -211,7 +211,7 @@ dml_result_save <- dml_result_pooled %>%
     model_type = model_type, model_algo = model_algo, model_k = model_k, 
     model_k_tuning = model_k_tuning, model_s_rep = model_s_rep, model_trimming = model_trimming, 
     model_controls_lag = model_controls_lag, model_controls_endog = model_controls_endog,
-    model_hyperparam_sel = model_hyperparam_sel,
+    #model_hyperparam_sel = model_hyperparam_sel,
     # number of treatment periods before and after after trimming
     n_treats_before = min(unlist(lapply(lapply(dml_result_all, "[[" , "trimming"), "[[", "n_treats_before"))), 
     n_treats_after = min(unlist(lapply(lapply(dml_result_all, "[[" , "trimming"), "[[", "n_treats_after"))), 
