@@ -190,7 +190,7 @@ main_model_type <- "all"
 main_model_k <- 4
 main_model_k_tuning <- 2
 main_model_s_rep <- 2
-main_model_trimming <- 0.01
+main_model_trimming <- "min-max"
 main_model_controls_lag <- "no_treatment_outcome_lags" # "no_lags", "all"
 main_model_controls_endog  <- "yes"
 
