@@ -27,9 +27,9 @@ func_dml_common_support <- function(treatment_setting, data_pred, min_trimming, 
   max_trimming <- min(max_trimming)
   
   # nice ml algo name
-  if (ml_algo == "xgboost") {
+  if (ml_algo == "xgboost" | ml_algo == "xgb") {
     ml_algo <- "XGBoost"
-  } else if (ml_algo == "randomforests") {
+  } else if (ml_algo == "randomforests" | ml_algo == "rf") {
     ml_algo <- "Random Forests"
   } else if (ml_algo == "postlasso") {
     ml_algo <- "Post-Lasso"
@@ -49,8 +49,9 @@ func_dml_common_support <- function(treatment_setting, data_pred, min_trimming, 
       mutate(treatment_label = ifelse(treatment == 1, "Sport Participatiopn", "No Sport Participation")) %>%
       ggplot(aes(x = m, fill = treatment_label)) +
       # histogram
-      geom_histogram(aes(y = ..density..), binwidth = 0.01,  alpha = 0.4, color = "black") +
-      scale_fill_manual(values = c("grey88", "grey38")) +
+      geom_histogram(aes(y = ..density..), binwidth = 0.01,  alpha = 0.4, 
+                     color = "black", position = "identity") +
+      scale_fill_manual(values = c("grey28", "grey98")) +
       # trimming thresholds
       geom_vline(xintercept = min_trimming, linetype = "longdash", 
                  color = "black", size = 0.5) +
@@ -61,8 +62,10 @@ func_dml_common_support <- function(treatment_setting, data_pred, min_trimming, 
       ylab("Density") + 
       ggtitle(bquote(paste(atop(bold(.(ml_algo)), "Propensity Score Overlap")))) +
       theme_bw() +
-      theme(plot.title = element_text(hjust = 0.5)) +
-      guides(fill = guide_legend(title = "Treatment Group"))
+      theme(plot.title = element_text(hjust = 0.5, size = 30),
+            axis.text = element_text(size = 26), axis.title = element_text(size = 26),
+            legend.text = element_text(size = 26), legend.title = element_text(size = 26)) +
+      guides(fill = guide_legend(title = "Treatment Group: "))
     
   
   ## MULTIVALUED TREATMENT SETTING ##
@@ -106,11 +109,12 @@ func_dml_common_support <- function(treatment_setting, data_pred, min_trimming, 
       ylab("Density") + 
       ggtitle(bquote(paste(atop(bold(.(ml_algo)), "Propensity Score Overlap for Prediction of Weekly Sport Participation")))) +
       theme_bw() +
-      theme(plot.title = element_text(hjust = 0.5, size = 10),
-            axis.title = element_text(size = 8),
-            legend.text = element_text(size = 8),
-            legend.title = element_text(size = 8)) +
-      guides(fill = guide_legend(title = "Treatment Group"))
+      theme(plot.title = element_text(hjust = 0.5, size = 14),
+            axis.title = element_text(size = 12),
+            axis.text = element_text(size = 12),
+            legend.text = element_text(size = 12),
+            legend.title = element_text(size = 12)) +
+      guides(fill = guide_legend(title = "Treatment Group: "))
     
     
     plot_m2 <- 
@@ -128,11 +132,12 @@ func_dml_common_support <- function(treatment_setting, data_pred, min_trimming, 
       ylab("Density") + 
       ggtitle(paste("Propensity Score Overlap for Prediction of Monthly Sport Participation")) +
       theme_bw() +
-      theme(plot.title = element_text(hjust = 0.5, size = 10),
-            axis.title = element_text(size = 8),
-            legend.text = element_text(size = 8),
-            legend.title = element_text(size = 8)) +
-      guides(fill = guide_legend(title = "Treatment Group"))
+      theme(plot.title = element_text(hjust = 0.5, size = 14),
+            axis.title = element_text(size = 12),
+            axis.text = element_text(size = 12),
+            legend.text = element_text(size = 12),
+            legend.title = element_text(size = 12)) +
+      guides(fill = guide_legend(title = "Treatment Group: "))
     
     
     plot_m3 <-
@@ -150,11 +155,12 @@ func_dml_common_support <- function(treatment_setting, data_pred, min_trimming, 
       ylab("Density") + 
       ggtitle(paste("Propensity Score Overlap for Prediction of No Sport Participation")) +
       theme_bw() +
-      theme(plot.title = element_text(hjust = 0.5, size = 10),
-            axis.title = element_text(size = 8),
-            legend.text = element_text(size = 8),
-            legend.title = element_text(size = 8)) +
-      guides(fill = guide_legend(title = "Treatment Group"))
+      theme(plot.title = element_text(hjust = 0.5, size = 14),
+            axis.title = element_text(size = 12),
+            axis.text = element_text(size = 12),
+            legend.text = element_text(size = 12),
+            legend.title = element_text(size = 12)) +
+      guides(fill = guide_legend(title = "Treatment Group: "))
     
     
     # combine plots
