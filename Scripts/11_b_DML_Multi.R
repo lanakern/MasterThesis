@@ -45,6 +45,12 @@ for (mice_data_sel in 1:5) {
   } else {
     extra_act_save <- ""
   }
+    ## covariate balance ending
+  if (cov_balance == "yes") {
+    cov_balance_save <- "_covbal"
+  } else {
+    cov_balance_save <- ""
+  }
     ## extract outcome
   if (str_detect(outcome_var_multi, "grade")) {
     load_data_folder <- "Data/Grades/"
@@ -189,7 +195,7 @@ if (str_detect(outcome_var_multi, "grade")) {
            "_", model_type, "_", str_replace_all(model_controls_lag, "_", ""), "_endog",
            model_controls_endog, "_trimming", model_trimming, "_K", model_k, 
            "-", model_k_tuning, "_Rep", model_s_rep, probscore_separate_save,
-           ".rds")
+           cov_balance_save, ".rds")
 } else if (str_detect(outcome_var_multi, "bigfive")) {
   save_dml <- paste0("Output/DML/Estimation/Personality/multi__", 
                      str_remove(outcome_var_multi, "outcome_bigfive_"), "_", multi_model_algo, "_", 
@@ -198,7 +204,7 @@ if (str_detect(outcome_var_multi, "grade")) {
                      "_", model_type, "_", str_replace_all(model_controls_lag, "_", ""), "_endog",
                      model_controls_endog, "_trimming", model_trimming, "_K", model_k, 
                      "-", model_k_tuning, "_Rep", model_s_rep, probscore_separate_save,
-                     ".rds")
+                     cov_balance_save, ".rds")
 }
 
 saveRDS(dml_result_all, save_dml)
@@ -220,7 +226,7 @@ dml_result_save <- dml_result_pooled %>%
     model_type = model_type, model_algo = multi_model_algo, model_k = model_k, 
     model_k_tuning = model_k_tuning, model_s_rep = model_s_rep, 
     model_trimming = model_trimming, model_controls_lag = model_controls_lag,
-    model_controls_endog = model_controls_endog,
+    model_controls_endog = model_controls_endog, model_covbal = cov_balance, 
     # number of treatment periods before and after after trimming
     n_treats_before = min(unlist(lapply(lapply(dml_result_all, "[[" , "trimming"), "[[", "n_treats_before"))), 
     n_treats_after = min(unlist(lapply(lapply(dml_result_all, "[[" , "trimming"), "[[", "n_treats_after"))), 

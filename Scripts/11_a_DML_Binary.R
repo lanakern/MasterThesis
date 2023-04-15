@@ -35,6 +35,12 @@ for (mice_data_sel in 1:5) {
   } else {
     extra_act_save <- ""
   }
+    ## covariate balance ending
+  if (cov_balance == "yes") {
+    cov_balance_save <- "_covbal"
+  } else {
+    cov_balance_save <- ""
+  }
     ## extract outcome
   if (str_detect(outcome_var, "grade")) {
     load_data_folder <- "Data/Grades/"
@@ -50,11 +56,11 @@ for (mice_data_sel in 1:5) {
   if (cohort_prep == "controls_same_outcome") {
     load_data <- 
       paste0(load_data_folder, "Prep_10/prep_10_dml_binary_", model_type, "_", treatment_def, 
-             "_", treatment_repl, extra_act_save, "_mice", mice_data_sel, load_data_ending)
+             "_", treatment_repl, extra_act_save, cov_balance_save, "_mice", mice_data_sel, load_data_ending)
   } else {
     load_data <- 
       paste0(load_data_folder, "Prep_10/prep_10_dml_binary_", model_type, "_", treatment_def, 
-             "_", treatment_repl, extra_act_save, "_robustcheck_mice", mice_data_sel, load_data_ending)
+             "_", treatment_repl, extra_act_save, cov_balance_save, "_robustcheck_mice", mice_data_sel, load_data_ending)
   }
   
   data_dml_raw <- readRDS(load_data)
@@ -180,6 +186,7 @@ if (str_detect(outcome_var, "grade")) {
            "_", model_type, "_", str_replace_all(model_controls_lag, "_", ""), "_endog",
            model_controls_endog, "_trimming", model_trimming, "_K", model_k, 
            "-", model_k_tuning, "_Rep", model_s_rep, model_hyperparam_sel_save,
+           cov_balance_save,
            ".rds")
 } else if (str_detect(outcome_var, "bigfive")) {
   save_dml <- paste0("Output/DML/Estimation/Personality/binary_", 
@@ -189,6 +196,7 @@ if (str_detect(outcome_var, "grade")) {
          "_", model_type, "_", str_replace_all(model_controls_lag, "_", ""), "_endog",
          model_controls_endog, "_trimming", model_trimming, "_K", model_k, 
          "-", model_k_tuning, "_Rep", model_s_rep, model_hyperparam_sel_save,
+         cov_balance_save,
          ".rds")
 }
 
@@ -211,7 +219,7 @@ dml_result_save <- dml_result_pooled %>%
     model_type = model_type, model_algo = model_algo, model_k = model_k, 
     model_k_tuning = model_k_tuning, model_s_rep = model_s_rep, model_trimming = model_trimming, 
     model_controls_lag = model_controls_lag, model_controls_endog = model_controls_endog,
-    model_hyperparam_sel = model_hyperparam_sel,
+    model_hyperparam_sel = model_hyperparam_sel, model_covbal = cov_balance, 
     # number of treatment periods before and after after trimming
     n_treats_before = min(unlist(lapply(lapply(dml_result_all, "[[" , "trimming"), "[[", "n_treats_before"))), 
     n_treats_after = min(unlist(lapply(lapply(dml_result_all, "[[" , "trimming"), "[[", "n_treats_after"))), 
