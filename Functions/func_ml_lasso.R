@@ -496,7 +496,7 @@ func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome,
       model_lm_1 <- lm(paste(outcome, "~ ."), data = data_train_final_g1)
 
       vars_multicoll_drop_1 <- c(
-        attributes(alias(model_mm)$Complete)$dimnames[[1]],
+        attributes(alias(model_m)$Complete)$dimnames[[1]],
         attributes(alias(model_lm_0)$Complete)$dimnames[[1]], 
         attributes(alias(model_lm_1)$Complete)$dimnames[[1]]) %>%
         unique()
