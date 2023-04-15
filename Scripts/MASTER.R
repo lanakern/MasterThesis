@@ -193,6 +193,7 @@ main_model_s_rep <- 2
 main_model_trimming <- "min-max"
 main_model_controls_lag <- "no_treatment_outcome_lags" # "no_lags", "all"
 main_model_controls_endog  <- "yes"
+main_cov_balance <- "yes"
 
 # generate all possible combinations of user inputs (to iterate over it below)
 df_inputs <- data.frame(
@@ -288,6 +289,7 @@ model_controls_endog <- main_model_controls_endog # "no"
 model_trimming <- main_model_trimming # 0.1, min-max
 model_hyperparam_sel <- "best"
 model_post_sel <- FALSE
+cov_balance <- main_cov_balance
 
 # for lasso and xgboost higher K as they are computationally faster
 model_k <- 4 
@@ -483,6 +485,7 @@ model_trimming <- main_model_trimming # 0.1, min-max
 model_post_sel <- FALSE
 probscore_separate <- TRUE
 hyperparam_sel <- "best"
+cov_balance  <- main_cov_balance
 
 # for lasso and xgboost higher K as they are computationally faster
 model_k <- 4 
@@ -512,6 +515,16 @@ model_post_sel <- TRUE
 multi_model_algo <- "postlasso"
 source("Scripts/11_b_DML_Multi.R") 
 model_post_sel <- FALSE
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### Covariate Balance ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+model_trimming <- main_model_trimming 
+source("Scripts/12_b_Assessment_Covariate_Balance.R") 
+eval(parse(text = keep_after_file_run))
+gc()
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%#
