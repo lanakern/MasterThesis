@@ -135,7 +135,7 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
   if (str_detect(outcome, "grade")) {
     xgb_grid <- expand.grid(
       tree_depth = c(3, 6, 9), # default: 6
-      trees = c(15, 50), # default: 15 
+      trees = c(15, 50, 100), # default: 15 
       learn_rate = c(0.01, 0.3), # default: 0.3
       mtry = c(floor(sqrt(num_X)), round(num_X)/2, round(num_X)), # default: p (X)
       min_n = c(1, 3) # default: 1
@@ -321,7 +321,8 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
         # make predictions
         xgb_ml <- func_ml_xgboost(
           treatment_setting, data_train, data_test, outcome, treatment, group, K_tuning, 
-          xgb_grid, probscore_separate = probscore_separate, probscore_normalize = TRUE
+          xgb_grid, probscore_separate = probscore_separate, probscore_normalize = TRUE,
+          model_hyperparam_sel
           )
         
         # append predictions to data frame
