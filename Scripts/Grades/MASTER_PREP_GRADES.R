@@ -300,6 +300,7 @@ for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
 # Second create the final estimation samples. Here subsetting takes place.
 # For example, regarding extracuriccular activities or treatment replacement.
 # Also treatment group definition of "all" is considered.
+cov_balance <- "yes"
 for (prep_sel_num in 1:nrow(df_inputs)) {
   
   print(paste0("START COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs)))
@@ -310,7 +311,6 @@ for (prep_sel_num in 1:nrow(df_inputs)) {
   treatment_def <- df_inputs_sel$treatment_def
   extra_act <- df_inputs_sel$extra_act
   
-
   source("Scripts/Grades/10_b_Estimation_Sample.R") 
   
   print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs)))

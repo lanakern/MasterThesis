@@ -32,6 +32,12 @@ if (extra_act == "yes") {
   extra_act_save <- ""
 }
 
+if (cov_balance == "yes") {
+  cov_balance_save <- "_covbal"
+} else {
+  cov_balance_save <- ""
+}
+
 # number of columns may differ across MICE data sets
 data_binary_num_cols <- data.frame()
 data_binary_num_cols_nolags <- data.frame()
@@ -64,6 +70,17 @@ for (mice_data_sel in 1:5) {
   
   # ungroup and correct data types
   data_final <- data_final_raw %>% ungroup() %>% type.convert(as.is = TRUE)
+  
+  #+++ NEU 
+  # drop interview_start_year_num %in% c(1,8) and respective dummies to enforce
+  # common support
+  if (cohort_prep == "controls_same_outcome" & cov_balance == "yes") {
+    data_final <- data_final %>% filter(!interview_start_year_num %in% c(1,8)) %>%
+      dplyr::select(-contains("interview_end_year_2018"), -contains("interview_start_year_2018"))
+  } else {
+    data_final <- data_final
+  }
+  #+++
   
   # change treatment group to all sport participation levels
   if (treatment_def == "all" & cohort_prep == main_cohort_prep) {
@@ -128,10 +145,10 @@ for (mice_data_sel in 1:5) {
   
   if (cohort_prep == "controls_same_outcome") {
     saveRDS(data_binary, paste0("Data/Grades/Prep_10/prep_10_dml_binary_all_", treatment_def, "_", 
-                                treatment_repl, extra_act_save, "_mice", mice_data_sel, ".rds"))
+                                treatment_repl, extra_act_save, cov_balance_save, "_mice", mice_data_sel, ".rds"))
   } else {
     saveRDS(data_binary, paste0("Data/Grades/Prep_10/prep_10_dml_binary_all_", treatment_def, "_", 
-                                treatment_repl, extra_act_save, "_robustcheck_mice", mice_data_sel, ".rds"))
+                                treatment_repl, extra_act_save, cov_balance_save, "_robustcheck_mice", mice_data_sel, ".rds"))
   }
   
   
@@ -152,6 +169,7 @@ for (mice_data_sel in 1:5) {
       "data_prep_treatment_repl" = treatment_repl,
       "data_prep_treatment_def" = treatment_def,
       "data_prep_extraact" = extra_act, 
+      "data_prep_covbal" = cov_balance,
       "num_id" = mean(data_binary_num_cols$num_id), 
       "num_rows" = mean(data_binary_num_cols$num_rows),
       "num_cols" = mean(data_binary_num_cols$num_cols),
@@ -179,6 +197,7 @@ for (mice_data_sel in 1:5) {
       "data_prep_treatment_repl" = treatment_repl,
       "data_prep_treatment_def" = treatment_def,
       "data_prep_extraact" = extra_act, 
+      "data_prep_covbal" = cov_balance,
       "num_id" = mean(data_binary_num_cols_nolags$num_id), 
       "num_rows" = mean(data_binary_num_cols_nolags$num_rows),
       "num_cols" = mean(data_binary_num_cols_nolags$num_cols),
@@ -200,12 +219,12 @@ for (mice_data_sel in 1:5) {
   if (cohort_prep == "controls_same_outcome") {
       saveRDS(data_all_plus, 
               paste0("Data/Grades/Prep_10/prep_10_dml_binary_allintpoly_", treatment_def, "_",
-                     treatment_repl, extra_act_save, "_mice", mice_data_sel, ".rds")
+                     treatment_repl, extra_act_save, cov_balance_save, "_mice", mice_data_sel, ".rds")
               )
   } else {
       saveRDS(data_all_plus, 
               paste0("Data/Grades/Prep_10/prep_10_dml_binary_allintpoly_", treatment_def, "_",
-                     treatment_repl, extra_act_save, "_robustcheck_mice", mice_data_sel, ".rds")
+                     treatment_repl, extra_act_save, cov_balance_save, "_robustcheck_mice", mice_data_sel, ".rds")
               )
   }
   
@@ -224,6 +243,7 @@ for (mice_data_sel in 1:5) {
         "data_prep_treatment_repl" = treatment_repl,
         "data_prep_treatment_def" = treatment_def,
         "data_prep_extraact" = extra_act,
+        "data_prep_covbal" = cov_balance,
         "num_id" = mean(data_binary_num_cols_all$num_id),
         "num_rows" = mean(data_binary_num_cols_all$num_rows),
         "num_cols" = mean(data_binary_num_cols_all$num_cols),
@@ -277,11 +297,11 @@ for (mice_data_sel in 1:5) {
   if (cohort_prep == "controls_same_outcome") {
     saveRDS(data_multi_all, 
             paste0("Data/Grades/Prep_10/prep_10_dml_multi_all_", treatment_def, "_",
-                   treatment_repl, extra_act_save, "_mice", mice_data_sel, ".rds"))
+                   treatment_repl, extra_act_save, cov_balance_save, "_mice", mice_data_sel, ".rds"))
   } else {
     saveRDS(data_multi_all, 
             paste0("Data/Grades/Prep_10/prep_10_dml_multi_all_", treatment_def, "_",
-                   treatment_repl, extra_act_save, "_robustcheck_mice", mice_data_sel, ".rds"))
+                   treatment_repl, extra_act_save, cov_balance_save, "_robustcheck_mice", mice_data_sel, ".rds"))
   }
   
   
@@ -299,6 +319,7 @@ for (mice_data_sel in 1:5) {
       "data_prep_treatment_repl" = treatment_repl,
       "data_prep_treatment_def" = treatment_def,
       "data_prep_extraact" = extra_act,
+      "data_prep_covbal" = cov_balance,
       "num_id" = mean(data_multi_num_cols$num_id),
       "num_rows" = mean(data_multi_num_cols$num_rows),
       "num_cols" = mean(data_multi_num_cols$num_cols),
@@ -326,6 +347,7 @@ for (mice_data_sel in 1:5) {
       "data_prep_treatment_repl" = treatment_repl,
       "data_prep_treatment_def" = treatment_def,
       "data_prep_extraact" = extra_act, 
+      "data_prep_covbal" = cov_balance,
       "num_id" = mean(data_multi_num_cols_nolags$num_id), 
       "num_rows" = mean(data_multi_num_cols_nolags$num_rows),
       "num_cols" = mean(data_multi_num_cols_nolags$num_cols),
@@ -346,12 +368,12 @@ for (mice_data_sel in 1:5) {
   if (cohort_prep == "controls_same_outcome") {
       saveRDS(data_multi_all_plus, 
               paste0("Data/Grades/Prep_10/prep_10_dml_multi_allintpoly_", treatment_def, "_",
-                     treatment_repl, extra_act_save, "_mice", mice_data_sel, ".rds")
+                     treatment_repl, extra_act_save, cov_balance_save, "_mice", mice_data_sel, ".rds")
       )
   } else {
       saveRDS(data_multi_all_plus, 
               paste0("Data/Grades/Prep_10/prep_10_dml_multi_allintpoly_", treatment_def, "_",
-                     treatment_repl, extra_act_save, "_robustcheck_mice", mice_data_sel, ".rds")
+                     treatment_repl, extra_act_save, cov_balance_save, "_robustcheck_mice", mice_data_sel, ".rds")
       )
   }
     
@@ -371,6 +393,7 @@ for (mice_data_sel in 1:5) {
         "data_prep_treatment_repl" = treatment_repl,
         "data_prep_treatment_def" = treatment_def,
         "data_prep_extraact" = extra_act,
+        "data_prep_covbal" = cov_balance,
         "num_id" = mean(data_multi_num_cols_all$num_id),
         "num_rows" = mean(data_multi_num_cols_all$num_rows),
         "num_cols" = mean(data_multi_num_cols_all$num_cols),

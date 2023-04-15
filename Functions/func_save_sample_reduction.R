@@ -22,13 +22,22 @@ func_save_sample_reduction <- function(data, outcome) {
   if (!"data_prep_step_2" %in% colnames(data)) {
     data <- data %>% mutate(data_prep_step_2 = NA)
   }
+  if (!"data_prep_covbal" %in% colnames(data)) {
+    data <- data %>% mutate(data_prep_step_2 = NA)
+  }
   
-  data <- data %>% dplyr::select(
-    data_prep_step, data_prep_step_2, data_prep_choice_cohort, data_prep_treatment_repl,
-    data_prep_treatment_def, data_prep_extraact, num_id, num_rows, num_cols, time_stamp
+  if (outcome == "grade") {
+    data <- data %>% dplyr::select(
+      data_prep_step, data_prep_step_2, data_prep_choice_cohort, data_prep_treatment_repl,
+      data_prep_treatment_def, data_prep_extraact, data_prep_covbal, num_id, num_rows, num_cols, time_stamp
     )
-  
-  
+  } else {
+    data <- data %>% dplyr::select(
+      data_prep_step, data_prep_step_2, data_prep_choice_cohort, data_prep_treatment_repl,
+      data_prep_treatment_def, data_prep_extraact, num_id, num_rows, num_cols, time_stamp
+    )
+  }
+
   # load history
   if (outcome == "grade") {
     df_excel_save_hist <- read.xlsx("Output/SAMPLE_REDUCTION_STEPS_GRADES.xlsx", sheetName = "Sheet1")
@@ -44,19 +53,36 @@ func_save_sample_reduction <- function(data, outcome) {
     df_excel_save_hist <- df_excel_save_hist %>% mutate(data_prep_treatment_def = NA)
   }
   
-  df_excel_save_hist <- df_excel_save_hist %>% 
-    dplyr::select(data_prep_step, data_prep_step_2, data_prep_choice_cohort, data_prep_treatment_repl,
-                  data_prep_treatment_def, data_prep_extraact, num_id, num_rows, num_cols, time_stamp)
+  if (outcome == "grade") {
+    df_excel_save_hist <- df_excel_save_hist %>% 
+      dplyr::select(data_prep_step, data_prep_step_2, data_prep_choice_cohort, data_prep_treatment_repl,
+                    data_prep_treatment_def, data_prep_extraact, data_prep_covbal, 
+                    num_id, num_rows, num_cols, time_stamp)
+  } else {
+    df_excel_save_hist <- df_excel_save_hist %>% 
+      dplyr::select(data_prep_step, data_prep_step_2, data_prep_choice_cohort, data_prep_treatment_repl,
+                    data_prep_treatment_def, data_prep_extraact, num_id, num_rows, num_cols, time_stamp)
+  }
+
   
   
   # append current data frame
   df_excel_save <- rbind(df_excel_save_hist, data)
   # in case of duplicate, keep the most recent observation
-  df_excel_save <- df_excel_save %>%
-    group_by(data_prep_step, data_prep_step_2, data_prep_choice_cohort, data_prep_treatment_repl, 
-             data_prep_treatment_def, data_prep_extraact) %>%
-    filter(time_stamp == max(time_stamp)) %>%
-    ungroup() %>% data.frame()
+  if (outcome == "grade") {
+    df_excel_save <- df_excel_save %>%
+      group_by(data_prep_step, data_prep_step_2, data_prep_choice_cohort, data_prep_treatment_repl, 
+               data_prep_treatment_def, data_prep_extraact, data_prep_covbal) %>%
+      filter(time_stamp == max(time_stamp)) %>%
+      ungroup() %>% data.frame()
+  } else {
+    df_excel_save <- df_excel_save %>%
+      group_by(data_prep_step, data_prep_step_2, data_prep_choice_cohort, data_prep_treatment_repl, 
+               data_prep_treatment_def, data_prep_extraact) %>%
+      filter(time_stamp == max(time_stamp)) %>%
+      ungroup() %>% data.frame()
+  }
+
   
   df_excel_save <- df_excel_save %>% distinct()
 
