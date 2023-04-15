@@ -45,7 +45,7 @@
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 func_ml_xgboost <- function(treatment_setting, data_train, data_test, outcome, treatment, group, K, xgb_grid,
-                            probscore_separate = TRUE, probscore_normalize = TRUE) {
+                            probscore_separate = TRUE, probscore_normalize = TRUE, hyperparam_sel) {
   
   # check inputs
   if (!treatment_setting %in% c("binary", "multi")) {
