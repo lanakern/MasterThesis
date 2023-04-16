@@ -147,14 +147,14 @@ for (mice_data_sel in 1:5) {
   #%%%%%%%%%%%%%%%%%%#
   
   # only save common support plot for main model
-  if (cohort_prep == main_cohort_prep & treatment_def == main_treatment_def  &
-      treatment_repl == main_treatment_repl & extra_act == main_extra_act & 
-      model_type == main_model_type & model_controls_lag == main_model_controls_lag &
-      model_controls_endog == main_model_controls_endog) {
-    save_trimming_sel <- TRUE
-  } else {
-    save_trimming_sel <- FALSE
-  }
+  # if (cohort_prep == main_cohort_prep & treatment_def == main_treatment_def  &
+  #     treatment_repl == main_treatment_repl & extra_act == main_extra_act & 
+  #     model_type == main_model_type & model_controls_lag == main_model_controls_lag &
+  #     model_controls_endog == main_model_controls_endog) {
+  #   save_trimming_sel <- TRUE
+  # } else {
+  #   save_trimming_sel <- FALSE
+  # }
 
   # run DML
   dml_result <- func_dml(
@@ -163,7 +163,7 @@ for (mice_data_sel in 1:5) {
     K = model_k, K_tuning = model_k_tuning, S = model_s_rep, 
     mlalgo = multi_model_algo, trimming = model_trimming, 
     # save common support plot
-    save_trimming = save_trimming_sel,
+    save_trimming = FALSE,
     # model generation: separate 
     probscore_separate = probscore_separate, mice_sel = mice_data_sel,
     post = model_post_sel
@@ -228,8 +228,8 @@ dml_result_save <- dml_result_pooled %>%
     model_trimming = model_trimming, model_controls_lag = model_controls_lag,
     model_controls_endog = model_controls_endog, model_covbal = cov_balance, 
     # number of treatment periods before and after after trimming
-    n_treats_before = min(unlist(lapply(lapply(dml_result_all, "[[" , "trimming"), "[[", "n_treats_before"))), 
-    n_treats_after = min(unlist(lapply(lapply(dml_result_all, "[[" , "trimming"), "[[", "n_treats_after"))), 
+    n_treats_before = round(mean(unlist(lapply(lapply(dml_result_all, "[[" , "trimming"), "[[", "n_treats_before")))), 
+    n_treats_after = round(mean(lapply(lapply(dml_result_all, "[[" , "trimming"), "[[", "n_treats_after")))), 
     # type of model generation
     Treatment_model_separate = probscore_separate, 
     # add date

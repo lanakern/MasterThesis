@@ -144,21 +144,21 @@ for (mice_data_sel in 1:5) {
   #%%%%%%%%%%%%%%%%%%#
   
   # only save common support plot for main model
-  if (cohort_prep == main_cohort_prep & treatment_def == main_treatment_def  &
-      treatment_repl == main_treatment_repl & extra_act == main_extra_act & 
-      model_type == main_model_type & model_controls_lag == main_model_controls_lag &
-      model_controls_endog == main_model_controls_endog) {
-    save_trimming_sel <- TRUE
-  } else {
-    save_trimming_sel <- FALSE
-  }
+  # if (cohort_prep == main_cohort_prep & treatment_def == main_treatment_def  &
+  #     treatment_repl == main_treatment_repl & extra_act == main_extra_act & 
+  #     model_type == main_model_type & model_controls_lag == main_model_controls_lag &
+  #     model_controls_endog == main_model_controls_endog) {
+  #   save_trimming_sel <- TRUE
+  # } else {
+  #   save_trimming_sel <- FALSE
+  # }
   
   # run DML
   dml_result <- func_dml(
     treatment_setting, data = data_dml, 
     outcome = outcome_var, treatment = "treatment_sport", group = "group", 
     K = model_k, K_tuning = model_k_tuning, S = model_s_rep, 
-    mlalgo = model_algo, trimming = model_trimming, save_trimming = save_trimming_sel,
+    mlalgo = model_algo, trimming = model_trimming, save_trimming = FALSE,
     mice_sel = mice_data_sel, hyperparam_sel = model_hyperparam_sel, post = model_post_sel
   )
   
@@ -221,8 +221,8 @@ dml_result_save <- dml_result_pooled %>%
     model_controls_lag = model_controls_lag, model_controls_endog = model_controls_endog,
     model_hyperparam_sel = model_hyperparam_sel, model_covbal = cov_balance, 
     # number of treatment periods before and after after trimming
-    n_treats_before = min(unlist(lapply(lapply(dml_result_all, "[[" , "trimming"), "[[", "n_treats_before"))), 
-    n_treats_after = min(unlist(lapply(lapply(dml_result_all, "[[" , "trimming"), "[[", "n_treats_after"))), 
+    n_treats_before = round(mean(unlist(lapply(lapply(dml_result_all, "[[" , "trimming"), "[[", "n_treats_before")))), 
+    n_treats_after = round(mean(unlist(lapply(lapply(dml_result_all, "[[" , "trimming"), "[[", "n_treats_after")))), 
     # add date
     time_stamp = as.character(Sys.time()),
     # addt time

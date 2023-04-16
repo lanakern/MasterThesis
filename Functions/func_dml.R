@@ -90,6 +90,7 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
   df_error_all <- data.frame()
   df_result_all_detailed <- data.frame()
   df_trimming_all <- data.frame()
+  df_pred_bef_trimming_all <- data.frame()
   
   # generate empty vectors
   min_trimming_all <- c()
@@ -372,6 +373,7 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
       
       # for sub-setting adjust row names / numbering of rows
       data_pred <- data.frame(data_pred)
+      df_pred_bef_trimming_all <- rbind(df_pred_bef_trimming_all, data_pred)
       data_test <- data.frame(data_test)
       
       rownames(data_pred) <- 1:nrow(data_pred)
@@ -625,19 +627,21 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
       return(list("final" = df_result_all, "detail" = df_result_all_detailed,
                   "error" = df_error_all, "param" = df_param_all,
                   "trimming" = df_trimming_all, "predictors" = df_predictors_all,
-                  "pred" = df_pred_all, "coef" = df_coef_all, 
+                  "pred" = df_pred_all, "pred_bef_trimming" = df_pred_bef_trimming_all,
+                  "coef" = df_coef_all, 
                   "cov_balance" = df_cov_bal_all))
     } else {
       return(list("final" = df_result_all, "detail" = df_result_all_detailed,
                   "error" = df_error_all, "param" = df_param_all,
                   "trimming" = df_trimming_all, "predictors" = df_predictors_all,
-                  "pred" = df_pred_all, "coef" = df_coef_all))
+                  "pred" = df_pred_all, "pred_bef_trimming" = df_pred_bef_trimming_all,
+                  "coef" = df_coef_all))
     }
   } else {
     return(list("final" = df_result_all, "detail" = df_result_all_detailed,
                 "error" = df_error_all, "param" = df_param_all,
                 "trimming" = df_trimming_all, "predictors" = df_predictors_all,
-                "pred" = df_pred_all))
+                "pred" = df_pred_all, "pred_bef_trimming" = df_pred_bef_trimming_all))
   }
 
 }
