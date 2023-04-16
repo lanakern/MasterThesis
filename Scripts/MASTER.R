@@ -119,14 +119,11 @@ library(rsample)  # for k-fold cross-fitting (group_vfold_cv )
 if (!require("glmnet")) install.packages("glmnet")
 library(glmnet)  # for lasso
 
-# if (!require("hdm")) install.packages("hdm")
-# library(hdm)  # for rlasso() (-> post-lasso)
-
 if (!require("xgboost")) install.packages("xgboost")
 library(xgboost)  # for xgboost()
 
 if (!require("randomForest")) install.packages("randomForest")
-library(randomForest)  # for xgboost()
+library(randomForest)  # for randomForest()
 
 if (!require("DoubleML")) install.packages("DoubleML")
 library(DoubleML)  # for applying DML with function
@@ -134,14 +131,8 @@ library(DoubleML)  # for applying DML with function
 if (!require("mlr3")) install.packages("mlr3")
 library(mlr3)  # for applying DML with function
 
-# ONLY DONE IN FILE 12_d because it makes troubles!
-# if (!require("devtools")) install.packages("devtools")
-# library(devtools)  # for install_github()
-# install_github(repo = "MCKnaus/dmlmt") # download package
-# library(dmlmt) # for DML in multivalued treatment setting
-
 if (!require("caret")) install.packages("caret")
-library(caret)  # for confusingMatrix()
+library(caret)  # for confusionMatrix()
 
 if (!require("janitor")) install.packages("janitor")
 library(janitor)  # for remove_constant() (-> dropping constant variables)
@@ -155,17 +146,17 @@ library(purrr) # for reduce function (union of variables)
 if (!require("MASS")) install.packages("MASS")
 library(MASS) # for ginv() function (-> weights for covariate balancing)
 
-# if (!require("cobalt")) install.packages("cobalt")
-# library(cobalt) # for bal.tab() function (covariate balance assessment)
-
 if (!require("vip")) install.packages("vip")
 library(vip) # for feature importance
 
 if (!require("ggpubr")) install.packages("ggpubr") 
-library(ggpubr) # for arranging multip?e plots in one plot
+library(ggpubr) # for arranging multiple plots in one plot
 
 if (!require("regclass")) install.packages("regclass") 
-library(regclass) # for arranging multip?e plots in one plot
+library(regclass) # for VIP()
+
+if (!require("cobalt")) install.packages("cobalt") 
+library(cobalt) # for checking own covariance balance calculation
 
 # set language for dates and times to German, since the NEPS month names
 # are written in German; otherwise date/time functions are not working
@@ -522,6 +513,7 @@ model_post_sel <- FALSE
 #%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 model_trimming <- main_model_trimming 
+cov_balance <- "yes"
 source("Scripts/12_b_Assessment_Covariate_Balance.R") 
 eval(parse(text = keep_after_file_run))
 gc()
