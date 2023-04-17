@@ -337,8 +337,13 @@ func_ml_rf <- function(treatment_setting, data_train, data_test, outcome, treatm
     ## confounding factors / predictors: all variables except variables including treatment information, outcome, and group
     X_controls <- data_train %>% 
       dplyr::select(-c(all_of(outcome), starts_with(treatment), all_of(group))) %>% colnames()
-    X_controls <- c(X_controls, "treatment_sport_freq_na", "treatment_sport_freq_source_leisure", 
-                    "treatment_sport_freq_source_uni")
+    X_controls <- c(X_controls, "treatment_sport_freq_na")
+    if ("treatment_sport_freq_source_leisure" %in% colnames(data_train)) {
+      X_controls <- c(X_controls, "treatment_sport_freq_source_leisure")
+    }
+    if ("treatment_sport_freq_source_uni" %in% colnames(data_train)) {
+      X_controls <- c(X_controls, "treatment_sport_freq_source_uni")
+    }
     if ("treatment_sport_freq_lag" %in% ncol(data_train)) {
       X_controls <- c(X_controls, "treatment_sport_freq_lag")
     }
