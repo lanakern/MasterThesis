@@ -229,7 +229,7 @@ dml_result_save <- dml_result_pooled %>%
     model_controls_endog = model_controls_endog, model_covbal = cov_balance, 
     # number of treatment periods before and after after trimming
     n_treats_before = round(mean(unlist(lapply(lapply(dml_result_all, "[[" , "trimming"), "[[", "n_treats_before")))), 
-    n_treats_after = round(mean(lapply(lapply(dml_result_all, "[[" , "trimming"), "[[", "n_treats_after")))), 
+    n_treats_after = round(mean(unlist(lapply(lapply(dml_result_all, "[[" , "trimming"), "[[", "n_treats_after")))), 
     # type of model generation
     Treatment_model_separate = probscore_separate, 
     # add date
