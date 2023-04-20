@@ -152,6 +152,9 @@ library(vip) # for feature importance
 if (!require("ggpubr")) install.packages("ggpubr") 
 library(ggpubr) # for arranging multiple plots in one plot
 
+if (!require("geomtextpath")) install.packages("geomtextpath") 
+library(geomtextpath) # for geom_textvline()
+
 if (!require("regclass")) install.packages("regclass") 
 library(regclass) # for VIP()
 
@@ -180,7 +183,7 @@ main_model_treatment <- "binary"
 main_model_type <- "all"
 main_model_k <- 4
 main_model_k_tuning <- 2
-main_model_s_rep <- 2
+main_model_s_rep <- 5
 main_model_trimming <- "min-max"
 main_model_controls_lag <- "no_treatment_outcome_lags" # "no_lags", "all"
 main_model_controls_endog  <- "yes"
@@ -223,7 +226,7 @@ keep_after_file_run <- 'rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl
 "df_inputs", "df_inputs_indiv", "df_inputs_dml", "df_inputs_dml_lasso",
  "keep_after_file_run", "vars_baseline", "model_type", "model_algo", "model_post_sel",
 "model_k", "model_k_tuning", "model_s_rep", "model_trimming", "model_controls_lag", 
-"model_controls_endog", "model_outcome", "dml_num", "probscore_separate", 
+"model_controls_endog", "model_outcome", "dml_num", "probscore_separate", "cov_balance", 
 "treatment_setting", "outcome_var", "outcome_var_multi", "vars_endogenous",  
 ls()[str_starts(ls(), "func_")], ls()[str_starts(ls(), "main_")])))'
 
@@ -236,7 +239,6 @@ load_function <- paste0("Functions/", list.files(path = "Functions/"))
 for (func_load in load_function) {
   source(func_load)
 }
-
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -330,6 +332,7 @@ model_controls_endog <- main_model_controls_endog
 model_trimming <- main_model_trimming
 model_hyperparam_sel <- "best"
 model_post_sel <- FALSE
+cov_balance <- main_cov_balance
 
 model_k <- 4 
 model_k_tuning <- 2 
@@ -508,42 +511,6 @@ source("Scripts/11_b_DML_Multi.R")
 model_post_sel <- FALSE
 
 
-#%%%%%%%%%%%%%%%%%%%%%%%%%#
-#### Covariate Balance ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%#
-
-model_trimming <- main_model_trimming 
-cov_balance <- "yes"
-source("Scripts/12_b_Assessment_Covariate_Balance.R") 
-eval(parse(text = keep_after_file_run))
-gc()
-
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%#
-#### Feature Importance ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%#
-
-# only generated for main model
-treatment_setting <- "binary"
-cohort_prep <- main_cohort_prep 
-treatment_repl <- main_treatment_repl 
-treatment_def <- main_treatment_def 
-extra_act <- main_extra_act 
-model_type <- main_model_type 
-model_controls_lag <- main_model_controls_lag 
-model_controls_endog <- main_model_controls_endog 
-model_trimming <- main_model_trimming 
-model_post_sel <- FALSE
-model_k <- 4 
-model_k_tuning <- 2 
-model_s_rep <- 5 
-n_features <- 30
-n_features_multi <- 10
-
-source("Scripts/12_c_FeatureImportance.R") 
-
-eval(parse(text = keep_after_file_run))
-gc()
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 #### SENSITIVITY WRT HYPERPARAMETERS ####
@@ -559,15 +526,68 @@ model_type <- main_model_type
 model_controls_lag <- main_model_controls_lag 
 model_controls_endog <- main_model_controls_endog 
 model_trimming <- main_model_trimming 
-model_post_sel <- FALSE
 model_k <- 4 
 model_k_tuning <- 2 
 model_s_rep <- 5 
-model_hyperparam_sel <- "1SE"
 
-## LASSO ##
-model_algo <- "lasso"
+## POST-LASSO ##
+model_algo <- "postlasso"
+model_post_sel <- TRUE
+model_hyperparam_sel <- "1SE"
 source("Scripts/11_a_DML_Binary.R") 
 
 model_hyperparam_sel <- "1SE_plus"
 source("Scripts/11_a_DML_Binary.R") 
+
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%#
+#### ANALYZE RESULTS ####
+#%%%%%%%%%%%%%%%%%%%%%%%#
+
+treatment_setting <- "binary"
+cohort_prep <- main_cohort_prep 
+treatment_repl <- main_treatment_repl 
+treatment_def <- main_treatment_def 
+extra_act <- main_extra_act 
+model_type <- main_model_type 
+model_controls_lag <- main_model_controls_lag 
+model_controls_endog <- main_model_controls_endog 
+model_trimming <- main_model_trimming 
+cov_balance <- main_cov_balance
+model_post_sel <- FALSE
+model_k <- 4
+model_k_tuning <- 2
+model_s_rep <- 5
+
+
+#### Overall ####
+#+++++++++++++++#
+
+source("Scripts/12_a_DML_Results.R") 
+eval(parse(text = keep_after_file_run))
+gc()
+
+#### Covariate Balance ####
+#+++++++++++++++++++++++++#
+
+source("Scripts/12_b_Assessment_Covariate_Balance.R") 
+eval(parse(text = keep_after_file_run))
+gc()
+
+
+#### Feature Importance ####
+#++++++++++++++++++++++++++#
+
+n_features <- 20
+n_features_pers <- 10
+n_features_multi <- 10
+
+source("Scripts/12_c_FeatureImportance.R") 
+
+eval(parse(text = keep_after_file_run))
+gc()
+
+
+
+
