@@ -132,6 +132,15 @@ func_ml_error_metrics <- function(treatment_setting, data_pred, S_rep, fold_sel,
         data_pred$m3_class <- factor(data_pred$m3_class, levels = c(0, 1))
       }
     
+      if (length(unique(data_pred$m1_treatment)) == 1) {
+        data_pred$m1_treatment <- factor(data_pred$m1_treatment, levels = c(0, 1))
+      } 
+      if (length(unique(data_pred$m2_treatment)) == 1) {
+        data_pred$m2_treatment <- factor(data_pred$m2_treatment, levels = c(0, 1))
+      }
+      if (length(unique(data_pred$m3_treatment)) == 1) {
+        data_pred$m3_treatment <- factor(data_pred$m3_treatment, levels = c(0, 1))
+      }
       
       # confusion matrices
       m1_conf_matrix <- confusionMatrix(data_pred$m1_class, data_pred$m1_treatment)
