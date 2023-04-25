@@ -164,9 +164,12 @@ gc()
 create_interactions <- "yes" 
   
 # Prepare control variables
-source("Scripts/Personality/10_Estimation_Sample_Personality.R") 
+source("Scripts/Personality/10_a_Estimation_Sample_Personality.R") 
 eval(parse(text = keep_after_file_run))
 gc()
+
+# Mean outcome variable comparison
+source("Scripts/Personality/10_b_Estimation_Sample_Descriptives_Personality.R") 
 
 
 #### Show Sample Reduction ####

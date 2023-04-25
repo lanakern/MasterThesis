@@ -319,6 +319,19 @@ for (prep_sel_num in 1:nrow(df_inputs)) {
 }
 
 
+#### Descriptives ####
+#++++++++++++++++++++#
+
+# only for main model
+cohort_prep <- main_cohort_prep
+treatment_repl <- main_treatment_repl
+treatment_def <- main_treatment_def
+extra_act <- main_extra_act
+cov_balance <- main_cov_balance
+model_type <- main_model_type
+
+source("Scripts/Personality/10_c_Estimation_Sample_Descriptives.R") 
+
 #### Show Sample Reduction ####
 #+++++++++++++++++++++++++++++#
 
