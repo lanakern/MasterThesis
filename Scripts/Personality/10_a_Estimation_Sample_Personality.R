@@ -71,7 +71,6 @@ for (mice_data_sel in 1:5) {
   # ungroup and correct data types
   data_final <- data_final_raw %>% ungroup() %>% type.convert(as.is = TRUE)
   
-  #+++ NEU 
   # drop interview_start_year_num %in% c(1,8) and respective dummies to enforce
   # common support
   if (cohort_prep == "controls_same_outcome" & cov_balance == "yes") {
@@ -80,11 +79,11 @@ for (mice_data_sel in 1:5) {
   } else {
     data_final <- data_final
   }
-  #+++
-  #+
-
   
+  if (mice_data_sel == 1) {saveRDS(data_final, "Data/Personality/Prep_10/COMPARE_ID_PERSONALITY.rds")}
+
   # drop ID_t, interview_date, etc. which is not used in the estimation
+  # also drop personality variables which are closely related to the outcome
   data_final <- data_final %>% 
     # instead of id enumerator is established which corresponds to which
     # group the observation belongs; this info is only used for sample splitting
@@ -92,7 +91,10 @@ for (mice_data_sel in 1:5) {
     mutate(group = as.integer(factor(id_t,levels = unique(id_t))))  %>%
     dplyr::select(-c(id_t, starts_with("interview_date"), 
                      starts_with("na_count"), ends_with("_cat"), ends_with("_cat_lag"),
-                     starts_with("uni_time_employment"), starts_with("uni_entrance_quali_access_")))
+                     starts_with("uni_time_employment"), starts_with("uni_entrance_quali_access_"),
+                     starts_with("personality_sociable"), starts_with("personality_criticize"),
+                     starts_with("personality_thorough"), starts_with("personality_nervous"), 
+                     starts_with("personality_imaginative"), starts_with("personality_sensitive")))
   
   # also drop big five lags because they are identical to true value
   data_final <- data_final %>% dplyr::select(-c(starts_with("bigfive") & ends_with("lag")))
@@ -235,8 +237,8 @@ for (mice_data_sel in 1:5) {
     ## load function
     source("Functions/func_save_sample_reduction.R")
     func_save_sample_reduction(df_excel_save, "personality")
-    gc()
   }
+  gc()
   
   # Only save for non-lag variables (but no extra data set)
   data_binary_lags <- data_binary %>% dplyr::select(-ends_with("_lag"))
@@ -262,9 +264,8 @@ for (mice_data_sel in 1:5) {
     ## load function
     source("Functions/func_save_sample_reduction.R")
     func_save_sample_reduction(df_excel_save, "personality")
-    gc()
   }
-  
+  gc()
   
   #### All + Interactions + Polynomials ####
   #++++++++++++++++++++++++++++++++++++++++#
@@ -313,10 +314,9 @@ for (mice_data_sel in 1:5) {
       ## load function
       source("Functions/func_save_sample_reduction.R")
       func_save_sample_reduction(df_excel_save, "personality")
-      gc()
     }
   }
-  
+  gc()
   
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
   #### MULTIPLE TREATMENT SETTING ####
@@ -387,9 +387,8 @@ for (mice_data_sel in 1:5) {
     ## load function
     source("Functions/func_save_sample_reduction.R")
     func_save_sample_reduction(df_excel_save, "personality")
-    gc()
   }  
-
+  gc()
 
   # Only save for non-lag variables (but no extra data set)
   data_multi_all_lags <- data_multi_all %>% dplyr::select(-ends_with("_lag"))
@@ -415,9 +414,8 @@ for (mice_data_sel in 1:5) {
     ## load function
     source("Functions/func_save_sample_reduction.R")
     func_save_sample_reduction(df_excel_save, "personality")
-    gc()
   }
-  
+  gc()
   
   #### All + Interactions + Polynomials ####
   #++++++++++++++++++++++++++++++++++++++++#
@@ -487,7 +485,7 @@ for (mice_data_sel in 1:5) {
       ## load function
       source("Functions/func_save_sample_reduction.R")
       func_save_sample_reduction(df_excel_save, "personality")
-      gc()
     }
+    gc()
   }
 }
