@@ -256,9 +256,9 @@ Sys.setlocale("LC_TIME", "German") # because this is changed within the file
 source("Grades/MASTER_PREP_GRADES.R")
 
 
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-#### RUN DML MAIN MODEL: BINARY TREATMENT SETTING ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### RUN DML: BINARY TREATMENT SETTING ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 treatment_setting <- "binary"
 
@@ -269,8 +269,8 @@ treatment_setting <- "binary"
 outcome_var <- "outcome_grade"
 
 
-## MAIN MODEL ##
-#++++++++++++++#
+#### MAIN MODEL ####
+#++++++++++++++++++#
 
 cohort_prep <- main_cohort_prep # "controls_bef_outcome"
 treatment_repl <- main_treatment_repl # "no"
@@ -314,6 +314,66 @@ model_post_sel <- TRUE
 source("Scripts/11_a_DML_Binary.R") 
 model_post_sel <- FALSE
 
+
+
+#### ROBUSTNESS CHECKS ####
+#+++++++++++++++++++++++++#
+
+cohort_prep <- main_cohort_prep # "controls_bef_outcome"
+treatment_repl <- main_treatment_repl # "no"
+treatment_def <- main_treatment_def # "all"
+extra_act <- main_extra_act
+model_type <- main_model_type # "all_int_polys"
+model_controls_lag <- main_model_controls_lag # "no_lags", "all"
+model_controls_endog <- main_model_controls_endog # "no"
+model_trimming <- main_model_trimming # 0.1, min-max
+model_hyperparam_sel <- "best"
+model_post_sel <- TRUE # post-lasso
+cov_balance <- main_cov_balance
+model_k <- 4 
+model_k_tuning <- 2
+model_s_rep <- 5 
+model_algo <- "postlasso"
+
+## RC 1: All sport participants ##
+treatment_def <- "all"
+source("Scripts/11_a_DML_Binary.R") 
+treatment_def <- main_extra_act
+
+## RC 2: No LVCF ##
+treatment_repl <- "no"
+source("Scripts/11_a_DML_Binary.R") 
+treatment_repl <- main_treatment_repl
+
+## RC 3: No extracurricular activity ##
+extra_act <- "no"
+source("Scripts/11_a_DML_Binary.R") 
+extra_act <- main_extra_act
+
+## RC 4: No potentially endogeneous variables ##
+model_controls_endog <- "no"
+source("Scripts/11_a_DML_Binary.R") 
+model_controls_endog <- main_model_controls_endog
+
+## RC 5: No covariate balance drop ##
+cov_balance <- "no"
+source("Scripts/11_a_DML_Binary.R") 
+cov_balance <- main_cov_balance
+
+## RC 6: cohort_prep_before ##
+cov_balance <- "controls_bef_outcome"
+source("Scripts/11_a_DML_Binary.R") 
+cohort_prep <- main_cohort_prep 
+
+## RC 7: Include polynominals and interaction terms ##
+
+## RC 8: Include treatment and outcome lags ##
+
+## RC 9: Include no lags at all ##
+
+## RC 10: Change trimming thresholds ##
+
+## RC 11: Change K and S ##
 
 #%%%%%%%%%%%%%%%%%%%%%%#####%#
 #### Outcome: Personality ####
@@ -510,6 +570,50 @@ multi_model_algo <- "postlasso"
 source("Scripts/11_b_DML_Multi.R") 
 model_post_sel <- FALSE
 
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### Outome: Personality ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+cohort_prep <- main_cohort_prep # "controls_bef_outcome"
+treatment_repl <- main_treatment_repl # "no"
+treatment_def <- main_treatment_def # "all"
+extra_act <- main_extra_act # "no"
+model_type <- main_model_type # "all_int_polys"
+model_controls_lag <- main_model_controls_lag # "no_lags", "all"
+model_controls_endog <- main_model_controls_endog # "no"
+model_trimming <- main_model_trimming # 0.1, min-max
+model_post_sel <- FALSE
+probscore_separate <- TRUE
+hyperparam_sel <- "best"
+cov_balance  <- main_cov_balance
+
+# for lasso and xgboost higher K as they are computationally faster
+model_k <- 4 
+model_k_tuning <- 2 # 4
+model_s_rep <- 5 # 10
+
+
+#### Agreeableness ####
+outcome_var_multi <- "outcome_bigfive_agreeableness"
+
+multi_model_algo <- "postlasso"
+model_post_sel <- TRUE
+source("Scripts/11_b_DML_Multi.R") 
+model_post_sel <- FALSE
+gc()
+eval(parse(text = keep_after_file_run))
+
+#### Conscientiousness ####
+outcome_var_multi <- "outcome_bigfive_conscientiousness"
+
+multi_model_algo <- "postlasso"
+model_post_sel <- TRUE
+source("Scripts/11_b_DML_Multi.R") 
+model_post_sel <- FALSE
+gc()
+eval(parse(text = keep_after_file_run))
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
