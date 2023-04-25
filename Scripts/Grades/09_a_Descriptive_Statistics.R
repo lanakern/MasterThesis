@@ -99,16 +99,16 @@ data_outcome_descr <- left_join(
                 treatment_sport, num_obs, min, max, median, mean, everything())
 
 # save
-if (file.exists("Output/Descriptives/Grades/GRADES_TREATMENT_BINARY.rds")) {
-  data_outcome_descr_hist <- readRDS("Output/Descriptives/Grades/GRADES_TREATMENT_BINARY.rds")
-  data_outcome_descr_save <- rbind(data_outcome_descr_hist, data_outcome_descr) %>%
-    group_by(variable, cohort_prep , treatment_repl, treatment_def, extra_act_save) %>%
-    filter(time_stamp == max(time_stamp)) %>%
-    distinct() %>% ungroup() %>% data.frame()
-  saveRDS(data_outcome_descr_save, "Output/Descriptives/Grades/GRADES_TREATMENT_BINARY.rds")
-} else {
-  saveRDS(data_outcome_descr, "Output/Descriptives/Grades/GRADES_TREATMENT_BINARY.rds")
-}
+# if (file.exists("Output/Descriptives/Grades/GRADES_TREATMENT_BINARY.rds")) {
+#   data_outcome_descr_hist <- readRDS("Output/Descriptives/Grades/GRADES_TREATMENT_BINARY.rds")
+#   data_outcome_descr_save <- rbind(data_outcome_descr_hist, data_outcome_descr) %>%
+#     group_by(variable, cohort_prep , treatment_repl, treatment_def, extra_act_save) %>%
+#     filter(time_stamp == max(time_stamp)) %>%
+#     distinct() %>% ungroup() %>% data.frame()
+#   saveRDS(data_outcome_descr_save, "Output/Descriptives/Grades/GRADES_TREATMENT_BINARY.rds")
+# } else {
+#   saveRDS(data_outcome_descr, "Output/Descriptives/Grades/GRADES_TREATMENT_BINARY.rds")
+# }
 
 
 
@@ -124,8 +124,8 @@ plot_outcome_treatment_binary <-
   theme_bw() +
   guides(fill = guide_legend(title = "Treatment Group"))
   #geom_density()
-ggsave("Output/Descriptives/Grades/GRADES_PLOT_TREATMENT_BINARY.png", 
-       plot_outcome_treatment_binary)
+# ggsave("Output/Descriptives/Grades/GRADES_PLOT_TREATMENT_BINARY.png", 
+#        plot_outcome_treatment_binary)
 
 
 
@@ -469,16 +469,16 @@ data_outcome_descr_multi <- left_join(
                 treatment_sport_freq, num_obs, min, max, median, mean, everything())
 
 # save result
-if (file.exists("Output/Descriptives/Grades/GRADES_TREATMENT_MULTI.rds")) {
-  data_outcome_descr_hist <- readRDS("Output/Descriptives/Grades/GRADES_TREATMENT_MULTI.rds")
-  data_outcome_descr_save <- rbind(data_outcome_descr_hist, data_outcome_descr_multi) %>%
-    group_by(variable, cohort_prep , treatment_repl, treatment_def, extra_act_save) %>%
-    filter(time_stamp == max(time_stamp)) %>%
-    distinct() %>% ungroup() %>% data.frame()
-  saveRDS(data_outcome_descr_save, "Output/Descriptives/Grades/GRADES_TREATMENT_MULTI.rds")
-} else {
-  saveRDS(data_outcome_descr_multi, "Output/Descriptives/Grades/GRADES_TREATMENT_MULTI.rds")
-}
+# if (file.exists("Output/Descriptives/Grades/GRADES_TREATMENT_MULTI.rds")) {
+#   data_outcome_descr_hist <- readRDS("Output/Descriptives/Grades/GRADES_TREATMENT_MULTI.rds")
+#   data_outcome_descr_save <- rbind(data_outcome_descr_hist, data_outcome_descr_multi) %>%
+#     group_by(variable, cohort_prep , treatment_repl, treatment_def, extra_act_save) %>%
+#     filter(time_stamp == max(time_stamp)) %>%
+#     distinct() %>% ungroup() %>% data.frame()
+#   saveRDS(data_outcome_descr_save, "Output/Descriptives/Grades/GRADES_TREATMENT_MULTI.rds")
+# } else {
+#   saveRDS(data_outcome_descr_multi, "Output/Descriptives/Grades/GRADES_TREATMENT_MULTI.rds")
+# }
 
 
 
