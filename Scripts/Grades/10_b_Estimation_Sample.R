@@ -71,7 +71,6 @@ for (mice_data_sel in 1:5) {
   # ungroup and correct data types
   data_final <- data_final_raw %>% ungroup() %>% type.convert(as.is = TRUE)
   
-  #+++ NEU 
   # drop interview_start_year_num %in% c(1,8) and respective dummies to enforce
   # common support
   if (cohort_prep == "controls_same_outcome" & cov_balance == "yes") {
@@ -80,7 +79,6 @@ for (mice_data_sel in 1:5) {
   } else {
     data_final <- data_final
   }
-  #+++
   
   # change treatment group to all sport participation levels
   if (treatment_def == "all" & cohort_prep == main_cohort_prep) {
@@ -105,6 +103,9 @@ for (mice_data_sel in 1:5) {
   } else {
     data_final <- data_final
   }
+  
+  # save now for comparison with personality
+  if (mice_data_sel == 1) {saveRDS(data_final, "Data/Grades/Prep_10/COMPARE_ID_GRADES.rds")}
   
   # drop ID_t, interview_date, etc. which is not used in the estimation
   data_final <- data_final %>% 
