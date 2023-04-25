@@ -270,13 +270,13 @@ func_mean_comp <- function(df, y_variables, treatment_setting){
       # generate formula
       exp1 <- expr(!!ensym(y_variable) ~ !!ensym(x_variable))
       
-      df_multi_ttest_1 <- df %>% filter(treatment_sport_freq != "never")
+      df_multi_ttest_1 <- df %>% filter(treatment_sport_freq != 3)
       multi_ttest_1 <- t.test(formula = eval(exp1), data = df_multi_ttest_1)
       
-      df_multi_ttest_2 <- df %>% filter(treatment_sport_freq != "weekly_atleast")
+      df_multi_ttest_2 <- df %>% filter(treatment_sport_freq != 1)
       multi_ttest_2 <- t.test(formula = eval(exp1), data = df_multi_ttest_2)
       
-      df_multi_ttest_3 <- df %>% filter(treatment_sport_freq != "monthly_less")
+      df_multi_ttest_3 <- df %>% filter(treatment_sport_freq != 2)
       multi_ttest_3 <- t.test(formula = eval(exp1), data = df_multi_ttest_3)
       
       df_ttest_sub <- data.frame(
@@ -333,11 +333,11 @@ func_mean_comp <- function(df, y_variables, treatment_setting){
         variable = rep(y_variable, 4),
         treatment_sport_freq = c("weekly_atleast", "monthly_less", "never", "all"),
         p_value_daily_kruskal_pair = c(
-          NA, multi_ttest_kruskal_pairwise$p.value["weekly_atleast", "monthly_less"], 
-          multi_ttest_kruskal_pairwise$p.value["weekly_atleast", "never"], NA),
+          NA, multi_ttest_kruskal_pairwise$p.value["2", "1"], 
+          multi_ttest_kruskal_pairwise$p.value["3", "1"], NA),
         p_value_monthly_kruskal_pair = c(
-          multi_ttest_kruskal_pairwise$p.value["weekly_atleast", "monthly_less"], NA,
-          multi_ttest_kruskal_pairwise$p.value["never", "monthly_less"], NA)
+          multi_ttest_kruskal_pairwise$p.value["2", "1"], NA,
+          multi_ttest_kruskal_pairwise$p.value["3", "2"], NA)
       ) 
       
       df_ttest_kruskal_pairwise <- rbind(df_ttest_kruskal_pairwise, df_ttest_sub)
@@ -349,6 +349,12 @@ func_mean_comp <- function(df, y_variables, treatment_setting){
       left_join(df_ttest_kruskal_allgroups, by = c("variable", "treatment_sport_freq"))
     
     # combine: ttest and mean, se
+    data_mean_se <- data_mean_se %>%
+      mutate(treatment_sport_freq = case_when(
+        treatment_sport_freq == 1 ~ "weekly_atleast", treatment_sport_freq == 2 ~ "monthly_less",
+        treatment_sport_freq == 3 ~ "never", TRUE ~ "all"
+      ))
+    
     df_result <- left_join(data_mean_se, df_ttest, by = c("treatment_sport_freq", "variable")) %>%
       rename_with(~ str_replace(., ".*_se$", "se")) %>%
       dplyr::select(variable, cohort_prep, treatment_repl, treatment_def, extra_act_save, 
