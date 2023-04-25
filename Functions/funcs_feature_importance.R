@@ -46,9 +46,11 @@ func_feature_importance_plot <- function(treatment_setting, df_score, ml_algo, s
   
   if (treatment_setting == "binary") {
     
-    # Post-lasso has only one plot
-    if (!"Pred_Type" %in% colnames(df_score)) {
-      df_score %>% 
+    ## Aggregated over Outcome ##
+    if (length(unique(df_score$Pred_Type)) == 2) {
+      # Treatment
+      plot_m <- 
+        df_score %>% filter(str_detect(Pred_Type, "Treatment")) %>%
         ggplot(aes(y = reorder(Variable, Importance), x = Importance)) +
         geom_point(color = "black", size = 4) +
         scale_x_continuous(limits = c(0, max(df_score$Importance) + 0.1)) +
@@ -57,7 +59,30 @@ func_feature_importance_plot <- function(treatment_setting, df_score, ml_algo, s
           y = "", x = "\n Importance Score"
         ) +
         theme_bw() +
-        theme(plot.title = element_text(hjust = 0.5))
+        theme(plot.title = element_text(hjust = 0.5), 
+              axis.text.x = element_text(size = 22), axis.title = element_text(size = 22))
+      
+      # Outcome 0
+      plot_g <- 
+        df_score %>% filter(str_detect(Pred_Type, "Outcome")) %>%
+        ggplot(aes(y = reorder(Variable, Importance), x = Importance)) +
+        geom_point(color = "black", size = 4) +
+        scale_x_continuous(limits = c(0, max(df_score$Importance) + 0.1)) +
+        labs(
+          title = paste(ml_algo, "-", "Outcome Prediction"),
+          y = "", x = "\n Importance Score"
+        ) +
+        theme_bw() +
+        theme(plot.title = element_text(hjust = 0.5),
+              axis.text.x = element_text(size = 22), axis.title = element_text(size = 22))
+      
+      
+      if (save_option == "all_in_one") {
+        grid.arrange(plot_m, plot_g, ncol = 2)
+      } else {
+        list("m" = plot_m, "g" = plot_g)
+      }
+    ## All ##
     } else {
       # Treatment
       plot_m <- 
@@ -70,7 +95,8 @@ func_feature_importance_plot <- function(treatment_setting, df_score, ml_algo, s
           y = "", x = "\n Importance Score"
         ) +
         theme_bw() +
-        theme(plot.title = element_text(hjust = 0.5))
+        theme(plot.title = element_text(hjust = 0.5),
+              axis.text.x = element_text(size = 22), axis.title = element_text(size = 22))
       
       # Outcome 0
       plot_g0 <- 
@@ -83,7 +109,8 @@ func_feature_importance_plot <- function(treatment_setting, df_score, ml_algo, s
           y = "", x = "\n Importance Score"
         ) +
         theme_bw() +
-        theme(plot.title = element_text(hjust = 0.5))
+        theme(plot.title = element_text(hjust = 0.5),
+              axis.text.x = element_text(size = 22), axis.title = element_text(size = 22))
       
       # Outcome 1
       plot_g1 <- 
@@ -96,7 +123,8 @@ func_feature_importance_plot <- function(treatment_setting, df_score, ml_algo, s
           y = "", x = "\n Importance Score"
         ) +
         theme_bw() +
-        theme(plot.title = element_text(hjust = 0.5))
+        theme(plot.title = element_text(hjust = 0.5),
+              axis.text.x = element_text(size = 22), axis.title = element_text(size = 22))
       
       if (save_option == "all_in_one") {
         grid.arrange(plot_m, plot_g0, plot_g1, ncol = 3)
