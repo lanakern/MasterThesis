@@ -15,13 +15,15 @@
 # -> "max_trimming: maximal trimming threshold (data frame in multivalued treatment setting)
 # -> "text_trimming" indicates if trimming thresholds should be displayed. "yes" or "no"
 # -> "ml_algo": ML algorithm used to create the plot (only used in plot title)
+# -> "dec_places": number of decimal places
 #+++
 # OUTPUT: Plot
 #+++
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-func_dml_common_support <- function(treatment_setting, data_pred, min_trimming, max_trimming, text_trimming, ml_algo) {
+func_dml_common_support <- function(treatment_setting, data_pred, min_trimming, 
+                                    max_trimming, text_trimming, ml_algo, dec_places) {
   
   # extract trimming thresholds for binary treatment setting (only one)
   if (treatment_setting == "binary") {
@@ -54,15 +56,16 @@ func_dml_common_support <- function(treatment_setting, data_pred, min_trimming, 
       # histogram
       geom_histogram(aes(y = ..density..), binwidth = 0.01,  alpha = 0.4, 
                      color = "black", position = "identity") +
-      scale_fill_manual(values = c("grey28", "grey98")) 
+      scale_fill_manual(values = c("grey28", "grey98"))  +
+      xlim(0,1)
     
     # add trimming lines (with or without text)
     if (text_trimming == "yes") {
       plot_trimming <- plot_trimming + 
-        geom_textvline(label = paste("min. trimming:", sprintf("%.4f", unique(min_trimming))),
-                       xintercept = min_trimming, vjust = -0.7, linetype = "longdash") +
-        geom_textvline(label = paste("max. trimming:", sprintf("%.4f", unique(max_trimming))),  
-                       xintercept = max_trimming, vjust = -0.7, linetype = "longdash") 
+        geom_textvline(label = paste("min. trimming:", sprintf(paste0("%.", dec_places, "f"), unique(min_trimming))),
+                       xintercept = min_trimming, vjust = -0.7, linetype = "longdash", size = 6) +
+        geom_textvline(label = paste("max. trimming:", sprintf(paste0("%.", dec_places, "f"), unique(max_trimming))),  
+                       xintercept = max_trimming, vjust = -0.7, linetype = "longdash", size = 6) 
     } else {
       plot_trimming <- plot_trimming + 
         geom_vline(xintercept = min_trimming, linetype = "longdash", 
@@ -73,8 +76,8 @@ func_dml_common_support <- function(treatment_setting, data_pred, min_trimming, 
     
     # finalize layout
     plot_trimming <- plot_trimming +
-      xlab("Propensity Score") + 
-      ylab("Density") + 
+      xlab("\nPropensity Score\n") + 
+      ylab("\nDensity\n") + 
       ggtitle(bquote(paste(atop(bold(.(ml_algo)), "Propensity Score Overlap")))) +
       theme_bw() +
       theme(plot.title = element_text(hjust = 0.5, size = 30),
@@ -122,10 +125,10 @@ func_dml_common_support <- function(treatment_setting, data_pred, min_trimming, 
     
     if (text_trimming == "yes") {
       plot_m1 <- plot_m1 + 
-        geom_textvline(label = paste("min. trimming:", sprintf("%.4f", unique(data_pred_m1$min_trimming))), 
+        geom_textvline(label = paste("min. trimming:", sprintf(paste0("%.", dec_places, "f"), unique(data_pred_m1$min_trimming))), 
                        xintercept = unique(data_pred_m1$min_trimming), 
                        vjust = -0.7, linetype = "longdash") +
-        geom_textvline(label = paste("max. trimming:", sprintf("%.4f", unique(data_pred_m1$max_trimming))), 
+        geom_textvline(label = paste("max. trimming:", sprintf(paste0("%.", dec_places, "f"), unique(data_pred_m1$max_trimming))), 
                        xintercept = unique(data_pred_m1$max_trimming), 
                        vjust = -0.7, linetype = "longdash") 
     } else {
@@ -156,10 +159,10 @@ func_dml_common_support <- function(treatment_setting, data_pred, min_trimming, 
     
     if (text_trimming == "yes") {
       plot_m2 <- plot_m2 + 
-        geom_textvline(label = paste("min. trimming:", sprintf("%.4f", unique(data_pred_m2$min_trimming))), 
+        geom_textvline(label = paste("min. trimming:", sprintf(paste0("%.", dec_places, "f"), unique(data_pred_m2$min_trimming))), 
                        xintercept = unique(data_pred_m2$min_trimming), 
                        vjust = -0.7, linetype = "longdash") +
-        geom_textvline(label = paste("max. trimming:", sprintf("%.4f", unique(data_pred_m2$max_trimming))), 
+        geom_textvline(label = paste("max. trimming:", sprintf(paste0("%.", dec_places, "f"), unique(data_pred_m2$max_trimming))), 
                        xintercept = unique(data_pred_m2$max_trimming), 
                        vjust = -0.7, linetype = "longdash") 
     } else {
@@ -191,10 +194,10 @@ func_dml_common_support <- function(treatment_setting, data_pred, min_trimming, 
     
     if (text_trimming == "yes") {
       plot_m3 <- plot_m3 + 
-        geom_textvline(label = paste("min. trimming:", sprintf("%.4f", unique(data_pred_m3$min_trimming))), 
+        geom_textvline(label = paste("min. trimming:", sprintf(paste0("%.", dec_places, "f"), unique(data_pred_m3$min_trimming))), 
                        xintercept = unique(data_pred_m3$min_trimming), 
                        vjust = -0.7, linetype = "longdash") +
-        geom_textvline(label = paste("max. trimming:", sprintf("%.4f", unique(data_pred_m3$max_trimming))), 
+        geom_textvline(label = paste("max. trimming:", sprintf(paste0("%.", dec_places, "f"), unique(data_pred_m3$max_trimming))), 
                        xintercept = unique(data_pred_m3$max_trimming), 
                        vjust = -0.7, linetype = "longdash") 
     } else {
