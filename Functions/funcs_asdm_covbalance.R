@@ -74,6 +74,8 @@ func_stand_factor <- function(data, treatment_var) {
     summarise(across(everything(), sqrt)) %>%
     as.matrix()
   
+  return(df_meanvar_binary_bef)
+  
 }
 
 
@@ -196,43 +198,86 @@ func_weights_normalize <- function(w) {
 # -> "data_controls": data frame containing the control variables.
 
 func_weights <- function(treatment_setting, data_pred, data_controls) {
-  # extract and prepare information
-  prob_score <- as.matrix(data_pred$m)
-  prob_score <- cbind(1 - prob_score, prob_score)
-  y <- as.matrix(data_pred$outcome, ncol = 1) 
-  t <- data_pred$treatment %>% as.character() %>% as.numeric() 
-  t <- cbind(1 - t, t)
-  x <- data_controls %>% mutate(intercept = 1) %>% as.matrix()
-  n <- nrow(t)
-  num_t <- ncol(t)
   
-  # Predict y's
-  w_ipw <- matrix(0, n, num_t)
-  w_ols <- matrix(0, n, num_t)
-  w_adj <- matrix(0, n, num_t)
+  ## BINARY TREATMENT SETTING ##
+  if (treatment_setting == "binary") {
+    # extract and prepare information
+    prob_score <- as.matrix(data_pred$m)
+    prob_score <- cbind(1 - prob_score, prob_score)
+    y <- as.matrix(data_pred$outcome, ncol = 1) 
+    t <- data_pred$treatment %>% as.character() %>% as.numeric() 
+    t <- cbind(1 - t, t)
+    x <- data_controls %>% mutate(intercept = 1) %>% as.matrix()
+    n <- nrow(t)
+    num_t <- ncol(t)
+    
+    # Predict y's
+    w_ipw <- matrix(0, n, num_t)
+    w_ols <- matrix(0, n, num_t)
+    w_adj <- matrix(0, n, num_t)
+    
+    for (i in 1:num_t) {
+      
+      # IPW weights (w_t^p)
+      w_ipw[,i] <- as.matrix(t[,i] / prob_score[,i], ncol = 1)
+      w_ipw[,i] <- func_weights_normalize(w_ipw[,i])
+      
+      #  X_t'X_t 
+      XtX <- crossprod(x[t[,i] == 1,])
+      
+      # X_t(X_t'X_t)-1 for treated
+      XXtX <- x[t[,i] == 1,] %*% MASS::ginv(XtX)
+      
+      for (r in 1:n) {
+        w_ol <- matrix(0, n, 1)
+        XXtXX <- XXtX %*% x[r,]
+        w_ol[t[,i] == 1,] <- unname(XXtXX[, 1])
+        w_ols[,i] <- w_ols[,i] + w_ol
+        w_adj[,i] <- w_adj[,i] + w_ol * w_ipw[r,i]
+      }
+    } # End t
   
-  for (i in 1:num_t) {
+  ## MULTIVALUED TREATMENT SETTING ##
+  } else if (treatment_setting == "multi") {
+    # extract and prepare information
+    prob_score <- as.matrix(data_pred %>% dplyr::select(m1, m2, m3))
+    y <- as.matrix(data_pred$outcome, ncol = 1) 
+    t <- data_pred$treatment %>% as.character() %>% as.numeric() 
+    t <- cbind(ifelse(t == 1, 1, 0), ifelse(t == 2, 1, 0), ifelse(t == 3, 1, 0))
+    x <- data_controls %>% mutate(intercept = 1) %>% as.matrix()
+    n <- nrow(t)
+    num_t <- ncol(t)
     
-    # IPW weights (w_t^p)
-    w_ipw[,i] <- as.matrix(t[,i] / prob_score[,i], ncol = 1)
-    w_ipw[,i] <- func_weights_normalize(w_ipw[,i])
+    # Predict y's
+    w_ipw <- matrix(0, n, num_t)
+    w_ols <- matrix(0, n, num_t)
+    w_adj <- matrix(0, n, num_t)
     
-    #  X_t'X_t 
-    XtX <- crossprod(x[t[,i] == 1,])
-    
-    # X_t(X_t'X_t)-1 for treated
-    XXtX <- x[t[,i] == 1,] %*% MASS::ginv(XtX)
-    
-    for (r in 1:n) {
-      w_ol <- matrix(0, n, 1)
-      XXtXX <- XXtX %*% x[r,]
-      w_ol[t[,i] == 1,] <- unname(XXtXX[, 1])
-      w_ols[,i] <- w_ols[,i] + w_ol
-      w_adj[,i] <- w_adj[,i] + w_ol * w_ipw[r,i]
-    }
-  } # End t
+    for (i in 1:num_t) {
+      
+      # IPW weights (w_t^p)
+      w_ipw[,i] <- as.matrix(t[,i] / prob_score[,i], ncol = 1)
+      w_ipw[,i] <- func_weights_normalize(w_ipw[,i])
+      
+      #  X_t'X_t 
+      XtX <- crossprod(x[t[,i] == 1,])
+      
+      # X_t(X_t'X_t)-1 for treated
+      XXtX <- x[t[,i] == 1,] %*% MASS::ginv(XtX)
+      
+      for (r in 1:n) {
+        w_ol <- matrix(0, n, 1)
+        XXtXX <- XXtX %*% x[r,]
+        w_ol[t[,i] == 1,] <- unname(XXtXX[, 1])
+        w_ols[,i] <- w_ols[,i] + w_ol
+        w_adj[,i] <- w_adj[,i] + w_ol * w_ipw[r,i]
+      }
+    } # End t
+  } else {
+    stop("Treatment setting must be binary or multi.")
+  }
   
-  # Calculate weight matrix
+  ## Calculate weight matrix##
   w_mat <- w_ipw + w_ols - w_adj
   weights <- rowSums(w_mat)
   
@@ -288,7 +333,7 @@ func_cov_balance <- function(treatment_setting, data, controls, weights) {
     #### After ####
     #+++++++++++++#
     
-    # for dplyr::selected covariates #
+    # for selected covariates #
     #-------------------------#
     
     controls <- controls[controls %in% colnames(data_binary_bef)]
@@ -364,7 +409,7 @@ func_cov_balance <- function(treatment_setting, data, controls, weights) {
     #### After ####
     #+++++++++++++#
     
-    # for dplyr::selected covariates #
+    # for selected covariates #
     #-------------------------#
     
     controls <- controls[controls %in% colnames(data_multi_bef)]
