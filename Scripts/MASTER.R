@@ -341,7 +341,7 @@ model_algo <- "postlasso"
 ## RC 1: All sport participants ##
 treatment_def <- "all"
 source("Scripts/11_a_DML_Binary.R") 
-treatment_def <- main_extra_act
+treatment_def <- main_treatment_def
 
 ## RC 2: No LVCF ##
 treatment_repl <- "no"
