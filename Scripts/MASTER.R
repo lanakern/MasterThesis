@@ -335,6 +335,9 @@ model_k_tuning <- 2
 model_s_rep <- 5 
 model_algo <- "postlasso"
 
+### Robustness Checks wrt Data Preparation ###
+#++++++++++++++++++++++++++++++++++++++++++++#
+
 ## RC 1: All sport participants ##
 treatment_def <- "all"
 source("Scripts/11_a_DML_Binary.R") 
@@ -348,7 +351,12 @@ treatment_repl <- main_treatment_repl
 ## RC 3: No extracurricular activity ##
 extra_act <- "no"
 source("Scripts/11_a_DML_Binary.R") 
+
+treatment_def <- "all" # because "weekly" may be non-significant due to the small sample size
+source("Scripts/11_a_DML_Binary.R") 
+
 extra_act <- main_extra_act
+treatment_def <- main_extra_act
 
 ## RC 4: No potentially endogeneous variables ##
 model_controls_endog <- "no"
@@ -374,6 +382,21 @@ cohort_prep <- main_cohort_prep
 ## RC 10: Change trimming thresholds ##
 
 ## RC 11: Change K and S ##
+
+
+### Robustness Checks wrt Trimming Thresholds ###
+#+++++++++++++++++++++++++++++++++++++++++++++++#
+
+# range: [0.01,0.99]
+model_trimming <- 0.01
+source("Scripts/11_a_DML_Binary.R")
+
+# range: [0.10,0.90]
+model_trimming <- 0.11
+source("Scripts/11_a_DML_Binary.R")
+
+model_trimming <- main_model_trimming
+
 
 #%%%%%%%%%%%%%%%%%%%%%%#####%#
 #### Outcome: Personality ####
