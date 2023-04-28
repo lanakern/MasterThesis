@@ -91,6 +91,7 @@ print(paste("Number of columns:", ncol(data_rc_4)))
 #### MEAN COMPARISON ####
 #%%%%%%%%%%%%%%%%%%%%%%%#
 
+stand_outcome <- "yes"
 
 ## BINARY ##
 #++++++++++#
@@ -123,6 +124,9 @@ data_outcome_descr <- left_join(
   dplyr::select(variable, cohort_prep , treatment_repl, treatment_def, extra_act_save,
                 treatment_sport, num_obs, min, max, median, mean, everything())
 
+# for paper 
+data_outcome_descr %>% dplyr::select(treatment_sport, num_obs, mean, starts_with("p_value"))
+
 # save
 if (file.exists("Output/Descriptives/Grades/MEAN_COMPARISON_BINARY.rds")) {
   data_outcome_descr_hist <- readRDS("Output/Descriptives/Grades/MEAN_COMPARISON_BINARY.rds")
@@ -135,6 +139,27 @@ if (file.exists("Output/Descriptives/Grades/MEAN_COMPARISON_BINARY.rds")) {
   saveRDS(data_outcome_descr, "Output/Descriptives/Grades/MEAN_COMPARISON_BINARY.rds")
 }
 
+
+# for standardized outcome #
+data_descr_stand <- data_descr %>%
+  recipe(.) %>%
+  step_normalize(outcome_grade) %>%
+  prep() %>%
+  bake(new_data = NULL) %>%
+  as.data.frame()
+data_descr_stand <- func_mean_comp(df = data_descr_stand, y_variables = "outcome_grade", treatment_setting = "binary")
+
+
+if (file.exists("Output/Descriptives/Grades/MEAN_COMPARISON_STAND_BINARY.rds")) {
+  data_outcome_descr_hist <- readRDS("Output/Descriptives/Grades/MEAN_COMPARISON_STAND_BINARY.rds")
+  data_outcome_descr_save <- rbind(data_outcome_descr_hist, data_descr_stand) %>%
+    group_by(variable, cohort_prep , treatment_repl, treatment_def, extra_act_save) %>%
+    filter(time_stamp == max(time_stamp)) %>%
+    distinct() %>% ungroup() %>% data.frame()
+  saveRDS(data_outcome_descr_save, "Output/Descriptives/Grades/MEAN_COMPARISON_STAND_BINARY.rds")
+} else {
+  saveRDS(data_descr_stand, "Output/Descriptives/Grades/MEAN_COMPARISON_STAND_BINARY.rds")
+}
 
 
 ## MULTI ##
@@ -177,3 +202,23 @@ if (file.exists("Output/Descriptives/Grades/MEAN_COMPARISON_MULTI.rds")) {
 }                                           
 
 
+# for standardized outcome #
+data_descr_stand <- data_descr %>%
+  recipe(.) %>%
+  step_normalize(outcome_grade) %>%
+  prep() %>%
+  bake(new_data = NULL) %>%
+  as.data.frame()
+data_descr_stand <- func_mean_comp(df = data_descr_stand, y_variables = "outcome_grade", treatment_setting = "multi")
+
+
+if (file.exists("Output/Descriptives/Grades/MEAN_COMPARISON_STAND_MULTI.rds")) {
+  data_outcome_descr_hist <- readRDS("Output/Descriptives/Grades/MEAN_COMPARISON_STAND_MULTI.rds")
+  data_outcome_descr_save <- rbind(data_outcome_descr_hist, data_descr_stand) %>%
+    group_by(variable, cohort_prep , treatment_repl, treatment_def, extra_act_save) %>%
+    filter(time_stamp == max(time_stamp)) %>%
+    distinct() %>% ungroup() %>% data.frame()
+  saveRDS(data_outcome_descr_save, "Output/Descriptives/Grades/MEAN_COMPARISON_STAND_MULTI.rds")
+} else {
+  saveRDS(data_descr_stand, "Output/Descriptives/Grades/MEAN_COMPARISON_STAND_MULTI.rds")
+}

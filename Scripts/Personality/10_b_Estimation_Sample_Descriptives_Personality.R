@@ -31,7 +31,8 @@ if (extra_act == "yes") {
 #### NUMBER OF OBS AND COLS ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-c
+data_main <- readRDS("Data/Personality/Prep_10/prep_10_dml_binary_all_weekly_down_extradrop_covbal_mice1_personality.rds")
+
 print(paste("Number of respondents:", length(unique(data_main$group))))
 print(paste("Number of observations:", nrow(data_main)))
 print(paste("Number of observations for sport participations:", nrow(data_main %>% filter(treatment_sport == 1))))
@@ -46,6 +47,7 @@ print(paste("Number of columns:", ncol(data_main)))
 
 ## BINARY ##
 #++++++++++#
+
 
 # calculate mean and p-values
 data_outcome_descr <- data.frame()
@@ -88,6 +90,35 @@ if (file.exists("Output/Descriptives/Grades/MEAN_COMPARISON_BINARY.rds")) {
 }
 
 
+# for standardized outcome #
+data_descr_stand <- data_main %>%
+  recipe(.) %>%
+  step_normalize(c("bigfive_agreeableness", "bigfive_conscientiousness", "bigfive_extraversion",
+                   "bigfive_openness", "bigfive_neuroticism")) %>%
+  prep() %>%
+  bake(new_data = NULL) %>%
+  as.data.frame()
+
+data_outcome_descr_stand <- data.frame()
+for (outcome_var_sel in c("bigfive_agreeableness", "bigfive_conscientiousness", "bigfive_extraversion",
+                          "bigfive_openness", "bigfive_neuroticism")) {
+  data_outcome_descr_sub <- 
+    func_mean_comp(df = data_descr_stand, y_variables = outcome_var_sel, treatment_setting = "binary")
+  data_outcome_descr_stand <- rbind(data_outcome_descr_stand, data_outcome_descr_sub)
+}
+
+
+if (file.exists("Output/Descriptives/Grades/MEAN_COMPARISON_STAND_BINARY.rds")) {
+  data_outcome_descr_hist <- readRDS("Output/Descriptives/Grades/MEAN_COMPARISON_STAND_BINARY.rds")
+  data_outcome_descr_save <- rbind(data_outcome_descr_hist, data_outcome_descr_stand) %>%
+    group_by(variable, cohort_prep , treatment_repl, treatment_def, extra_act_save) %>%
+    filter(time_stamp == max(time_stamp)) %>%
+    distinct() %>% ungroup() %>% data.frame()
+  saveRDS(data_outcome_descr_save, "Output/Descriptives/Grades/MEAN_COMPARISON_STAND_BINARY.rds")
+} else {
+  saveRDS(data_outcome_descr_stand, "Output/Descriptives/Grades/MEAN_COMPARISON_STAND_BINARY.rds")
+}
+
 
 ## MULTI ##
 #+++++++++#
@@ -127,3 +158,33 @@ if (file.exists("Output/Descriptives/Grades/MEAN_COMPARISON_MULTI.rds")) {
 } else {
   saveRDS(data_outcome_descr, "Output/Descriptives/Grades/MEAN_COMPARISON_MULTI.rds")
 } 
+
+
+# for standardized outcome #
+data_descr_stand <- data_descr %>%
+  recipe(.) %>%
+  step_normalize(c("bigfive_agreeableness", "bigfive_conscientiousness", "bigfive_extraversion",
+                   "bigfive_openness", "bigfive_neuroticism")) %>%
+  prep() %>%
+  bake(new_data = NULL) %>%
+  as.data.frame()
+
+data_outcome_descr_stand <- data.frame()
+for (outcome_var_sel in c("bigfive_agreeableness", "bigfive_conscientiousness", "bigfive_extraversion",
+                          "bigfive_openness", "bigfive_neuroticism")) {
+  data_outcome_descr_sub <- 
+    func_mean_comp(df = data_descr_stand, y_variables = outcome_var_sel, treatment_setting = "multi")
+  data_outcome_descr_stand <- rbind(data_outcome_descr_stand, data_outcome_descr_sub)
+}
+
+
+if (file.exists("Output/Descriptives/Grades/MEAN_COMPARISON_STAND_MULTI.rds")) {
+  data_outcome_descr_hist <- readRDS("Output/Descriptives/Grades/MEAN_COMPARISON_STAND_MULTI.rds")
+  data_outcome_descr_save <- rbind(data_outcome_descr_hist, data_outcome_descr_stand) %>%
+    group_by(variable, cohort_prep , treatment_repl, treatment_def, extra_act_save) %>%
+    filter(time_stamp == max(time_stamp)) %>%
+    distinct() %>% ungroup() %>% data.frame()
+  saveRDS(data_outcome_descr_save, "Output/Descriptives/Grades/MEAN_COMPARISON_STAND_MULTI.rds")
+} else {
+  saveRDS(data_outcome_descr_stand, "Output/Descriptives/Grades/MEAN_COMPARISON_STAND_MULTI.rds")
+}
