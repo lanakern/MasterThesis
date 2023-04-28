@@ -143,7 +143,7 @@ lasso_binary_coef <- lasso_binary_coef %>%
   ungroup()
   
 
-var_names_descr <- unique(c(var_names_descr, lasso_binary_coef$Variable))
+var_names_descr <- c(var_names_descr, lasso_binary_coef$Variable)
 
 lasso_feature_imp_plot <- func_feature_importance_plot("binary", lasso_binary_coef, "LASSO", "separate")
 ggsave("Output/DML/Feature_Importance/lasso_binary_feature_importance_m.png", 
@@ -252,7 +252,7 @@ for (outcome_var_sel in c("neuroticism", "openness", "conscientiousness", "extra
     "POST-LASSO", "separate")
 }
 
-var_names_descr <- unique(c(var_names_descr, postlasso_binary_coef_all$Variable))
+var_names_descr <- c(var_names_descr, postlasso_binary_coef_all$Variable)
 
 # save grades
 ggsave("Output/DML/Feature_Importance/postlasso_binary_feature_importance_grades_m.png", 
@@ -495,7 +495,7 @@ xgb_scores_all <-
   top_n(n_features, Importance) %>%
   ungroup()
 
-var_names_descr <- unique(c(var_names_descr, xgb_scores_all$Variable))
+var_names_descr <- c(var_names_descr, xgb_scores_all$Variable)
 
 # generate plot
 xgb_feature_imp_plot <- func_feature_importance_plot("binary", xgb_scores_all, "XGBoost", "separate")
@@ -678,7 +678,7 @@ rf_scores_all_final <-
   ungroup()
 
 
-var_names_descr <- unique(c(var_names_descr, rf_scores_all_final$Variable))
+var_names_descr <- c(var_names_descr, rf_scores_all_final$Variable)
 
 # generate plot
 rf_feature_imp_plot <- func_feature_importance_plot("binary", rf_scores_all_final, "Random Forests", "separate")
@@ -811,7 +811,7 @@ lasso_multi_coef <- lasso_multi_coef %>%
   slice_max(order_by = Importance, n = n_features_multi)
 
 
-var_names_descr <- unique(c(var_names_descr, lasso_multi_coef$Variable))
+var_names_descr <- c(var_names_descr, lasso_multi_coef$Variable)
 
 
 lasso_multi_feature_imp_plot <- func_feature_importance_plot("multi", lasso_multi_coef, "LASSO", "separate")
@@ -919,7 +919,7 @@ postlasso_multi_coef <- postlasso_multi_coef %>%
   slice_max(order_by = Importance, n = n_features_multi) %>%
   ungroup()
 
-var_names_descr <- unique(c(var_names_descr, postlasso_multi_coef$Variable))
+var_names_descr <- c(var_names_descr, postlasso_multi_coef$Variable)
 
 postlasso_multi_feature_imp_plot <- func_feature_importance_plot("multi", postlasso_multi_coef, "POST-LASSO", "separate")
 ggsave("Output/DML/Feature_Importance/postlasso_multi_feature_importance_m1.png", 
@@ -959,7 +959,7 @@ ggsave("Output/DML/Feature_Importance/postlasso_multi_feature_importance_g3.png"
 #+++++++++++++++#
 
 # load all estimation results
-xgb_binary_results_all <- 
+xgb_multi_results_all <- 
   readRDS(paste0(
     "Output/DML/Estimation/Grades/multi_grades_xgboost_", model_type, "_",
     str_replace_all(cohort_prep, "_", ""), "_", treatment_def, "_", treatment_repl, 
@@ -1023,7 +1023,7 @@ xgb_scores_all <- data.frame()
 for (mice_data_sel in 1:5) {
   
   # generate name of data frame
-  df_sel_name <- paste0("data_dml_multi_mice", mice_data_sel)
+  df_sel_name <- paste0("data_dml_multi_grade_mice", mice_data_sel)
   
   # train models
   tree_depth_m1 <- xgb_multi_best_param_m1 %>% filter(MICE == mice_data_sel) %>% pull(m1_tree_depth)
@@ -1108,11 +1108,6 @@ for (mice_data_sel in 1:5) {
   
   X_controls <- get(df_sel_name) %>% 
     dplyr::select(-c("outcome_grade", starts_with("treatment_sport_freq"), "group")) %>% colnames()
-  X_controls <- c(X_controls, "treatment_sport_freq_na", "treatment_sport_freq_source_leisure", 
-                  "treatment_sport_freq_source_uni")
-  if ("treatment_sport_freq_lag" %in% ncol(get(df_sel_name))) {
-    X_controls <- c(X_controls, "treatment_sport_freq_lag")
-  }
   
   xgb_recipe_m1 <- 
     get(df_sel_name) %>%
@@ -1230,7 +1225,7 @@ xgb_scores_all <-
   arrange(Pred_Type, desc(Importance)) %>%
   dplyr::select(-MICE)
 
-var_names_descr <- unique(c(var_names_descr, xgb_scores_all$Variable))
+var_names_descr <- c(var_names_descr, xgb_scores_all$Variable)
 
 # generate plot
 xgb_multi_feature_imp_plot <- func_feature_importance_plot("multi", xgb_scores_all, "XGBoost", "separate")
@@ -1487,7 +1482,8 @@ for (mice_data_sel in 1:5) {
   rf_scores_all <- rbind(rf_scores_all, rf_scores)
 }
 
-saveRDS(rf_scores_all, "Output/DML/Feature_Importance/rf_scores_multi.rds")
+# saveRDS(rf_scores_all, "Output/DML/Feature_Importance/rf_scores_multi.rds")
+# rf_scores_all <- readRDS("Output/DML/Feature_Importance/rf_scores_multi.rds")
 
 rf_scores_multi_final <- 
   rf_scores_all %>%
@@ -1498,7 +1494,7 @@ rf_scores_multi_final <-
   group_by(Pred_Type) %>%
   slice_max(order_by = Importance, n = n_features_multi)
 
-var_names_descr <- unique(c(var_names_descr, rf_scores_multi_final$Variable))
+var_names_descr <- c(var_names_descr, rf_scores_multi_final$Variable)
 
 # generate plot
 rf_multi_feature_imp_plot <- func_feature_importance_plot("multi", rf_scores_multi_final, "Random Forests", "separate")
