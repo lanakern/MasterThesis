@@ -15,11 +15,29 @@
 #### Load Data ####
 #%%%%%%%%%%%%%%%%%#
 
-# load most important variables according to feature importance
-descr_vars <- readRDS("Output/Descriptives/descr_vars.rds") 
+if (cov_balance == "yes") {
+  cov_balance_save <- "_covbal"
+} else {
+  cov_balance_save <- ""
+}
 
 # load main drivers of selection
 data_main_drivers <- readRDS("Output/DML/Covariate_Balancing/main_drivers.rds") 
+
+# load ASDM before DML
+data_asdm_all <- readRDS("Output/DML/Covariate_Balancing/covariate_balancing_asdm_binary.rds") %>%
+  arrange(-SD_before) %>%
+  group_by(control_var) %>% 
+  summarize_all(mean)
+
+# load most important variables according to feature importance
+# keep only those which are not included in main drivers of selection and those
+# which are important in at least two models
+descr_vars <- readRDS("Output/Descriptives/descr_vars.rds") 
+descr_vars <- descr_vars[!descr_vars %in% unique(data_main_drivers$control_var)]
+descr_vars <- names(table(descr_vars)[table(descr_vars) >= 2])
+length(descr_vars)
+descr_vars
 
 # load data
 ## main
@@ -48,9 +66,6 @@ data_all_mice_grades_multi_noextra <- data_all_mice_grades_multi_noextra %>%
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 #### Descriptives for Feature Importance Variables ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-
-# drop main drivers for selection
-descr_vars <- descr_vars[!descr_vars %in% unique(data_main_drivers$control_var)]
 
 # variables exist
 descr_vars <- descr_vars[descr_vars %in% colnames(data_all_mice_grades_multi)]
@@ -81,6 +96,11 @@ df_descr_imp_noextra <- data_all_mice_grades_multi_noextra %>%
   ))
 
 df_descr_imp_all <- left_join(df_descr_imp, df_descr_imp_noextra, by = "control_var")
+
+# add ASDM before dml
+df_descr_imp_all <- left_join(df_descr_imp_all, data_asdm_all, by = "control_var") %>%
+  filter(control_var %in% descr_vars) %>%
+  dplyr::select(control_var, SD_before, starts_with("mean"))
 
 # save
 saveRDS(df_descr_imp_all %>% as.data.frame(), "Output/Descriptives/feature_imp_descr.rds")
