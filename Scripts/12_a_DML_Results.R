@@ -21,6 +21,7 @@ if (cov_balance == "yes") {
   cov_balance_save <- ""
 }
 
+
 ## SUMMARY OF RESULTS ##
 #++++++++++++++++++++++#
 
@@ -434,10 +435,63 @@ ggsave("Output/DML/Treatment_Effects/plot_multi_main_atte_treatment_effects_vari
 #%%%%%%%%%%%%%%%%%%%%%#
 
 ## APE ##
+#+++++++#
 
 # the APE is identical across the MICE data sets and algorithms
+# calculated APE is not for standardized outcome variable
 lasso_grades[[1]]$ape # binary
 lasso_grades_multi[[1]]$ape # multi
+
+## for standardized outcome variable ##
+
+# APE
+df_ape_binary <- readRDS("Output/Descriptives/Grades/MEAN_COMPARISON_STAND_BINARY.rds")
+df_ape_binary <- df_ape_binary %>%
+  filter(treatment_sport != "all") %>%
+  dplyr::select(variable, treatment_sport, mean, starts_with("p_value")) %>%
+  spread(treatment_sport, mean) %>%
+  mutate(ape = `1` - `0`)
+# SE
+data_descr <- readRDS(paste0("Data/Grades/Prep_10/prep_10_dml_binary_", model_type, "_", treatment_def, 
+                             "_", treatment_repl, extra_act_save, cov_balance_save, "_mice1.rds"))
+data_descr_stand <- data_descr %>%
+  recipe(.) %>%
+  step_normalize(outcome_grade) %>%
+  prep() %>%
+  bake(new_data = NULL) %>%
+  as.data.frame() %>%
+  dplyr::select(treatment_sport, outcome_grade)
+
+data_descr_pers <- readRDS(paste0("Data/Personality/Prep_10/prep_10_dml_binary_", model_type, "_", treatment_def, 
+                             "_", treatment_repl, extra_act_save, cov_balance_save, "_mice1_personality.rds"))
+data_descr_stand_pers <- data_descr_pers %>%
+  recipe(.) %>%
+  step_normalize(all_of(data_descr_pers %>% dplyr::select(starts_with("bigfive")) %>% colnames())) %>%
+  prep() %>%
+  bake(new_data = NULL) %>%
+  as.data.frame() %>%
+  dplyr::select(treatment_sport, all_of(data_descr_pers %>% dplyr::select(starts_with("bigfive")) %>% colnames()))
+# ALL
+df_ape_binary <- left_join(df_ape_binary,
+                           rbind(
+                             data.frame(variable = "outcome_grade", "se" = t.test(formula = outcome_grade ~ treatment_sport, data = data_descr_stand)$stderr),
+                             data.frame(variable = "bigfive_agreeableness", "se" = t.test(formula = bigfive_agreeableness ~ treatment_sport, data = data_descr_stand_pers)$stderr)
+                           ) %>% rbind(
+                             data.frame(variable = "bigfive_conscientiousness", "se" = t.test(formula = bigfive_conscientiousness ~ treatment_sport, data = data_descr_stand_pers)$stderr)
+                           ) %>% rbind(
+                             data.frame(variable = "bigfive_extraversion", "se" = t.test(formula = bigfive_extraversion ~ treatment_sport, data = data_descr_stand_pers)$stderr)
+                           ) %>% rbind(
+                             data.frame(variable = "bigfive_neuroticism", "se" = t.test(formula = bigfive_neuroticism ~ treatment_sport, data = data_descr_stand_pers)$stderr)
+                           ) %>% rbind(
+                             data.frame(variable = "bigfive_openness", "se" = t.test(formula = bigfive_openness ~ treatment_sport, data = data_descr_stand_pers)$stderr)
+                           ),
+                           by = "variable")
+
+
+
+
+
+
 
 
 ## APO ##
