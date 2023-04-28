@@ -197,8 +197,8 @@ if (str_detect(outcome_var_multi, "grade")) {
            "-", model_k_tuning, "_Rep", model_s_rep, probscore_separate_save,
            cov_balance_save, ".rds")
 } else if (str_detect(outcome_var_multi, "bigfive")) {
-  save_dml <- paste0("Output/DML/Estimation/Personality/multi__", 
-                     str_remove(outcome_var_multi, "outcome_bigfive_"), "_", multi_model_algo, "_", 
+  save_dml <- paste0("Output/DML/Estimation/Personality/multi_", 
+                     str_remove(outcome_var_multi, "outcome_bigfive"), multi_model_algo, "_", 
                      model_type, "_", str_replace_all(cohort_prep, "_", ""),
                      "_", treatment_def, "_", treatment_repl, extra_act_save, 
                      "_", model_type, "_", str_replace_all(model_controls_lag, "_", ""), "_endog",
