@@ -126,7 +126,9 @@ func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome,
     K_folds_inner_m <- rsample::group_vfold_cv(
       data = data_train %>%
         group_by(group) %>% 
+        mutate("treatment_sport" = as.numeric(as.character(treatment_sport))) %>%
         mutate(treatment_fold = mean(!!rlang::sym(treatment))) %>%
+        mutate("treatment_sport" = as.factor(treatment_sport)) %>% 
         ungroup(), 
       v = K, group = group, strata = treatment_fold, balance = "observations"
     )
@@ -286,7 +288,7 @@ func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome,
       
       
       df_best_param <- data.frame(
-        "m_best" = lambda_se_m, "g0_best" = lambda_se_g0, "g1_best" = lambda_se_g1
+        "m" = lambda_se_m, "g0" = lambda_se_g0, "g1" = lambda_se_g1
       )
       
       
@@ -393,7 +395,7 @@ func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome,
       #+++++++++++++++++++++++++++++++++++#
       
       df_best_param <- data.frame(
-        "m_best" = lambda_se_plus_m, "g0_best" = lambda_se_plus_g0, "g1_best" = lambda_se_plus_g1
+        "m" = lambda_se_plus_m, "g0" = lambda_se_plus_g0, "g1" = lambda_se_plus_g1
       )
     }
     
@@ -404,16 +406,19 @@ func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome,
     
     # specify the models
     ## model for m(X) = E(D|X): prediction of treatment
+    lasso_best_param_m <- df_best_param$m
     lasso_spec_final_m <- 
       logistic_reg(penalty = {{lasso_best_param_m}}, mixture = 1) %>%  
       set_engine("glmnet") %>%  
       set_mode("classification") 
     ## model for g(0,X) = E(Y | D = 0, X): prediction of outcome for untreated individuals
+    lasso_best_param_g0 <- df_best_param$g0
     lasso_spec_final_g0 <- 
       linear_reg(penalty = {{lasso_best_param_g0}}, mixture = 1) %>%  
       set_engine("glmnet") %>%  
       set_mode("regression") 
     ## model for g(1, X) = E(Y | D = 1, X): prediction of outcome for treated individuals
+    lasso_best_param_g1 <- df_best_param$g1
     lasso_spec_final_g1 <- 
       linear_reg(penalty = {{lasso_best_param_g1}}, mixture = 1) %>%  
       set_engine("glmnet") %>%  
