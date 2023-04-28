@@ -87,6 +87,29 @@ postlasso_neuro <-
                  "_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming", 
                  model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
 
+# Robustnesschecks regarding samples
+postlasso_grades_rc1_all <- 
+  readRDS(paste0("Output/DML/Estimation/Grades/binary_grades_", "postlasso", 
+                 "_all_controlssameoutcome_all_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming", 
+                 model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
+
+postlasso_grades_rc4_endog <- 
+  readRDS(paste0("Output/DML/Estimation/Grades/binary_grades_", "postlasso", 
+                 "_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogno_trimming", 
+                 model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
+
+
+# Robustnesschecks regarding trimming
+postlasso_grades_trimming001 <- 
+  readRDS(paste0("Output/DML/Estimation/Grades/binary_grades_", "postlasso", 
+                 "_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming", 
+                 "0.01", "_K4-2_Rep5", cov_balance_save, ".rds"))
+
+postlasso_grades_trimming01 <- 
+  readRDS(paste0("Output/DML/Estimation/Grades/binary_grades_", "postlasso", 
+                 "_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming", 
+                 "0.1", "_K4-2_Rep5", cov_balance_save, ".rds"))
+
 
 ## XGBoosst ##
 #++++++++++++#
@@ -152,6 +175,43 @@ df_treatment_effects_main_binary <- df_dml_main_binary %>% filter(
   dplyr::select(model, outcome, model_algo, Type, theta_median, se_median, pvalue_median, time_stamp) 
 df_treatment_effects_main_binary
 saveRDS(df_treatment_effects_main_binary, "Output/DML/Treatment_Effects/binary_main_treatment_effects_paper.rds")
+
+# robustness checks regarding sample sizes
+df_treatment_effects_rc_binary <- df_dml_main_binary %>% 
+  mutate(sample = ifelse(
+    cohort_prep == main_cohort_prep & treatment_def == main_treatment_def & 
+    treatment_repl == main_treatment_repl & extra_act == main_extra_act & 
+    model_type == main_model_type & model_k == main_model_k & model_s_rep == main_model_s_rep & 
+    model_trimming == main_model_trimming & model_controls_lag == main_model_controls_lag & 
+    model_controls_endog == main_model_controls_endog & model_hyperparam_sel == "best" & 
+    model_covbal == "yes", "main", "rc"
+  )) %>% 
+    filter(Type %in% c("ATE", "ATTE"), sample == "rc", model_algo == "postlasso", 
+           outcome == "grade", model_trimming == "min-max") %>%
+    dplyr::select(outcome, model_algo, cohort_prep, treatment_def, treatment_repl, extra_act,
+                  model_type, model_controls_lag, model_controls_endog, model_covbal, model_trimming,
+                  Type, theta_median, se_median, pvalue_median, time_stamp) 
+df_treatment_effects_rc_binary
+saveRDS(df_treatment_effects_rc_binary, "Output/DML/Treatment_Effects/binary_rc_treatment_effects_paper.rds")
+
+# robustness checks regarding trimming
+df_treatment_effects_rc_trimming_binary <- df_dml_main_binary %>% 
+  mutate(sample = ifelse(
+    cohort_prep == main_cohort_prep & treatment_def == main_treatment_def & 
+      treatment_repl == main_treatment_repl & extra_act == main_extra_act & 
+      model_type == main_model_type & model_k == main_model_k & model_s_rep == main_model_s_rep & 
+      model_trimming == main_model_trimming & model_controls_lag == main_model_controls_lag & 
+      model_controls_endog == main_model_controls_endog & model_hyperparam_sel == "best" & 
+      model_covbal == "yes", "main", "rc"
+  )) %>% 
+  filter(Type %in% c("ATE", "ATTE"), sample == "rc", model_algo == "postlasso", 
+         outcome == "grade", model_trimming != "min-max") %>%
+  dplyr::select(outcome, model_algo, cohort_prep, treatment_def, treatment_repl, extra_act,
+                model_type, model_controls_lag, model_controls_endog, model_covbal, model_trimming,
+                Type, theta_median, se_median, pvalue_median, time_stamp) 
+df_treatment_effects_rc_trimming_binary
+saveRDS(df_treatment_effects_rc_trimming_binary, "Output/DML/Treatment_Effects/binary_rc_trimming_treatment_effects_paper.rds")
+
 
 
 ## PLOT ##
@@ -472,8 +532,152 @@ for (outcome_var_sel in c("grades", "agree", "consc", "extra", "neuro", "open"))
 
 # calculate error metrics for paper
 df_error_main_binary <- df_error_main_binary %>%
-  dplyr::select(outcome, ml_algo, AUC_m, BACC_m, RMSE_g0, RMSE_g1, MAPE_g0, MAPE_g1)
+  dplyr::select(outcome, ml_algo, AUC_m, ACC_m, BACC_m, RMSE_g0, RMSE_g1, MAPE_g0, MAPE_g1)
 saveRDS(df_error_main_binary, "Output/DML/binary_main_error_metrics.rds")
+
+
+## ERROR METRICS BEFORE TRIMMING ##
+df_error_main_binary_bef_trimming <- data.frame()
+for (outcome_var_sel in c("grades", "agree", "consc", "extra", "neuro", "open")) {
+  for (model_algo_sel in c("lasso", "postlasso", "rf", "xgb")) {
+    load_pred_algo <- paste0(model_algo_sel, "_", outcome_var_sel)
+    tryCatch({
+      print(load_pred_algo)
+      if (exists(load_pred_algo) == FALSE) stop("Does not exist")
+      
+      ml_grades_pred <- data.frame()
+      for (mice_sel in 1:5) {
+        ml_grades_pred_sub <- left_join(get(load_pred_algo)[[mice_sel]]$pred_bef_trimming, # BEF_TRIMMING!!!
+                                        get(load_pred_algo)[[mice_sel]]$trimming, 
+                                        by = "Repetition") %>%
+          mutate(MICE = mice_sel)
+        ml_grades_pred <- rbind(ml_grades_pred, ml_grades_pred_sub)
+      }
+      
+      if (outcome_var_sel == "grades") {
+        df_pred <- ml_grades_pred %>% 
+          mutate(
+            # standardized outcomes
+            outcome_stand = outcome, g0_stand = g0, g1_stand = g1,
+            # original scale
+            outcome = outcome_stand*data_stand_grades$sd + data_stand_grades$mean,
+            g0 = g0_stand*data_stand_grades$sd + data_stand_grades$mean,
+            g1 = g1_stand*data_stand_grades$sd + data_stand_grades$mean
+          )
+      } else {
+        # extract sd and mean
+        df_sd_mean <- data_stand_pers %>% 
+          dplyr::select(starts_with(outcome_var_sel)) 
+        colnames(df_sd_mean) <- sub(".*_", "", colnames(df_sd_mean))
+        
+        # convert
+        df_pred <- ml_grades_pred %>% 
+          mutate(
+            # standardized outcomes
+            outcome_stand = outcome, g0_stand = g0, g1_stand = g1,
+            # original scale
+            outcome = outcome_stand*df_sd_mean$sd + df_sd_mean$mean,
+            g0 = g0_stand*df_sd_mean$sd + df_sd_mean$mean,
+            g1 = g1_stand*df_sd_mean$sd + df_sd_mean$mean
+          )
+      }
+      
+      df_error_sub <- func_ml_error_metrics("binary", df_pred, 1, 1, TRUE) %>%
+        dplyr::select(-c(Repetition, Fold)) %>%
+        mutate(outcome = outcome_var_sel, ml_algo = model_algo_sel) %>%
+        dplyr::select(outcome, ml_algo, everything())
+      df_error_main_binary_bef_trimming <- rbind(df_error_main_binary_bef_trimming, df_error_sub)
+      
+      
+    }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")}) # close tryCatch()
+  } # close for loop model_algo_sel
+} # close for loop outcome_var_sel
+
+
+df_error_main_binary_bef_trimming <- df_error_main_binary_bef_trimming %>%
+  rowwise() %>%
+  mutate(RMSE_g = mean(c(RMSE_g0, RMSE_g1)), MAPE_g = mean(c(MAPE_g0, MAPE_g1))) %>%
+  dplyr::select(outcome, ml_algo, AUC_m, ACC_m, BACC_m, RMSE_g, MAPE_g)
+saveRDS(df_error_main_binary_bef_trimming, "Output/DML/binary_main_error_metrics_bef_trimming.rds")
+
+
+## ERROR METRICS FOR ROBUSTNESS CHECKS ##
+df_error_main_binary_rc <- data.frame()
+for (outcome_var_sel in c("grades_rc1_all", "grades_rc4_endog")) {
+  
+  # load standardization
+  if (outcome_var_sel == "grades_rc1_all") {
+    data_stand_grades_rc <- 
+      readRDS(paste0("Data/Grades/Prep_10/prep_10_dml_binary_all_all_down_extradrop", cov_balance_save, "_mice1.rds"))
+    data_stand_grades_rc <- data_stand_grades_rc %>%
+      summarize(mean = mean(outcome_grade), sd = sd(outcome_grade)) 
+  } else {
+    data_stand_grades_rc <- data_stand_grades
+  }
+  
+  
+  for (model_algo_sel in c("postlasso")) {
+    load_pred_algo <- paste0(model_algo_sel, "_", outcome_var_sel)
+    tryCatch({
+      print(load_pred_algo)
+      if (exists(load_pred_algo) == FALSE) stop("Does not exist")
+      
+      ml_grades_pred <- data.frame()
+      for (mice_sel in 1:5) {
+        ml_grades_pred_sub <- left_join(get(load_pred_algo)[[mice_sel]]$pred, 
+                                        get(load_pred_algo)[[mice_sel]]$trimming, 
+                                        by = "Repetition") %>%
+          mutate(MICE = mice_sel)
+        ml_grades_pred <- rbind(ml_grades_pred, ml_grades_pred_sub)
+      }
+      
+      if (str_detect(outcome_var_sel, "grades")) {
+        df_pred <- ml_grades_pred %>% 
+          mutate(
+            # standardized outcomes
+            outcome_stand = outcome, g0_stand = g0, g1_stand = g1,
+            # original scale
+            outcome = outcome_stand*data_stand_grades_rc$sd + data_stand_grades_rc$mean,
+            g0 = g0_stand*data_stand_grades_rc$sd + data_stand_grades_rc$mean,
+            g1 = g1_stand*data_stand_grades_rc$sd + data_stand_grades_rc$mean
+          )
+      } else {
+        # extract sd and mean
+        df_sd_mean <- data_stand_pers %>% 
+          dplyr::select(starts_with(outcome_var_sel)) 
+        colnames(df_sd_mean) <- sub(".*_", "", colnames(df_sd_mean))
+        
+        # convert
+        df_pred <- ml_grades_pred %>% 
+          mutate(
+            # standardized outcomes
+            outcome_stand = outcome, g0_stand = g0, g1_stand = g1,
+            # original scale
+            outcome = outcome_stand*df_sd_mean$sd + df_sd_mean$mean,
+            g0 = g0_stand*df_sd_mean$sd + df_sd_mean$mean,
+            g1 = g1_stand*df_sd_mean$sd + df_sd_mean$mean
+          )
+      }
+      
+      df_error_sub <- func_ml_error_metrics("binary", df_pred, 1, 1, TRUE) %>%
+        dplyr::select(-c(Repetition, Fold)) %>%
+        mutate(outcome = outcome_var_sel, ml_algo = model_algo_sel) %>%
+        dplyr::select(outcome, ml_algo, everything())
+      df_error_main_binary_rc <- rbind(df_error_main_binary_rc, df_error_sub)
+      
+      
+    }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")}) # close tryCatch()
+  } # close for loop model_algo_sel
+} # close for loop outcome_var_sel
+
+
+df_error_main_binary_rc <- df_error_main_binary_rc %>%
+  rowwise() %>%
+  mutate(RMSE_g = mean(c(RMSE_g0, RMSE_g1)), MAPE_g = mean(c(MAPE_g0, MAPE_g1))) %>%
+  dplyr::select(outcome, ml_algo, AUC_m, ACC_m, BACC_m, RMSE_g, MAPE_g)
+
+saveRDS(df_error_main_binary_rc, "Output/DML/binary_rc_error_metrics.rds")
+
 
 
 
@@ -524,10 +728,11 @@ for (outcome_var_sel in c("grades")) {
 
 # calculate error metrics for paper
 df_error_main_multi <- df_error_main_multi %>%
-  dplyr::select(outcome, ml_algo, starts_with("AUC"), starts_with("BACC"), starts_with("RMSE"), starts_with("MAPE")) %>%
+  dplyr::select(outcome, ml_algo, starts_with("AUC"), starts_with("ACC"), starts_with("BACC"), 
+                starts_with("RMSE"), starts_with("MAPE")) %>%
   rowwise() %>%
   mutate(
-    AUC_m = mean(c(AUC_m1, AUC_m2, AUC_m3)), BACC_m = mean(c(BACC_m1, BACC_m2, BACC_m3)),
+    AUC_m = mean(c(AUC_m1, AUC_m2, AUC_m3)), ACC_m = mean(c(ACC_m1, ACC_m2, ACC_m3)), BACC_m = mean(c(BACC_m1, BACC_m2, BACC_m3)),
     RMSE_g = mean(c(RMSE_g1, RMSE_g2, RMSE_g3)), MAPE_g = mean(c(MAPE_g1, MAPE_g2, MAPE_g3))
     ) %>%
   dplyr::select(-matches("g[0-9]$"), -matches("m[0-9]$"))
@@ -638,6 +843,8 @@ saveRDS(df_predictors_all_multi, "Output/DML/multi_msin_num_predictors.rds")
 #++++++++++++++++++++++++++++++++++++++#
 
 ## Binary Treatment Setting ##
+
+# main
 df_trimming_drop_main_binary <- df_dml_main_binary %>%
   filter(
     cohort_prep == main_cohort_prep, treatment_def == main_treatment_def,
@@ -653,6 +860,19 @@ df_trimming_drop_main_binary <- df_dml_main_binary %>%
 
 saveRDS(df_trimming_drop_main_binary, "Output/DML/binary_main_trimming_obs.rds")
 
+# rc wrt trimming
+df_dml_main_binary %>%
+  filter(
+    cohort_prep == main_cohort_prep, treatment_def == main_treatment_def,
+    treatment_repl == main_treatment_repl, extra_act == main_extra_act,
+    model_type == main_model_type, model_k == main_model_k, model_s_rep == main_model_s_rep,
+    model_trimming != main_model_trimming, model_controls_lag == main_model_controls_lag,
+    model_controls_endog == main_model_controls_endog, model_hyperparam_sel == "best",
+    model_covbal == "yes"
+  ) %>%
+  dplyr::select(outcome, model_algo, model_trimming, starts_with("n_treats")) %>% distinct() %>%
+  mutate(n_treats_diff = n_treats_before - n_treats_after, model_trimming,
+         n_treats_diff_perf = ((n_treats_before - n_treats_after) / n_treats_before)*100)
 
 ## Multivalued Treatment Setting ##
 df_trimming_drop_main_multi <- df_dml_main_multi %>%
