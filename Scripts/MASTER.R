@@ -638,6 +638,33 @@ model_post_sel <- FALSE
 gc()
 eval(parse(text = keep_after_file_run))
 
+gc()
+eval(parse(text = keep_after_file_run))
+
+#### Extraversion ####
+outcome_var_multi <- "outcome_bigfive_extraversion"
+multi_model_algo <- "postlasso"
+model_post_sel <- TRUE
+source("Scripts/11_b_DML_Multi.R") 
+gc()
+eval(parse(text = keep_after_file_run))
+
+#### Openness ####
+outcome_var_multi <- "outcome_bigfive_openness"
+multi_model_algo <- "postlasso"
+model_post_sel <- TRUE
+source("Scripts/11_b_DML_Multi.R") 
+gc()
+eval(parse(text = keep_after_file_run))
+
+#### Openness ####
+outcome_var_multi <- "outcome_bigfive_neuroticism"
+multi_model_algo <- "postlasso"
+model_post_sel <- TRUE
+source("Scripts/11_b_DML_Multi.R") 
+gc()
+eval(parse(text = keep_after_file_run))
+
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 #### SENSITIVITY WRT HYPERPARAMETERS ####
