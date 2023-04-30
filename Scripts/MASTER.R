@@ -382,7 +382,11 @@ cohort_prep <- main_cohort_prep
 ## RC 10: Change trimming thresholds ##
 
 ## RC 11: Change K and S ##
-
+# combis 5,5,10
+model_k <- 5 
+model_k_tuning <- 5 # 4
+model_s_rep <- 10 # 10
+source("Scripts/11_a_DML_Binary.R") 
 
 ### Robustness Checks wrt Trimming Thresholds ###
 #+++++++++++++++++++++++++++++++++++++++++++++++#
@@ -657,7 +661,7 @@ source("Scripts/11_b_DML_Multi.R")
 gc()
 eval(parse(text = keep_after_file_run))
 
-#### Openness ####
+#### Neuroticism ####
 outcome_var_multi <- "outcome_bigfive_neuroticism"
 multi_model_algo <- "postlasso"
 model_post_sel <- TRUE
@@ -665,6 +669,77 @@ source("Scripts/11_b_DML_Multi.R")
 gc()
 eval(parse(text = keep_after_file_run))
 
+
+#### ROBUSTNESS CHECKS ####
+#+++++++++++++++++++++++++#
+
+multi_model_algo <- "postlasso"
+
+### Robustness Checks wrt Data Preparation ###
+#++++++++++++++++++++++++++++++++++++++++++++#
+
+## RC 1: All sport participants ##
+# treatment_def <- "all"
+# source("Scripts/11_a_DML_Binary.R") 
+# treatment_def <- main_treatment_def
+
+## RC 2: No LVCF ##
+treatment_repl <- "no"
+source("Scripts/11_b_DML_Multi.R") 
+treatment_repl <- main_treatment_repl
+
+## RC 3: No extracurricular activity ##
+extra_act <- "no"
+source("Scripts/11_b_DML_Multi.R") 
+
+# treatment_def <- "all" # because "weekly" may be non-significant due to the small sample size
+# source("Scripts/11_a_DML_Binary.R") 
+
+extra_act <- main_extra_act
+treatment_def <- main_extra_act
+
+## RC 4: No potentially endogeneous variables ##
+model_controls_endog <- "no"
+source("Scripts/11_a_DML_Binary.R") 
+model_controls_endog <- main_model_controls_endog
+
+## RC 5: No covariate balance drop ##
+cov_balance <- "no"
+source("Scripts/11_a_DML_Binary.R") 
+cov_balance <- main_cov_balance
+
+## RC 6: cohort_prep_before ##
+cov_balance <- "controls_bef_outcome"
+source("Scripts/11_a_DML_Binary.R") 
+cohort_prep <- main_cohort_prep 
+
+## RC 7: Include polynominals and interaction terms ##
+
+## RC 8: Include treatment and outcome lags ##
+
+## RC 9: Include no lags at all ##
+
+## RC 10: Change trimming thresholds ##
+
+## RC 11: Change K and S ##
+# combis 5,5,10
+model_k <- 5 
+model_k_tuning <- 5 # 4
+model_s_rep <- 10 # 10
+source("Scripts/11_a_DML_Binary.R") 
+
+### Robustness Checks wrt Trimming Thresholds ###
+#+++++++++++++++++++++++++++++++++++++++++++++++#
+
+# range: [0.01,0.99]
+model_trimming <- 0.01
+source("Scripts/11_a_DML_Binary.R")
+
+# range: [0.10,0.90]
+model_trimming <- 0.11
+source("Scripts/11_a_DML_Binary.R")
+
+model_trimming <- main_model_trimming
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 #### SENSITIVITY WRT HYPERPARAMETERS ####
