@@ -165,8 +165,10 @@ for (mice_data_sel in 1:5) {
     # save common support plot
     save_trimming = FALSE,
     # model generation: separate 
-    probscore_separate = probscore_separate, mice_sel = mice_data_sel,
-    post = model_post_sel
+    probscore_separate = probscore_separate, 
+    mice_sel = mice_data_sel, post = model_post_sel, 
+    # how to determine hyperparameter (best, 1SE, 1SE+)
+    hyperparam_sel = hyperparam_sel
   )
   
   # append APE
@@ -185,6 +187,12 @@ if (probscore_separate == FALSE) {
   probscore_separate_save <- ""
 }
 
+# sensitivity with respect to hyperparameter
+if (model_hyperparam_sel != "best") {
+  model_hyperparam_sel_save <- paste0("_", model_hyperparam_sel)
+} else {
+  model_hyperparam_sel_save <- ""
+}
 
 # save results
 if (str_detect(outcome_var_multi, "grade")) {
@@ -195,16 +203,16 @@ if (str_detect(outcome_var_multi, "grade")) {
            "_", model_type, "_", str_replace_all(model_controls_lag, "_", ""), "_endog",
            model_controls_endog, "_trimming", model_trimming, "_K", model_k, 
            "-", model_k_tuning, "_Rep", model_s_rep, probscore_separate_save,
-           cov_balance_save, ".rds")
+           model_hyperparam_sel_save, cov_balance_save, ".rds")
 } else if (str_detect(outcome_var_multi, "bigfive")) {
   save_dml <- paste0("Output/DML/Estimation/Personality/multi_", 
-                     str_remove(outcome_var_multi, "outcome_bigfive"), multi_model_algo, "_", 
+                     str_remove(outcome_var_multi, "outcome_bigfive_"), "_", multi_model_algo, "_", 
                      model_type, "_", str_replace_all(cohort_prep, "_", ""),
                      "_", treatment_def, "_", treatment_repl, extra_act_save, 
                      "_", model_type, "_", str_replace_all(model_controls_lag, "_", ""), "_endog",
                      model_controls_endog, "_trimming", model_trimming, "_K", model_k, 
                      "-", model_k_tuning, "_Rep", model_s_rep, probscore_separate_save,
-                     cov_balance_save, ".rds")
+                     model_hyperparam_sel_save, cov_balance_save, ".rds")
 }
 
 saveRDS(dml_result_all, save_dml)
@@ -226,7 +234,8 @@ dml_result_save <- dml_result_pooled %>%
     model_type = model_type, model_algo = multi_model_algo, model_k = model_k, 
     model_k_tuning = model_k_tuning, model_s_rep = model_s_rep, 
     model_trimming = model_trimming, model_controls_lag = model_controls_lag,
-    model_controls_endog = model_controls_endog, model_covbal = cov_balance, 
+    model_controls_endog = model_controls_endog, 
+    model_hyperparam_sel = model_hyperparam_sel, model_covbal = cov_balance, 
     # number of treatment periods before and after after trimming
     n_treats_before = round(mean(unlist(lapply(lapply(dml_result_all, "[[" , "trimming"), "[[", "n_treats_before")))), 
     n_treats_after = round(mean(unlist(lapply(lapply(dml_result_all, "[[" , "trimming"), "[[", "n_treats_after")))), 
@@ -253,7 +262,7 @@ if (probscore_separate == TRUE) {
       read.xlsx("Output/DML/Treatment_Effects/DML_MULTI_ESTIMATION_RESULTS.xlsx", sheetName = "Sheet1")
     dml_result_save_all <- rbind(dml_result_save_all, dml_result_save)
     cols_aggr <- dml_result_save_all %>%
-      dplyr::select(cohort_prep, treatment_repl, treatment_def, starts_with("model")) %>%
+      dplyr::select(outcome, cohort_prep, treatment_repl, treatment_def, starts_with("model")) %>%
       colnames()
     dml_result_save_all <- dml_result_save_all %>%
       group_by(across(all_of(cols_aggr))) %>%
