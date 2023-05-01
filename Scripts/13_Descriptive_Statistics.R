@@ -162,5 +162,62 @@ saveRDS(df_descr_all %>% as.data.frame(), "Output/Descriptives/main_drivers_desc
 
 
 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### Descriptives for Outcome Variables ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+
+#### GPA ####
+#+++++++++++#
+
+data_outcome_grade <- readRDS(paste0("Data/Grades/Prep_10/prep_10_dml_multi_all_weekly_down", cov_balance_save, "_mice", 1, ".rds")) %>%
+  mutate(treatment_sport_freq = case_when(treatment_sport_freq == 3 & extracurricular_num == 0 ~ 4, TRUE ~ treatment_sport_freq))
+
+table(data_outcome_grade$treatment_sport_freq) # sample size
+
+# data_outcome_grade_stand <- readRDS(paste0("Data/Grades/Prep_10/prep_10_dml_multi_all_weekly_down", cov_balance_save, "_mice", 1, ".rds")) %>%
+#   as.data.frame() %>%
+#   recipe(.) %>%
+#   step_normalize(outcome_grade) %>%
+#   prep() %>%
+#   bake(new_data = NULL) %>%
+#   as.data.frame()
+  
+df_descr_imp_grade <- data_outcome_grade %>%
+  dplyr::select(treatment_sport_freq, outcome_grade) %>%
+  group_by(treatment_sport_freq) %>%
+  summarize_all(mean) %>%
+  gather(-treatment_sport_freq, key = "control_var", value = "mean") %>%
+  spread(key = treatment_sport_freq, value = mean) %>%
+  rename(mean_weekly = "1", mean_monthly = "2", mean_never = "3", mean_noextra = "4") %>%
+  mutate(control_var = case_when(
+    control_var == "friends_study_share_(almost)half" ~ "friends_study_share_.almost.half",
+    TRUE ~ control_var
+  ))
+df_descr_imp_grade
+
+
+#### PERSONALITY ####
+#+++++++++++++++++++#
+
+data_outcome_pers <- readRDS(paste0("Data/Personality/Prep_10/prep_10_dml_multi_all_weekly_down", 
+                                    cov_balance_save, "_mice", 1, "_personality.rds")) %>%
+  mutate(treatment_sport_freq = case_when(treatment_sport_freq == 3 & extracurricular_num == 0 ~ 4, TRUE ~ treatment_sport_freq))
+
+table(data_outcome_pers$treatment_sport_freq) # sample size
+
+
+df_descr_imp_pers <- data_outcome_pers %>%
+  dplyr::select(treatment_sport_freq, starts_with("bigfive")) %>%
+  group_by(treatment_sport_freq) %>%
+  summarize_all(mean) %>%
+  gather(-treatment_sport_freq, key = "control_var", value = "mean") %>%
+  spread(key = treatment_sport_freq, value = mean) %>%
+  rename(mean_weekly = "1", mean_monthly = "2", mean_never = "3", mean_noextra = "4") %>%
+  mutate(control_var = case_when(
+    control_var == "friends_study_share_(almost)half" ~ "friends_study_share_.almost.half",
+    TRUE ~ control_var
+  ))
+df_descr_imp_pers
 
 
