@@ -219,7 +219,7 @@ df_smd_all_multi <- data.frame()
 df_iterate <- data.frame("Rep" = c(rep(1,4), rep(2,4), rep(3,4), rep(4,4), rep(5,4)), "Fold" = rep(c(1:4), 5))
 
 # iterate over outcome variables
-for (outcome_var_sel in c("grades")) {
+for (outcome_var_sel in c("grades", "agreeableness", "extraversion", "conscientiousness", "neuroticism", "openness")) {
   
   print(paste("Start Outcome:", str_to_title(outcome_var_sel)))
   
@@ -253,9 +253,16 @@ for (outcome_var_sel in c("grades")) {
         df_controls_multi <- dml_result_all_multi[[mice_sel]]$cov_balance[[mice_sel]][[df_iterate_sel_2$Rep]][[df_iterate_sel_2$Fold]]$controls
         
         # control variables
-        x <- df_controls_multi %>% dplyr::select(-all_of(
-          c("outcome_grade", "treatment_sport_freq", "treatment_sport_freq_na", "treatment_sport_freq_monthly_less", "treatment_sport_freq_never",
-            "treatment_sport_freq_weekly_atleast", "Fold", "Repetition", "group")))
+        if (outcome_var_sel == "grades") {
+          x <- df_controls_multi %>% dplyr::select(-all_of(
+            c("outcome_grade", "treatment_sport_freq", "treatment_sport_freq_na", "treatment_sport_freq_monthly_less", "treatment_sport_freq_never",
+              "treatment_sport_freq_weekly_atleast", "Fold", "Repetition", "group")))
+        } else {
+          x <- df_controls_multi %>% dplyr::select(-all_of(
+            c(paste0("outcome_bigfive_", outcome_var_sel), "treatment_sport_freq", "treatment_sport_freq_na", "treatment_sport_freq_monthly_less", "treatment_sport_freq_never",
+              "treatment_sport_freq_weekly_atleast", "Fold", "Repetition", "group")))
+        }
+
         
         # calculate covariate balance
         df_smd_cov_func_all <- list()
@@ -349,6 +356,26 @@ for (outcome_var_sel in c("grades")) {
   
 } # close loop over outcome_var_sel()
 
+
+df_smd_sum_multi <- df_smd_sum_multi %>% dplyr::select(
+  outcome, treatment_setting, adjustment, everything()
+)
+
+df_smd_all_multi <- df_smd_all_multi %>% dplyr::select(
+  outcome, control_var, SD_before, SD_after
+)
+
+# aggregate over personality
+df_smd_sum_multi <- rbind(
+  df_smd_sum_multi,
+  df_smd_sum_multi %>% 
+    filter(outcome != "grades") %>%
+    mutate(outcome = "personality") %>%
+    group_by(outcome, treatment_setting, adjustment) %>%
+    summarize_all(mean)
+)
+
+
 # save
 saveRDS(df_smd_sum_multi, "Output/DML/Covariate_Balancing/covariate_balancing_summary_multi.rds")
 saveRDS(df_smd_all_multi, "Output/DML/Covariate_Balancing/covariate_balancing_asdm_multi.rds")
@@ -361,9 +388,8 @@ saveRDS(df_smd_all_multi, "Output/DML/Covariate_Balancing/covariate_balancing_as
 df_smd_all_binary_plot <- df_smd_all_binary %>%
   mutate(outcome = case_when(outcome != "grades" ~ "personality", TRUE ~ "grades")) %>%
   group_by(outcome, control_var) %>%
-  summarize(SD_before = mean(SD_before), SD_after = mean(SD_after))
+  summarize(SD_before = mean(SD_before), SD_after = mean(SD_after)) 
   
-
 # Binary
 plot_cov_bal_binary <- list()
 for (outcome_var_sel in c("grades", "personality")) {
@@ -387,20 +413,25 @@ for (outcome_var_sel in c("grades", "personality")) {
 }
 
 
-plot_cov_bal_binary_save <- ggarrange(
-  plot_cov_bal_binary[["grades"]] + ggtitle("GPA"),
-  plot_cov_bal_binary[["personality"]] + ylab(""),
-  nrow = 1, ncol = 2, common.legend = TRUE, legend = "bottom"
-)
-
-ggsave("Output/DML/Covariate_Balancing/plot_cov_balance_binary.png", plot_cov_bal_binary_save,
-       width = 20, height = 15, dpi = 300, units = "in", device = 'png')
+# plot_cov_bal_binary_save <- ggarrange(
+#   plot_cov_bal_binary[["grades"]] + ggtitle("GPA"),
+#   plot_cov_bal_binary[["personality"]] + ylab(""),
+#   nrow = 1, ncol = 2, common.legend = TRUE, legend = "bottom"
+# )
+# 
+# ggsave("Output/DML/Covariate_Balancing/plot_cov_balance_binary.png", plot_cov_bal_binary_save,
+#        width = 20, height = 15, dpi = 300, units = "in", device = 'png')
 
 
 # Multi
 plot_cov_bal_multi <- list()
-for (outcome_var_sel in c("grades")) {
-  df_smd_plot_multi <- df_smd_all_multi %>% filter(outcome == outcome_var_sel)
+df_smd_all_multi_plot <- df_smd_all_multi %>% mutate(
+  outcome = case_when(outcome == "grades" ~ "grades", TRUE ~ "personality")
+) %>% group_by(outcome, control_var) %>% summarize_all(mean)
+  
+
+for (outcome_var_sel in c("grades", "personality")) {
+  df_smd_plot_multi <- df_smd_all_multi_plot %>% filter(outcome == outcome_var_sel)
   plot_cov_bal_multi[[outcome_var_sel]] <- ggplot() +
     geom_area(data = df_smd_plot_multi %>% arrange(desc(SD_before)) %>% 
                 mutate(var_num = 1:nrow(df_smd_plot_multi)),
@@ -413,22 +444,23 @@ for (outcome_var_sel in c("grades")) {
     ggtitle(paste("\n", str_to_title(outcome_var_sel))) + 
     theme_bw() + 
     theme(legend.position = "right", 
-          plot.title = element_text(hjust = 0.5, size = 22),
-          axis.text = element_text(size = 18), axis.title = element_text(size = 20),
-          legend.text = element_text(size = 18), legend.title = element_text(size = 20)) +
+          plot.title = element_text(hjust = 0.5, size = 28),
+          axis.text = element_text(size = 28), axis.title = element_text(size = 26),
+          legend.text = element_text(size = 28), legend.title = element_text(size = 26)) +
     guides(fill = guide_legend(title = "ASDM")) 
 }
 
 
 # Arrange
 plot_cov_bal_save <- 
-  ggarrange(plot_cov_bal_final_grades + ggtitle("Grades Binary") + rremove("xlab"), 
-            plot_cov_bal_multi$grades + ggtitle("Grades Multi") + rremove("xlab"), 
-            plot_cov_bal_multi$grades + ggtitle("Personality Binary"), 
-            plot_cov_bal_multi$grades + ggtitle("Personality Multi"),
+  ggarrange(plot_cov_bal_binary$grades + ggtitle("GPA Binary") + rremove("xlab"), 
+            plot_cov_bal_binary$personality + ggtitle("GPA Multi") + rremove("xlab") + rremove("ylab"), 
+            plot_cov_bal_multi$grades + ggtitle("\nPersonality Binary"), 
+            plot_cov_bal_multi$personality + ggtitle("\nPersonality Multi") + rremove("ylab"),
             nrow = 2, ncol = 2, common.legend = TRUE, legend = "bottom")
 
-ggsave("Output/DML/Covariate_Balancing/plot_cov_balance.png", plot_cov_bal_save)
+ggsave("Output/DML/Covariate_Balancing/plot_cov_balance.png", plot_cov_bal_save,
+       width = 20, height = 15, dpi = 300, units = "in", device = 'png')
 
 
 
