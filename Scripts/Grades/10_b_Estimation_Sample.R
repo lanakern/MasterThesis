@@ -126,10 +126,20 @@ for (mice_data_sel in 1:5) {
   data_final <- remove_constant(data_final)
   
   # adjust treatment period (may change due to drop outs)
-  data_final <- data_final %>%
-    group_by(group) %>%
-    mutate(treatment_period = row_number()) %>%
-    ungroup()
+  if (treatment_repl != "no") {
+    data_final <- data_final %>%
+      group_by(group) %>%
+      mutate(treatment_period = row_number()) %>%
+      ungroup()
+  } else {
+    if ("treatment_period" %in% colnames(data_final)) {
+      # no treatment_period required for treatment_repl = "no" 
+      data_final <- data_final %>% dplyr::select(-treatment_period)
+    } else {
+      data_final <- data_final
+    }
+  }
+
   
   
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
