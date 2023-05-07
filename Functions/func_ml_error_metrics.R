@@ -99,7 +99,7 @@ func_ml_error_metrics <- function(treatment_setting, data_pred, S_rep, fold_sel,
     # combine data set
     df_error_class <- data.frame(
       "Repetition" = S_rep, "Fold" = fold_sel, 
-      "ACC_m" = m_acc, "KAPPA_m" = m_kappa, "BACC_m" = m_bacc, "AUC_m" = m_auc
+      "ACC_m" = m_acc, "KAPPA_m" = m_kappa, "BACC_m" = m_bacc, "AUC_m" = unique(m_auc)
     )
 
     
@@ -239,21 +239,21 @@ func_ml_error_metrics <- function(treatment_setting, data_pred, S_rep, fold_sel,
   if (treatment_setting == "binary") {
     # Regression: outcome prediction
     ## MSE (not in yardstick only rmse; but would be the same for yardstick::rmse^1)
-    g0_mse <- data_pred %>% filter(treatment == 0) %>% summarize(mean((outcome - g0)^2)) %>% pull()
-    g1_mse <- data_pred %>% filter(treatment == 1) %>% summarize(mean((outcome - g1)^2)) %>% pull()
+    g0_mse <- data_pred %>% filter(treatment == 0) %>% summarize(mean((outcome - g0)^2)) %>% pull() %>% mean()
+    g1_mse <- data_pred %>% filter(treatment == 1) %>% summarize(mean((outcome - g1)^2)) %>% pull() %>% mean()
     ## RMSE
     g0_rmse <- sqrt(g0_mse)
     g1_rmse <- sqrt(g1_mse)
     ## MAE
     g0_mae <- yardstick::mae(data_pred %>% filter(treatment == 0), truth = outcome, estimate = g0) %>%
-      dplyr::select(.estimate) %>% pull()
+      dplyr::select(.estimate) %>% pull() %>% mean()
     g1_mae <- yardstick::mae(data_pred  %>% filter(treatment == 1), truth = outcome, estimate = g1) %>%
-      dplyr::select(.estimate) %>% pull()
+      dplyr::select(.estimate) %>% pull() %>% mean()
     ## MAPE
     g0_mape <- yardstick::mape(data_pred %>% filter(treatment == 0), truth = outcome, estimate = g0) %>%
-      dplyr::select(.estimate) %>% pull()
+      dplyr::select(.estimate) %>% pull() %>% mean()
     g1_mape <- yardstick::mape(data_pred %>% filter(treatment == 1), truth = outcome, estimate = g1) %>%
-      dplyr::select(.estimate) %>% pull()
+      dplyr::select(.estimate) %>% pull() %>% mean()
     
     # Report results in one data frame
     df_error_reg <- data.frame(
