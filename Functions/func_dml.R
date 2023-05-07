@@ -85,6 +85,7 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
   df_param_all <- data.frame()
   df_imp_all <- data.frame()
   df_coef_all <- data.frame()
+  data_coef_lasso_all <- data.frame()
   data_cov_bal_fold <- list()
   data_cov_bal_rep <- list()
   df_cov_bal_all <- list()
@@ -314,6 +315,12 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
         data_coef <- data_coef %>% mutate(Fold = fold_sel, Repetition = S_rep) %>%
           dplyr::select(Repetition, Fold, everything())
         df_coef_all <- rbind(df_coef_all, data_coef)
+        
+        # lasso coefficients for post lasso
+        if (post == TRUE) {
+          data_coef_lasso <- ls_ml$coef_lasso %>% mutate(Fold = fold_sel, Repetition = S_rep)
+          data_coef_lasso_all <- rbind(data_coef_lasso_all, data_coef_lasso)
+        }
         
       } else if (mlalgo == "xgboost") {
         
@@ -636,7 +643,7 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
                   "error" = df_error_all, "param" = df_param_all,
                   "trimming" = df_trimming_all, "predictors" = df_predictors_all,
                   "pred" = df_pred_all, "pred_bef_trimming" = df_pred_bef_trimming_all,
-                  "coef" = df_coef_all, 
+                  "coef" = df_coef_all, "coef_lasso" = data_coef_lasso_all, 
                   "cov_balance" = df_cov_bal_all))
     } else {
       return(list("final" = df_result_all, "detail" = df_result_all_detailed,

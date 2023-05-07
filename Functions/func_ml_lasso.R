@@ -476,6 +476,11 @@ func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome,
     lasso_coef_all <- rbind(lasso_coef_all, lasso_coef_g0)
     lasso_coef_all <- rbind(lasso_coef_all, lasso_coef_g1)
     
+    # data set with number of coefficients
+    lasso_coef_num <- data.frame("m" = nrow(lasso_coef_m),
+                                 "g0" = nrow(lasso_coef_g0),
+                                 "g1" = nrow(lasso_coef_g1))
+    
     
     #%%%%%%%%%%%%%%%%%%%#
     #### PREDICTIONS ####
@@ -599,7 +604,12 @@ func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome,
     
 
     # return data frame with predictions
-    return(list("pred" = df_pred, "param" = df_best_param, "coef" = lasso_coef_all))
+    if (post == TRUE) {
+      return(list("pred" = df_pred, "param" = df_best_param, "coef" = lasso_coef_all, "coef_lasso" = lasso_coef_num)) 
+    } else {
+      return(list("pred" = df_pred, "param" = df_best_param, "coef" = lasso_coef_all))
+    }
+
   
   
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -1287,6 +1297,12 @@ func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome,
     lasso_coef_all <- rbind(lasso_coef_all, lasso_coef_g3)
     
     
+    # data set with number of coefficients
+    lasso_coef_num <- data.frame(
+      "m1" = nrow(lasso_coef_m1), "m2" = nrow(lasso_coef_m2), "m3" = nrow(lasso_coef_m3),
+      "g1" = nrow(lasso_coef_g1), "g2" = nrow(lasso_coef_g2), "g3" = nrow(lasso_coef_g3)
+    
+    
     #%%%%%%%%%%%%%%%%%%%#
     #### Predictions ####
     #%%%%%%%%%%%%%%%%%%%#
@@ -1471,7 +1487,11 @@ func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome,
  
     
     # return data frame with predictions
-    return(list("pred" = df_pred, "param" = df_best_param, "coef" = lasso_coef_all))
+    if (post == TRUE) {
+      return(list("pred" = df_pred, "param" = df_best_param, "coef" = lasso_coef_all, "coef_lasso" = lasso_coef_num)) 
+    } else {
+      return(list("pred" = df_pred, "param" = df_best_param, "coef" = lasso_coef_all))
+    }
   } # close else-if from multi
   
 } # close function() 
