@@ -301,6 +301,10 @@ for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
 # For example, regarding extracuriccular activities or treatment replacement.
 # Also treatment group definition of "all" is considered.
 cov_balance <- "yes"
+interactions <- "no"
+# also add everything for treatment_def == "all"
+df_inputs <- rbind(df_inputs,
+                   df_inputs %>% mutate(treatment_def = "all")) %>% distinct()
 for (prep_sel_num in 1:nrow(df_inputs)) {
   
   print(paste0("START COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs)))
