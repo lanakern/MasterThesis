@@ -27,7 +27,6 @@ for (mice_data_sel in 1:5) {
   
   # data set number
   print(paste("Data Set", mice_data_sel))
-  print(paste("Number of predictors after:", ncol(data_dml)))
   
   # load data
     ## extract extracurricular activity ending
@@ -66,7 +65,7 @@ for (mice_data_sel in 1:5) {
   
   data_dml_raw <- readRDS(load_data)
   data_dml <- data_dml_raw
-  
+  print(paste("Number of predictors:", ncol(data_dml)))
   # drop lags if desired by user
   if (model_controls_lag == "no_lags") {
     # drop all lags
