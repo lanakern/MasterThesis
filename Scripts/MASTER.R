@@ -176,7 +176,7 @@ options(warn = -1)
 
 # define main model
 main_cohort_prep <- "controls_same_outcome"
-main_treatment_def <- "weekly"
+main_treatment_def <- "all"
 main_treatment_repl <- "down"
 main_extra_act <- "yes"
 main_model_treatment <- "binary"
@@ -614,6 +614,7 @@ model_trimming <- main_model_trimming # 0.1, min-max
 model_post_sel <- FALSE
 probscore_separate <- TRUE
 hyperparam_sel <- "best"
+model_hyperparam_sel <- "best"
 cov_balance  <- main_cov_balance
 
 # for lasso and xgboost higher K as they are computationally faster
@@ -674,6 +675,7 @@ eval(parse(text = keep_after_file_run))
 #+++++++++++++++++++++++++#
 
 multi_model_algo <- "postlasso"
+model_post_sel <- TRUE
 
 ### Robustness Checks wrt Data Preparation ###
 #++++++++++++++++++++++++++++++++++++++++++++#
@@ -700,17 +702,17 @@ treatment_def <- main_extra_act
 
 ## RC 4: No potentially endogeneous variables ##
 model_controls_endog <- "no"
-source("Scripts/11_a_DML_Binary.R") 
+source("Scripts/11_b_DML_Multi.R") 
 model_controls_endog <- main_model_controls_endog
 
 ## RC 5: No covariate balance drop ##
 cov_balance <- "no"
-source("Scripts/11_a_DML_Binary.R") 
+source("Scripts/11_b_DML_Multi.R") 
 cov_balance <- main_cov_balance
 
 ## RC 6: cohort_prep_before ##
 cov_balance <- "controls_bef_outcome"
-source("Scripts/11_a_DML_Binary.R") 
+source("Scripts/11_b_DML_Multi.R") 
 cohort_prep <- main_cohort_prep 
 
 ## RC 7: Include polynominals and interaction terms ##
@@ -722,51 +724,35 @@ cohort_prep <- main_cohort_prep
 ## RC 10: Change trimming thresholds ##
 
 ## RC 11: Change K and S ##
-# combis 5,5,10
-model_k <- 5 
-model_k_tuning <- 5 # 4
-model_s_rep <- 10 # 10
-source("Scripts/11_a_DML_Binary.R") 
+# combis (4, 10, 5), (5, 2, 5) --> (4,2,10),    , (5, 10, 20)
+model_k <- 5 # 4
+model_k_tuning <- 2 # 2
+model_s_rep <- 5 # 5
+source("Scripts/11_b_DML_Multi.R") 
 
 ### Robustness Checks wrt Trimming Thresholds ###
 #+++++++++++++++++++++++++++++++++++++++++++++++#
 
 # range: [0.01,0.99]
 model_trimming <- 0.01
-source("Scripts/11_a_DML_Binary.R")
+source("Scripts/11_b_DML_Multi.R")
 
 # range: [0.10,0.90]
-model_trimming <- 0.11
-source("Scripts/11_a_DML_Binary.R")
+model_trimming <- 0.1
+source("Scripts/11_b_DML_Multi.R")
 
 model_trimming <- main_model_trimming
 
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-#### SENSITIVITY WRT HYPERPARAMETERS ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+### Robustness Checks wrt HYPERPARAMETERS ###
+#+++++++++++++++++++++++++++++++++++++++++++#
 
-outcome_var <- "outcome_grade"
-treatment_setting <- "binary"
-cohort_prep <- main_cohort_prep 
-treatment_repl <- main_treatment_repl 
-treatment_def <- main_treatment_def 
-extra_act <- main_extra_act 
-model_type <- main_model_type 
-model_controls_lag <- main_model_controls_lag 
-model_controls_endog <- main_model_controls_endog 
-model_trimming <- main_model_trimming 
-model_k <- 4 
-model_k_tuning <- 2 
-model_s_rep <- 5 
-
-## POST-LASSO ##
-model_algo <- "postlasso"
-model_post_sel <- TRUE
+hyperparam_sel <- "1SE"
 model_hyperparam_sel <- "1SE"
-source("Scripts/11_a_DML_Binary.R") 
+source("Scripts/11_b_DML_Multi.R") 
 
+hyperparam_sel <- "1SE_plus"
 model_hyperparam_sel <- "1SE_plus"
-source("Scripts/11_a_DML_Binary.R") 
+source("Scripts/11_b_DML_Multi.R") 
 
 
 
