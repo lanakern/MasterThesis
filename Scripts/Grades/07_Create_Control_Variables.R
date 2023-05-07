@@ -1044,6 +1044,7 @@ for (vars_both_sel in vars_both) {
 #### Missing Values ####
 #%%%%%%%%%%%%%%%%%%%%%%#
 
+na_all <- sum(is.na(data_prep_1))
 data_prep_2 <- data_prep_1 %>% ungroup()
 
 # drop variables containing only missing values
@@ -1066,6 +1067,9 @@ summary(unname((colSums(is.na(data_prep_2 %>% dplyr::select(all_of(col_miss)))) 
 # number of complete observations
 data_prep_2 %>% na.omit() %>% nrow()
 
+# number of missing observations
+sum(is.na(data_prep_2)) / (nrow(data_prep_2)*ncol(data_prep_2))*100 # in percent
+mean(rowSums(is.na(data_prep_2)) / ncol(data_prep_2))*100
 
 ## Replace Missing Values in "Non-Existence" Variables ##
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++#
@@ -1144,6 +1148,8 @@ data_prep_2 <- data_prep_2 %>%
 ## Create Percentage of Missings ##
 #+++++++++++++++++++++++++++++++++#
 
+na_2 <- sum(is.na(data_prep_2))
+
 data_prep_2$NA_COUNT <- apply(data_prep_2, 1, function(x) sum(is.na(x)))
 data_prep_2$NA_COUNT_perc <- (data_prep_2$NA_COUNT / ncol(data_prep_2))*100
 summary(data_prep_2$NA_COUNT)
@@ -1157,6 +1163,10 @@ table(data_prep_2$NA_low)
 table(data_prep_2$NA_high)
 
 
+sum(is.na(data_prep_2)) / (nrow(data_prep_2)*ncol(data_prep_2))*100 # in percent
+mean(rowSums(is.na(data_prep_2)) / ncol(data_prep_2))*100
+
+na_2 / na_all
 
 ## Create NA Dummies ##
 #+++++++++++++++++++++#
