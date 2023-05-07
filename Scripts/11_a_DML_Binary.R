@@ -27,6 +27,7 @@ for (mice_data_sel in 1:5) {
   
   # data set number
   print(paste("Data Set", mice_data_sel))
+  print(paste("Number of predictors after:", ncol(data_dml)))
   
   # load data
     ## extract extracurricular activity ending
@@ -120,7 +121,31 @@ for (mice_data_sel in 1:5) {
     #   dplyr::select(-all_of(colnames_bigfive_lag_drop))
   }
   
-
+  # remove linearly dependent terms
+  data_train_test_m <- data_dml %>% dplyr::select(-all_of(outcome_var))
+  data_train_test_g0 <- data_dml %>% filter(treatment_sport == 0) %>% dplyr::select(-treatment_sport)
+  data_train_test_g1 <- data_dml %>% filter(treatment_sport == 1) %>% dplyr::select(-treatment_sport)
+  
+  # remove alias coefficients
+  model_m <- glm(paste("treatment_sport", "~ ."), family = binomial(link = "logit"), data = data_train_test_m)
+  model_lm_0 <- lm(paste(outcome_var, "~ ."), data = data_train_test_g0)
+  model_lm_1 <- lm(paste(outcome_var, "~ ."), data = data_train_test_g1)
+  
+  vars_multicoll_drop <- c(
+    attributes(alias(model_m)$Complete)$dimnames[[1]],
+    attributes(alias(model_lm_0)$Complete)$dimnames[[1]], 
+    attributes(alias(model_lm_1)$Complete)$dimnames[[1]]) %>%
+    unique()
+  
+  vars_multicoll_drop <- vars_multicoll_drop[!str_detect(
+    vars_multicoll_drop, "treatment_sport|outcome_grade|grade|agreeableness|extraversion|neuroticism|openness|conscientiousness"
+    )]
+  
+  if (length(vars_multicoll_drop) < 30) {data_dml <- data_dml %>% dplyr::select(-all_of(vars_multicoll_drop))}
+  
+  print(paste("Number of predictors after dropping linearly dependent columns:", ncol(data_dml)))
+  
+  
   #%%%%%%%%%%%#
   #### APE ####
   #%%%%%%%%%%%#
