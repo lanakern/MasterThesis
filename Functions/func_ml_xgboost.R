@@ -548,8 +548,20 @@ func_ml_xgboost <- function(treatment_setting, data_train, data_test, outcome, t
       "num_pred_g1" = ncol(xgb_fit_final_g1$pre$mold$predictors)
     )
     
+    
+    #%%%%%%%%%%%%%%%%%%%%%%%%%%#
+    #### Feature Importance ####
+    #%%%%%%%%%%%%%%%%%%%%%%%%%%#
+    
+    xgb_scores <- rbind(
+      func_feature_importance_score(xgb_fit_final_m, length(X_controls)) %>% mutate("Pred_Type" = "Treatment Prediction"),
+      func_feature_importance_score(xgb_fit_final_g0, length(X_controls)) %>% mutate("Pred_Type" = "Outcome 0 Prediction"),
+      func_feature_importance_score(xgb_fit_final_g1, length(X_controls)) %>% mutate("Pred_Type" = "Outcome 1 Prediction")
+    ) %>% mutate(MICE = mice_data_sel)
+    
+    
     # return data frame with predictions
-    return(list("pred" = df_pred, "param" = df_best_param))
+    return(list("pred" = df_pred, "param" = df_best_param, "imp" = xgb_scores))
     
   
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -1298,8 +1310,24 @@ func_ml_xgboost <- function(treatment_setting, data_train, data_test, outcome, t
         "num_pred_g3" = ncol(xgb_fit_final_g3$pre$mold$predictors)
       )
       
+      
+      #%%%%%%%%%%%%%%%%%%%%%%%%%%#
+      #### Feature Importance ####
+      #%%%%%%%%%%%%%%%%%%%%%%%%%%#
+      
+      xgb_scores <- rbind(
+        func_feature_importance_score(xgb_fit_final_m1, length(X_controls)) %>% mutate("Pred_Type" = "Treatment 1 Prediction"),
+        func_feature_importance_score(xgb_fit_final_m2, length(X_controls)) %>% mutate("Pred_Type" = "Treatment 2 Prediction"),
+        func_feature_importance_score(xgb_fit_final_m3, length(X_controls)) %>% mutate("Pred_Type" = "Treatment 3 Prediction"),
+        func_feature_importance_score(xgb_fit_final_g1, length(X_controls)) %>% mutate("Pred_Type" = "Outcome 1 Prediction"),
+        func_feature_importance_score(xgb_fit_final_g2, length(X_controls)) %>% mutate("Pred_Type" = "Outcome 2 Prediction"),
+        func_feature_importance_score(xgb_fit_final_g3, length(X_controls)) %>% mutate("Pred_Type" = "Outcome 3 Prediction")
+      ) %>% mutate(MICE = mice_data_sel)
+      
+      
       # return data frame with predictions
-      return(list("pred" = df_pred, "param" = df_best_param))
+      return(list("pred" = df_pred, "param" = df_best_param, "imp" = xgb_scores))
+      
       
     } # close else for probscore_separate = FALSE
     

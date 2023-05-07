@@ -83,6 +83,7 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
   # generate empty data frames / lists
   df_pred_all <- data.frame()
   df_param_all <- data.frame()
+  df_imp_all <- data.frame()
   df_coef_all <- data.frame()
   data_cov_bal_fold <- list()
   data_cov_bal_rep <- list()
@@ -136,7 +137,7 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
   if (str_detect(outcome, "grade")) {
     xgb_grid <- expand.grid(
       tree_depth = c(3, 6, 9), # default: 6
-      trees = c(15, 50, 100), # default: 15 
+      trees = 50, #c(15, 50, 100), # default: 15 
       learn_rate = c(0.01, 0.3), # default: 0.3
       mtry = c(floor(sqrt(num_X)), round(num_X)/2, round(num_X)), # default: p (X)
       min_n = c(1, 3) # default: 1
@@ -337,6 +338,10 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
           dplyr::select(Repetition, Fold, everything())
         df_param_all <- rbind(df_param_all, data_param)
         
+        # feature importance
+        data_imp <- xgb_ml$imp %>% mutate(Repetition = S_rep, Fold = fold_sel)
+        df_imp_all <- rbind(df_imp_all, data_imp)
+        
         
       } else if (mlalgo == "randomforests") {
         
@@ -357,6 +362,9 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
           dplyr::select(Repetition, Fold, everything())
         df_param_all <- rbind(df_param_all, data_param)
         
+        # feature importance
+        data_imp <- xgb_ml$imp %>% mutate(Repetition = S_rep, Fold = fold_sel)
+        df_imp_all <- rbind(df_imp_all, data_imp)
         
       } else {
         stop("Please select a Machine Learning Algorithm to predict the nuisance parameters.")
@@ -639,7 +647,7 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
     }
   } else {
     return(list("final" = df_result_all, "detail" = df_result_all_detailed,
-                "error" = df_error_all, "param" = df_param_all,
+                "error" = df_error_all, "param" = df_param_all, "imp" = df_imp_all,
                 "trimming" = df_trimming_all, "predictors" = df_predictors_all,
                 "pred" = df_pred_all, "pred_bef_trimming" = df_pred_bef_trimming_all))
   }
