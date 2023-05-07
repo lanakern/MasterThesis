@@ -262,7 +262,7 @@ if (probscore_separate == TRUE) {
       read.xlsx("Output/DML/Treatment_Effects/DML_MULTI_ESTIMATION_RESULTS.xlsx", sheetName = "Sheet1")
     dml_result_save_all <- rbind(dml_result_save_all, dml_result_save)
     cols_aggr <- dml_result_save_all %>%
-      dplyr::select(outcome, cohort_prep, treatment_repl, treatment_def, starts_with("model")) %>%
+      dplyr::select(outcome, cohort_prep, treatment_repl, treatment_def, extra_act, starts_with("model")) %>%
       colnames()
     dml_result_save_all <- dml_result_save_all %>%
       group_by(across(all_of(cols_aggr))) %>%
