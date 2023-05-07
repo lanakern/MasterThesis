@@ -71,6 +71,14 @@ for (mice_data_sel in 1:5) {
   # ungroup and correct data types
   data_final <- data_final_raw %>% ungroup() %>% type.convert(as.is = TRUE)
   
+  # change treatment group to all sport participation levels
+  if (treatment_def == "all" & cohort_prep == main_cohort_prep) {
+    data_final <- data_final %>% 
+      mutate(treatment_sport = ifelse(treatment_sport_freq != "never", 1, 0)) 
+  } else {
+    data_final <- data_final
+  }
+  
   # drop interview_start_year_num %in% c(1,8) and respective dummies to enforce
   # common support
   if (cohort_prep == "controls_same_outcome" & cov_balance == "yes") {
