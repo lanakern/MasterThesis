@@ -162,12 +162,12 @@ postlasso_grades_trimming01 <-
 
 # Robustness checks regarding hyperparameters
 postlasso_grades_1SE <- 
-  readRDS(paste0("Output/DML/Estimation/Grades/binary_grades_", "postlasso", 
+  readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_", "postlasso", 
                  "_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming", 
                  model_trimming, "_K4-2_Rep5_1SE", cov_balance_save, ".rds"))
 
 postlasso_grades_1SEplus <- 
-  readRDS(paste0("Output/DML/Estimation/Grades/binary_grades_", "postlasso", 
+  readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_", "postlasso", 
                  "_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming", 
                  model_trimming, "_K4-2_Rep5_1SE_plus", cov_balance_save, ".rds"))
 
@@ -232,10 +232,12 @@ df_treatment_effects_main_binary <- df_dml_main_binary %>% filter(
   model_controls_endog == main_model_controls_endog, model_hyperparam_sel == "best",
   model_covbal == "yes", Type %in% c("ATE", "ATTE")
 ) %>% 
-  mutate(model = "main") %>%
+  mutate(model = "main") 
+
+df_treatment_effects_main_binary_save <- df_treatment_effects_main_binary %>%
   dplyr::select(model, outcome, model_algo, Type, theta_median, se_median, pvalue_median, time_stamp) 
-df_treatment_effects_main_binary
-saveRDS(df_treatment_effects_main_binary, "Output/DML/Treatment_Effects/binary_main_treatment_effects_paper.rds")
+df_treatment_effects_main_binary_save
+saveRDS(df_treatment_effects_main_binary_save, "Output/DML/Treatment_Effects/binary_main_treatment_effects_paper.rds")
 
 
 ## PLOT ##
@@ -294,17 +296,20 @@ df_binary_boxplot <- df_binary_boxplot %>%
 
 dml_boxplot_binary <- 
   ggplot(df_binary_boxplot, aes(x = ML_algo, y = Treatment_Effect)) +
-  geom_boxplot(fill = "grey") +
+  geom_boxplot(fill = "grey", outlier.size = 5, width = 0.8, linewidth = 0.8) +
+  stat_summary(fun.y=mean, geom = "point", shape = 15, size = 5, color = "darkblue",
+               position = position_dodge2(width = 0.75,   
+                                          preserve = "single")) +
   #xlab("\nMachine Learning Algorithms\n") +
   xlab("") + ylab("\nTreatment Effect Estimates\n") + 
   ylim(-0.1, 0) +
   facet_wrap(~ Type) + 
   theme_bw() +
   theme(
-    axis.text = element_text(size = 26), # size of x-axis tick labels
-    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 26), # rotate x-axis ticks
-    axis.title = element_text(size = 26), #, face = "bold"), # size of x-axis labels
-    strip.text.x = element_text(size = 30) # size of facet text
+    axis.text = element_text(size = 40), # size of x-axis tick labels
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 40), # rotate x-axis ticks
+    axis.title = element_text(size = 40), #, face = "bold"), # size of x-axis labels
+    strip.text.x = element_text(size = 45) # size of facet text
     ) 
 dml_boxplot_binary
 ggsave("Output/DML/Treatment_Effects/plot_binary_main_grades_treatment_effects_variability.png",
@@ -339,17 +344,20 @@ postlasso_personality_boxplot <- postlasso_personality_boxplot %>%
 
 dml_boxplot_binary_personality <- 
   ggplot(postlasso_personality_boxplot, aes(x = Outcome, y = Treatment_Effect)) +
-  geom_boxplot(fill = "grey") +
+  geom_boxplot(fill = "grey", outlier.size = 5, linewidth = 0.8) +
+  stat_summary(fun.y=mean, geom = "point", shape = 15, size = 5, color = "darkblue",
+               position = position_dodge2(width = 0.75,   
+                                          preserve = "single")) +
   #xlab("\nMachine Learning Algorithms\n") +
   xlab("") + ylab("\nTreatment Effect Estimates\n") + 
   ylim(-0.15, 0.25) +
   facet_wrap(~ Type) + 
   theme_bw() +
   theme(
-    axis.text = element_text(size = 26), # size of x-axis tick labels
-    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 26), # rotate x-axis ticks
-    axis.title = element_text(size = 26), #, face = "bold"), # size of x-axis labels
-    strip.text.x = element_text(size = 30) # size of facet text
+    axis.text = element_text(size = 40), # size of x-axis tick labels
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 40), # rotate x-axis ticks
+    axis.title = element_text(size = 40), #, face = "bold"), # size of x-axis labels
+    strip.text.x = element_text(size = 45) # size of facet text
   ) 
 dml_boxplot_binary_personality
 ggsave("Output/DML/Treatment_Effects/plot_binary_main_personality_treatment_effects_variability.png",
@@ -376,12 +384,14 @@ df_treatment_effects_main_multi <- df_dml_main_multi %>% filter(
   treatment_repl == main_treatment_repl, extra_act == main_extra_act,
   model_type == main_model_type, model_k == main_model_k, model_s_rep == main_model_s_rep,
   model_trimming == main_model_trimming, model_controls_lag == main_model_controls_lag,
-  model_controls_endog == main_model_controls_endog, 
+  model_controls_endog == main_model_controls_endog, model_hyperparam_sel == "best",
   model_covbal == "yes", Type %in% c("ATE", "ATTE")
-) %>% mutate(model = "main") %>%
+) %>% mutate(model = "main") 
+
+df_treatment_effects_main_multi_save <- df_treatment_effects_main_multi %>%
   dplyr::select(model, outcome, model_algo, Type, Treatment, theta_median, se_median, pvalue_median) 
-df_treatment_effects_main_multi
-saveRDS(df_treatment_effects_main_multi, "Output/DML/Treatment_Effects/multi_main_treatment_effects_paper.rds")
+df_treatment_effects_main_multi_save
+saveRDS(df_treatment_effects_main_multi_save, "Output/DML/Treatment_Effects/multi_main_treatment_effects_paper.rds")
 
 
 # plot to show how variable estimates are across MICE data sets and repetitions
@@ -505,14 +515,15 @@ df_treatment_effects_rc_multi <- df_dml_main_multi %>%
       treatment_repl == main_treatment_repl & extra_act == main_extra_act & 
       model_type == main_model_type & model_k == main_model_k & model_s_rep == main_model_s_rep & 
       model_trimming == main_model_trimming & model_controls_lag == main_model_controls_lag & 
-      model_controls_endog == main_model_controls_endog &  
+      model_controls_endog == main_model_controls_endog &  model_hyperparam_sel == "best" &
       model_covbal == "yes", "main", "rc"
   )) %>% 
   filter(Type %in% c("ATE", "ATTE"), sample == "rc", model_algo == "postlasso", 
-         outcome == "grade", model_trimming == "min-max") %>%
-  dplyr::select(outcome, model_algo, cohort_prep, treatment_def, treatment_repl, extra_act,
-                model_type, model_controls_lag, model_controls_endog, model_covbal, model_trimming,
-                Treatment, Type, theta_median, se_median, pvalue_median, time_stamp) 
+         outcome == "grade") %>%
+  dplyr::select(cohort_prep, treatment_repl, extra_act,
+                model_controls_endog, model_covbal, model_trimming,
+                model_hyperparam_sel, Treatment, Type, theta_median, 
+                se_median, pvalue_median, time_stamp) 
 df_treatment_effects_rc_multi
 
 
@@ -1059,6 +1070,8 @@ df_predictors_all_binary %>%
 saveRDS(df_predictors_all_binary, "Output/DML/binary_main_num_predictors.rds")
 
 
+df_treatment_effects_main_binary %>% filter(str_detect(model_algo, "lasso")) %>% dplyr::select(outcome, model_algo, starts_with("num_pred")) %>% distinct()
+df_treatment_effects_main_multi %>% filter(str_detect(model_algo, "lasso")) %>% dplyr::select(outcome, model_algo, starts_with("num_pred")) %>% distinct()
 
 ## Multivalued Treatment Setting ##
 df_predictors_all_multi <- data.frame()
@@ -1109,6 +1122,11 @@ df_predictors_all_multi %>%
 
 saveRDS(df_predictors_all_multi, "Output/DML/multi_msin_num_predictors.rds")
 
+## Sensitvity wrt Hyperparameters ##
+df_dml_main_multi %>% 
+  group_by(model_algo, model_hyperparam_sel) %>% 
+  filter(time_stamp == max(time_stamp), model_algo == "postlasso", Type %in% c("ATE", "ATTE")) %>%
+  dplyr::select(model_hyperparam_sel, starts_with("num_p")) %>% distinct()
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -1254,10 +1272,9 @@ ggsave(paste0("Output/DML/Common_Support/dml_plot_common_support_binary_grades_a
 binary_plot_common_support_personality <- ggarrange(
   list_binary_plot_common_support$agree$postlasso + xlab("") + xlim(-0.1, 1) + ggtitle("Agreeableness"), 
   list_binary_plot_common_support$consc$postlasso + xlab("") + xlim(-0.1, 1) + ylab("") + ggtitle("Conscientiousness"),
-  list_binary_plot_common_support$extra$postlasso + ylab("") + xlim(-0.1, 1) + ggtitle("Extraversion"), 
+  list_binary_plot_common_support$extra$postlasso + xlab("") + ylab("") + xlim(-0.1, 1) + ggtitle("Extraversion"), 
   list_binary_plot_common_support$neuro$postlasso + xlim(-0.1, 1) + ggtitle("Neuroticism"),
   list_binary_plot_common_support$open$postlasso + ylab("") + xlim(-0.1, 1) + ggtitle("Openness"),
-  ggplot() + theme_light(),
   nrow = 2, ncol = 3, common.legend = T, legend = "bottom"
 ) 
 ggsave(paste0("Output/DML/Common_Support/dml_plot_common_support_binary_personality_postlasso.png"), 
@@ -1445,6 +1462,75 @@ for (model_algo_sel in c("lasso", "postlasso", "rf", "xgb")) {
 }
 
 
+#### Summary Statistics ####
+#++++++++++++++++++++++++++#
+
+# Summary statistics are calculated before trimming
+
+## BINARY ##
+df_pred_bef_trimming <- c()
+for (model_algo_sel in c("lasso", "postlasso", "xgb", "rf")) {
+  for (mice_sel in 1:5) {
+    get_algo <- get(paste0(model_algo_sel, "_grades"))
+    df_pred_bef_trimming <- rbind(
+      df_pred_bef_trimming,
+      get_algo[[mice_sel]]$pred_bef_trimming %>% dplyr::select(m) %>% 
+        mutate(model_algo = model_algo_sel, outcome = "GPA", m0 = 1 - m, m1 = m)
+    )
+  }
+}
+
+for (outcome_sel in c("agree", "consc", "extra", "open", "neuro")) {
+  for (mice_sel in 1:5) {
+    get_algo <- get(paste0("postlasso_", outcome_sel))
+    df_pred_bef_trimming <- rbind(
+      df_pred_bef_trimming,
+      get_algo[[mice_sel]]$pred_bef_trimming %>% dplyr::select(m) %>% 
+        mutate(model_algo = "postlasso", outcome = outcome_sel, m0 = 1 - m, m1 = m)
+    )
+  }
+}
+
+
+df_pred_bef_trimming %>% group_by(model_algo, outcome) %>%
+  summarize(min_m1 = min(m1), mean_m1 = mean(m1), max_m1 = max(m1),
+            min_m0 = min(m0), mean_m0 = mean(m0), max_m0 = max(m0)) %>%
+  ungroup() %>% as.data.frame()
+
+
+
+## MULTI ##
+df_pred_bef_trimming_multi <- c()
+for (model_algo_sel in c("lasso", "postlasso", "xgb", "rf")) {
+  for (mice_sel in 1:5) {
+    get_algo <- get(paste0(model_algo_sel, "_grades_multi"))
+    df_pred_bef_trimming_multi <- rbind(
+      df_pred_bef_trimming_multi,
+      get_algo[[mice_sel]]$pred_bef_trimming %>% dplyr::select(m1, m2, m3) %>% mutate(model_algo = model_algo_sel, outcome = "GPA")
+    )
+  }
+}
+
+for (outcome_sel in c("agree", "consc", "extra", "open", "neuro")) {
+  for (mice_sel in 1:5) {
+    get_algo <- get(paste0("postlasso_", outcome_sel, "_multi"))
+    df_pred_bef_trimming_multi <- rbind(
+      df_pred_bef_trimming_multi,
+      get_algo[[mice_sel]]$pred_bef_trimming %>% dplyr::select(m1, m2, m3) %>% mutate(model_algo = "postlasso", outcome = outcome_sel)
+    )
+  }
+}
+
+
+df_pred_bef_trimming_multi %>% group_by(model_algo, outcome) %>%
+  summarize(min_m1 = min(m1), mean_m1 = mean(m1), max_m1 = max(m1),
+            min_m2 = min(m2), mean_m2 = mean(m2), max_m2 = max(m2),
+            min_m3 = min(m3), mean_m3 = mean(m3), max_m3 = max(m3)) %>%
+  as.data.frame()
+
+
+
+
 #%%%%%%%%%%%%%%%%%%%%%%%#
 #### HYPERPARAMETERS ####
 #%%%%%%%%%%%%%%%%%%%%%%%#
@@ -1507,63 +1593,31 @@ for (outcome_var_sel in c("grades", "agree", "extra", "consc", "open", "neuro"))
 } # close for loop over outcome_var_sel
 
 
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-#### SENSITIVITY WRT HYPERPARAMETER CHOICES ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### RC: SENSITIVITY WRT HYPERPARAMETER CHOICES ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-df_dml_main_binary$model_hyperparam_sel %>% unique()
-
-
-## TREATMENT EFFEKTE ##
-df_dml_main_binary %>% 
-  filter(model_hyperparam_sel != "best", Type %in% c("ATE", "ATTE")) %>%
-  dplyr::select(model_hyperparam_sel, starts_with("n_treats"), starts_with("num_predictors"),
-                Type, theta_median, se_median, pvalue_median) %>%
-  mutate(n_treats_diff_perf = ((n_treats_before - n_treats_after) / n_treats_before)*100)
-  
-
-## ERROR METRICS ##
-postlasso_grades_best <- postlasso_grades
-
-df_error_rc_hyp <- data.frame()
-for (load_pred_algo_sel in c("postlasso_grades_best", "postlasso_grades_1SE", "postlasso_grades_1SEplus")) {
-  load_pred_algo <- load_pred_algo_sel
-  ml_grades_pred <- data.frame()
-  for (mice_sel in 1:5) {
-    ml_grades_pred_sub <- left_join(get(load_pred_algo)[[mice_sel]]$pred, 
-                                    get(load_pred_algo)[[mice_sel]]$trimming, 
-                                    by = "Repetition") %>%
-      mutate(MICE = mice_sel)
-    ml_grades_pred <- rbind(ml_grades_pred, ml_grades_pred_sub)
-  }
-  
-
-  df_pred <- ml_grades_pred %>% 
-    mutate(
-      # standardized outcomes
-      outcome_stand = outcome, g0_stand = g0, g1_stand = g1,
-      # original scale
-      outcome = outcome_stand*data_stand_grades$sd + data_stand_grades$mean,
-      g0 = g0_stand*data_stand_grades$sd + data_stand_grades$mean,
-      g1 = g1_stand*data_stand_grades$sd + data_stand_grades$mean
-    )
-
-  
-  df_error_sub <- func_ml_error_metrics("binary", df_pred, 1, 1, TRUE) %>%
-    dplyr::select(-c(Repetition, Fold)) %>%
-    mutate(hyperparam = str_remove(load_pred_algo_sel, "postlasso_grades_")) %>%
-    dplyr::select(hyperparam, everything())
-  df_error_rc_hyp <- rbind(df_error_rc_hyp, df_error_sub)
-  
-}
-
-df_error_rc_hyp <- df_error_rc_hyp %>%
-  rowwise() %>%
-  mutate(RMSE_g = mean(c(RMSE_g0, RMSE_g1)), MAPE_g = mean(c(MAPE_g0, MAPE_g1))) %>%
-  as.data.frame()
-df_error_rc_hyp
-
-
+# error metrics and trimming (noz reported in paper, only written)
+df_dml_main_multi %>% 
+  mutate(sample = ifelse(
+    cohort_prep == main_cohort_prep & treatment_def == main_treatment_def & 
+      treatment_repl == main_treatment_repl & extra_act == main_extra_act & 
+      model_type == main_model_type & model_k == main_model_k & model_s_rep == main_model_s_rep & 
+      model_trimming == main_model_trimming & model_controls_lag == main_model_controls_lag & 
+      model_controls_endog == main_model_controls_endog &  model_hyperparam_sel == "best" &
+      model_covbal == "yes", "main", "rc")) %>% 
+  filter(Type %in% c("ATE", "ATTE"), sample == "rc", model_algo == "postlasso", 
+         outcome == "grade", model_hyperparam_sel %in% c("1SE", "1SE_plus")) %>%
+  dplyr::select(model_hyperparam_sel, num_predictors_m1, starts_with("ACC"),  starts_with("BACC"), starts_with("AUC"),
+                starts_with("RMSE"), starts_with("MAPE"), starts_with("n_treats")) %>%
+  distinct() %>%
+  group_by(model_hyperparam_sel) %>%
+  mutate(ACC = mean(c(ACC_m1, ACC_m2, ACC_m3)), BACC = mean(c(BACC_m1, BACC_m2, BACC_m3)),
+         AUC = mean(c(AUC_m1, AUC_m2, AUC_m3)), RMSE = mean(c(RMSE_g1, RMSE_g2, RMSE_g3)), 
+         MAPE = mean(c(MAPE_g1, MAPE_g2, MAPE_g3))) %>%
+  mutate(n_treats_diff = n_treats_before - n_treats_after, 
+         n_treats_diff_perf = ((n_treats_before - n_treats_after) / n_treats_before)*100) %>% 
+  dplyr::select(model_hyperparam_sel, n_treats_diff_perf, num_predictors_m1, ACC, BACC, AUC, RMSE, MAPE)
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
