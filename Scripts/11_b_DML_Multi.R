@@ -80,6 +80,7 @@ for (mice_data_sel in 1:5) {
   load_data <- str_replace(load_data, "_level", "") # drop level
   
   data_dml <- readRDS(load_data)
+  print(paste("Number of predictors:", ncol(data_dml)))
   
   # drop lags if desired by user
   if (model_controls_lag == "no_lags") {
@@ -127,6 +128,42 @@ for (mice_data_sel in 1:5) {
       rename_with(~ outcome_var_multi, all_of(str_remove(outcome_var_multi, "outcome_")))
   }
   
+  
+  # remove linearly dependent terms
+  data_train_test_m1 <- data_dml %>% dplyr::select(-all_of(outcome_var_multi), -starts_with("treatment")) %>% 
+    mutate(treatment_sport_freq_weekly_atleast = data_dml$treatment_sport_freq_weekly_atleast)
+  data_train_test_m2 <- data_dml %>% dplyr::select(-all_of(outcome_var_multi), -starts_with("treatment")) %>% 
+    mutate(treatment_sport_freq_monthly_less = data_dml$treatment_sport_freq_monthly_less)
+  data_train_test_m3 <- data_dml %>% dplyr::select(-all_of(outcome_var_multi), -starts_with("treatment")) %>% 
+    mutate(treatment_sport_freq_never = data_dml$treatment_sport_freq_never)
+  
+  data_train_test_g1 <- data_dml %>% filter(treatment_sport_freq == 1) %>% dplyr::select(-treatment_sport_freq)
+  data_train_test_g2 <- data_dml %>% filter(treatment_sport_freq == 2) %>% dplyr::select(-treatment_sport_freq)
+  data_train_test_g3 <- data_dml %>% filter(treatment_sport_freq == 3) %>% dplyr::select(-treatment_sport_freq)
+  
+  # remove alias coefficients
+  model_m1 <- glm(paste("treatment_sport_freq_weekly_atleast", "~ ."), family = binomial(link = "logit"), data = data_train_test_m1)
+  model_m2 <- glm(paste("treatment_sport_freq_monthly_less", "~ ."), family = binomial(link = "logit"), data = data_train_test_m2)
+  model_m3 <- glm(paste("treatment_sport_freq_never", "~ ."), family = binomial(link = "logit"), data = data_train_test_m3)
+  
+  model_lm_1 <- lm(paste(outcome_var_multi, "~ ."), data = data_train_test_g1)
+  model_lm_2 <- lm(paste(outcome_var_multi, "~ ."), data = data_train_test_g2)
+  model_lm_3 <- lm(paste(outcome_var_multi, "~ ."), data = data_train_test_g3)
+  
+  vars_multicoll_drop <- c(
+    attributes(alias(model_m1)$Complete)$dimnames[[1]], attributes(alias(model_m2)$Complete)$dimnames[[1]],
+    attributes(alias(model_m3)$Complete)$dimnames[[1]],
+    attributes(alias(model_lm_1)$Complete)$dimnames[[1]], attributes(alias(model_lm_2)$Complete)$dimnames[[1]],
+    attributes(alias(model_lm_3)$Complete)$dimnames[[1]]) %>%
+    unique()
+  
+  vars_multicoll_drop <- vars_multicoll_drop[!str_detect(
+    vars_multicoll_drop, "treatment_sport|outcome_grade|grade|agreeableness|extraversion|neuroticism|openness|conscientiousness"
+  )]
+  
+  if (length(vars_multicoll_drop) < 30) {data_dml <- data_dml %>% dplyr::select(-all_of(vars_multicoll_drop))}
+  
+  print(paste("Number of predictors after dropping linearly dependent columns:", ncol(data_dml)))
   
   #%%%%%%%%%%%#
   #### APE ####
