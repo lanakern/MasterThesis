@@ -68,17 +68,14 @@ for (mice_data_sel in 1:5) {
   
   data_final_raw <- readRDS(data_load)
   
+  if (interactions == "yes") {
+    data_final_raw <- data_final_raw
+  } else {
+    data_final_raw <- data_final_raw %>% dplyr::select(-contains(":"), -matches("_order[0-9]$"))
+  }
+  
   # ungroup and correct data types
   data_final <- data_final_raw %>% ungroup() %>% type.convert(as.is = TRUE)
-  
-  # drop interview_start_year_num %in% c(1,8) and respective dummies to enforce
-  # common support
-  if (cohort_prep == "controls_same_outcome" & cov_balance == "yes") {
-    data_final <- data_final %>% filter(!interview_start_year_num %in% c(1,8)) %>%
-      dplyr::select(-contains("interview_end_year_2018"), -contains("interview_start_year_2018"))
-  } else {
-    data_final <- data_final
-  }
   
   # change treatment group to all sport participation levels
   if (treatment_def == "all" & cohort_prep == main_cohort_prep) {
@@ -104,8 +101,25 @@ for (mice_data_sel in 1:5) {
     data_final <- data_final
   }
   
+  id_no_extra <- length(unique(data_final$id_t))
+  obs_no_extra <- nrow(data_final)
+  
+  # drop interview_start_year_num %in% c(1,8) and respective dummies to enforce
+  # common support
+  if (cohort_prep == "controls_same_outcome" & cov_balance == "yes") {
+    data_final <- data_final %>% filter(!interview_start_year_num %in% c(1,8)) %>%
+      dplyr::select(-contains("interview_end_year_2018"), -contains("interview_start_year_2018"))
+  } else {
+    data_final <- data_final
+  }
+  id_common_support <- length(unique(data_final$id_t))
+  obs_common_support <- nrow(data_final)
+  
   # save now for comparison with personality
-  if (mice_data_sel == 1) {saveRDS(data_final, "Data/Grades/Prep_10/COMPARE_ID_GRADES.rds")}
+  if (mice_data_sel == 1 & cohort_prep == main_cohort_prep & treatment_def == main_treatment_def &
+      treatment_repl == main_treatment_repl & extra_act == main_extra_act) {
+    saveRDS(data_final, "Data/Grades/Prep_10/COMPARE_ID_GRADES.rds")
+    }
   
   # drop ID_t, interview_date, etc. which is not used in the estimation
   data_final <- data_final %>% 
@@ -224,28 +238,29 @@ for (mice_data_sel in 1:5) {
   #### All + Interaction + Polynomials ####
   #+++++++++++++++++++++++++++++++++++++++#
   
-  data_all_plus <- data_final %>% dplyr::select(-starts_with("treatment_sport_freq"))
-                                                
-  # save data frames
-  if (cohort_prep == "controls_same_outcome") {
+  if (interactions == "yes") {
+    data_all_plus <- data_final %>% dplyr::select(-starts_with("treatment_sport_freq"))
+    
+    # save data frames
+    if (cohort_prep == "controls_same_outcome") {
       saveRDS(data_all_plus, 
               paste0("Data/Grades/Prep_10/prep_10_dml_binary_allintpoly_", treatment_def, "_",
                      treatment_repl, extra_act_save, cov_balance_save, "_mice", mice_data_sel, ".rds")
-              )
-  } else {
+      )
+    } else {
       saveRDS(data_all_plus, 
               paste0("Data/Grades/Prep_10/prep_10_dml_binary_allintpoly_", treatment_def, "_",
                      treatment_repl, extra_act_save, cov_balance_save, "_robustcheck_mice", mice_data_sel, ".rds")
-              )
-  }
-  
-  # again save mean after 5th iteration
-  data_binary_num_cols_all <- rbind(
-    data_binary_num_cols_all, 
-    data.frame("num_cols" = ncol(data_all_plus), "num_rows" = nrow(data_all_plus),
-                "num_id" = length(unique(data_all_plus$group))))
+      )
+    }
     
-  if (mice_data_sel == 5) {
+    # again save mean after 5th iteration
+    data_binary_num_cols_all <- rbind(
+      data_binary_num_cols_all, 
+      data.frame("num_cols" = ncol(data_all_plus), "num_rows" = nrow(data_all_plus),
+                 "num_id" = length(unique(data_all_plus$group))))
+    
+    if (mice_data_sel == 5) {
       # SAVE NUMBER OF VARIABLES ETC.
       df_excel_save <- data.frame(
         "data_prep_step" = "estimation_sample",
@@ -264,7 +279,9 @@ for (mice_data_sel in 1:5) {
       source("Functions/func_save_sample_reduction.R")
       func_save_sample_reduction(df_excel_save, "grade")
       gc()
+    }
   }
+
   
   
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -373,23 +390,24 @@ for (mice_data_sel in 1:5) {
   #### All + Interaction + Polynomials ####
   #+++++++++++++++++++++++++++++++++++++++#
   
-  data_multi_all_plus <- data_multi_sub_all
-
-  # save data frames
-  if (cohort_prep == "controls_same_outcome") {
+  if (interactions == "yes") {
+    data_multi_all_plus <- data_multi_sub_all
+    
+    # save data frames
+    if (cohort_prep == "controls_same_outcome") {
       saveRDS(data_multi_all_plus, 
               paste0("Data/Grades/Prep_10/prep_10_dml_multi_allintpoly_", treatment_def, "_",
                      treatment_repl, extra_act_save, cov_balance_save, "_mice", mice_data_sel, ".rds")
       )
-  } else {
+    } else {
       saveRDS(data_multi_all_plus, 
               paste0("Data/Grades/Prep_10/prep_10_dml_multi_allintpoly_", treatment_def, "_",
                      treatment_repl, extra_act_save, cov_balance_save, "_robustcheck_mice", mice_data_sel, ".rds")
       )
-  }
+    }
     
-  # again save mean after 5th iteration
-  data_multi_num_cols_all <- rbind(
+    # again save mean after 5th iteration
+    data_multi_num_cols_all <- rbind(
       data_multi_num_cols_all, 
       data.frame("num_cols" = ncol(data_multi_all_plus), 
                  "num_rows" = nrow(data_multi_all_plus),
@@ -415,4 +433,6 @@ for (mice_data_sel in 1:5) {
       func_save_sample_reduction(df_excel_save, "grade")
       gc()
     } # close saving
+  }
+  
 } # close iteration over mice data sets
