@@ -109,7 +109,7 @@ for (mice_data_sel in 1:5) {
   # drop endogeneous variables if desired by user
   if (model_controls_endog == "no") {
     colnames_endog_drop <- 
-      eval(parse(text = paste(paste("data_dml_raw", "%>%"), vars_endogenous, "%>% colnames()")))
+      eval(parse(text = paste(paste("data_dml", "%>%"), vars_endogenous, "%>% colnames()")))
     colnames_endog_drop <- colnames_endog_drop[colnames_endog_drop %in% colnames(data_dml)]
     data_dml <- data_dml %>% dplyr::select(-all_of(colnames_endog_drop))
   } else {
