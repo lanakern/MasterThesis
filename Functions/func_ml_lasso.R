@@ -1301,6 +1301,7 @@ func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome,
     lasso_coef_num <- data.frame(
       "m1" = nrow(lasso_coef_m1), "m2" = nrow(lasso_coef_m2), "m3" = nrow(lasso_coef_m3),
       "g1" = nrow(lasso_coef_g1), "g2" = nrow(lasso_coef_g2), "g3" = nrow(lasso_coef_g3)
+    )
     
     
     #%%%%%%%%%%%%%%%%%%%#
