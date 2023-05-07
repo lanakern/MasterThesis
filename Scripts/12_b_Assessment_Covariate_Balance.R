@@ -126,7 +126,7 @@ for (outcome_var_sel in c("grades", "agreeableness", "extraversion", "conscienti
         tryCatch(weights <- func_weights("binary", df_pred_cov_func, x) , error = function(e) { skip_to_next <<- TRUE})
         if(skip_to_next) {next}    
         
-        # calculate ASDM before and after DML
+        # calculate ASMD before and after DML
         balance <- bal.tab(
           as.data.frame(x), treat = D, stats = "mean.diffs", weights = weights, method = "weighting",
           s.d.denom = "pooled", 
@@ -273,7 +273,7 @@ for (outcome_var_sel in c("grades", "agreeableness", "extraversion", "conscienti
           # calculate weights
           weights_multi <- func_weights("binary", df_pred_cov_func %>% mutate(treatment = D, m = m), x)
           
-          # calculate AMSD
+          # calculate ASMD
           balance <- bal.tab(
             as.data.frame(x), treat = D, stats = "mean.diffs", weights = weights_multi, method = "weighting",
             s.d.denom = "pooled", # pooled standard deviation (most appropriate for ATE; for ATTE: "treated")
@@ -297,7 +297,7 @@ for (outcome_var_sel in c("grades", "agreeableness", "extraversion", "conscienti
           df_smd_cov_func_all[[treatment_var_sel]] <- df_smd_cov_func
         } # close iteration over treatment variables
         
-        # append ASDM across treatments in one data frame
+        # append ASMD across treatments in one data frame
         df_smd_cov_func_all <- left_join(
           df_smd_cov_func_all[["D_1"]], df_smd_cov_func_all[["D_2"]], by = c("control_var", "Rep", "Fold", "MICE")
         ) %>%
@@ -402,14 +402,14 @@ for (outcome_var_sel in c("grades", "personality")) {
                 mutate(var_num = 1:nrow(df_smd_plot_grades)),
               aes(x = var_num, y = SD_after, fill = "After DML")) +
     scale_fill_manual(" ", values = c('Before DML' = "grey70", 'After DML' = "grey20")) +
-    ylab("ASDM\n") + xlab("\nRank from highest to lowest ASDM\n") +
+    ylab("ASMD\n") + xlab("\nRank from highest to lowest ASMD\n") +
     ggtitle(str_to_title(outcome_var_sel)) + 
     theme_bw() + 
     theme(legend.position = "right", 
-          plot.title = element_text(hjust = 0.5, size = 28),
-          axis.text = element_text(size = 28), axis.title = element_text(size = 26),
-          legend.text = element_text(size = 28), legend.title = element_text(size = 26)) +
-    guides(fill = guide_legend(title = "ASDM")) 
+          plot.title = element_text(hjust = 0.5, size = 45),
+          axis.text = element_text(size = 32), axis.title = element_text(size = 38),
+          legend.text = element_text(size = 40), legend.title = element_text(size = 40)) +
+    guides(fill = guide_legend(title = "ASMD:")) 
 }
 
 
@@ -440,27 +440,27 @@ for (outcome_var_sel in c("grades", "personality")) {
                 mutate(var_num = 1:nrow(df_smd_plot_multi)),
               aes(x = var_num, y = SD_after, fill = "After DML")) + 
     scale_fill_manual(" ", values = c('Before DML' = "grey70", 'After DML' = "grey20")) +
-    ylab("ASDM") + xlab("\n Rank from highest to lowest ASDM \n") +
+    ylab("ASMD\n") + xlab("\n Rank from highest to lowest ASMD \n") +
     ggtitle(paste("\n", str_to_title(outcome_var_sel))) + 
     theme_bw() + 
     theme(legend.position = "right", 
-          plot.title = element_text(hjust = 0.5, size = 28),
-          axis.text = element_text(size = 28), axis.title = element_text(size = 26),
-          legend.text = element_text(size = 28), legend.title = element_text(size = 26)) +
-    guides(fill = guide_legend(title = "ASDM")) 
+          plot.title = element_text(hjust = 0.5, size = 45),
+          axis.text = element_text(size = 32), axis.title = element_text(size = 38),
+          legend.text = element_text(size = 40), legend.title = element_text(size = 40)) +
+    guides(fill = guide_legend(title = "ASMD:")) 
 }
 
 
 # Arrange
 plot_cov_bal_save <- 
-  ggarrange(plot_cov_bal_binary$grades + ggtitle("GPA Binary") + rremove("xlab"), 
-            plot_cov_bal_binary$personality + ggtitle("GPA Multi") + rremove("xlab") + rremove("ylab"), 
-            plot_cov_bal_multi$grades + ggtitle("\nPersonality Binary"), 
-            plot_cov_bal_multi$personality + ggtitle("\nPersonality Multi") + rremove("ylab"),
-            nrow = 2, ncol = 2, common.legend = TRUE, legend = "bottom")
+  ggarrange(plot_cov_bal_binary$grades + ggtitle("GPA Binary") + ylim(0, 0.5), 
+            plot_cov_bal_binary$personality + ggtitle("GPA Multi") + rremove("ylab") + ylim(0, 0.5), 
+            plot_cov_bal_multi$grades + ggtitle("Personality Binary") + rremove("ylab") + ylim(0, 0.5), 
+            plot_cov_bal_multi$personality + ggtitle("Personality Multi") + rremove("ylab") + ylim(0, 0.5),
+            nrow = 1, ncol = 4, common.legend = TRUE, legend = "bottom", align = "h")
 
 ggsave("Output/DML/Covariate_Balancing/plot_cov_balance.png", plot_cov_bal_save,
-       width = 20, height = 15, dpi = 300, units = "in", device = 'png')
+       width = 40, height = 15, dpi = 300, units = "in", device = 'png')
 
 
 
@@ -468,7 +468,7 @@ ggsave("Output/DML/Covariate_Balancing/plot_cov_balance.png", plot_cov_bal_save,
 #### Main Drivers of selection ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-# extract 50 variables with highest ASDM before DML
+# extract 50 variables with highest ASMD before DML
 df_main_drivers <- df_smd_all_binary %>%
   arrange(-SD_before) %>%
   group_by(control_var) %>% 
@@ -482,4 +482,449 @@ saveRDS(df_main_drivers %>% as.data.frame(), "Output/DML/Covariate_Balancing/mai
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### RC: NO COVARIATE BALANCE SAMPLE ADJUSTMENT ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
+## BINARY ##
+df_smd_sum_binary_check <- data.frame()
+df_smd_all_binary_check <- data.frame()
+df_iterate <- data.frame("Rep" = c(rep(1,4), rep(2,4), rep(3,4), rep(4,4), rep(5,4)), "Fold" = rep(c(1:4), 5))
+
+# iterate over outcome variables
+for (outcome_var_sel in c("grades", "agreeableness", "extraversion", "conscientiousness", "neuroticism", "openness")) {
+  
+  print(paste("Start Outcome:", str_to_title(outcome_var_sel)))
+  
+  if (str_detect(outcome_var_sel, "grade")) {
+    dml_result_all <- 
+      readRDS(paste0("Output/DML/Estimation/Grades/binary_", outcome_var_sel, 
+                     "_postlasso_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming",
+                     model_trimming, "_K4-2_Rep5", ".rds"))
+  } else {
+    dml_result_all <- 
+      readRDS(paste0("Output/DML/Estimation/Personality/binary_", outcome_var_sel, 
+                     "_postlasso_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming",
+                     model_trimming, "_K4-2_Rep5", ".rds"))
+  }
+  
+  df_smd_cov_func_all_binary_check <- data.frame()
+  for (mice_sel in 1:5) { # iterate over mice
+    print(paste("Data Set:", mice_sel))
+    for (rep_sel in 1:5) { # iterate over repetition
+      df_iterate_sel <- df_iterate %>% filter(Rep == rep_sel)
+      
+      for (iter_sel in 1:nrow(df_iterate_sel)) { # iterate over fold
+        
+        # extract predictions and covariates
+        df_iterate_sel_2 <- df_iterate_sel[iter_sel, ]
+        df_pred_cov_func <- dml_result_all[[mice_sel]]$pred %>% filter(Repetition == rep_sel, Fold == iter_sel)
+        df_controls_binary_check <- dml_result_all[[mice_sel]]$cov_balance[[mice_sel]][[df_iterate_sel_2$Rep]][[df_iterate_sel_2$Fold]]$controls
+        
+        # treatment and covariates
+        D <- df_pred_cov_func$treatment %>% as.character() %>% as.numeric() 
+        
+        if (str_detect(outcome_var_sel, "grade")) {
+          x <- df_controls_binary_check %>% dplyr::select(-all_of(c("outcome_grade", "treatment_sport", "Fold", "Repetition", "group")))
+        } else {
+          x <- df_controls_binary_check %>% 
+            dplyr::select(-all_of(c(paste0("outcome_bigfive_", outcome_var_sel), "treatment_sport", "Fold", "Repetition", "group")))
+        }
+        
+        
+        # calculate weights
+        skip_to_next <- FALSE
+        tryCatch(weights <- func_weights("binary", df_pred_cov_func, x) , error = function(e) { skip_to_next <<- TRUE})
+        if(skip_to_next) {next}    
+        
+        # calculate ASMD before and after DML
+        balance <- bal.tab(
+          as.data.frame(x), treat = D, stats = "mean.diffs", weights = weights, method = "weighting",
+          s.d.denom = "pooled", 
+          disp.v.ratio = TRUE, disp.ks = TRUE, 
+          un = TRUE,
+          continuous = "std", binary = "std" 
+        )
+        
+        # prepare data
+        df_smd_cov_func <- balance$Balance %>% 
+          dplyr::select(Diff.Un, Diff.Adj) %>% 
+          mutate(SD_before = abs(Diff.Un), SD_after = abs(Diff.Adj)) %>%
+          dplyr::select(-c(Diff.Un, Diff.Adj)) %>%
+          mutate(Fold = iter_sel, Rep = rep_sel, MICE = mice_sel) %>%
+          mutate(control_var = rownames(.))
+        rownames(df_smd_cov_func) <- 1:nrow(df_smd_cov_func)
+        df_smd_cov_func_all_binary_check <- rbind(df_smd_cov_func_all_binary_check, df_smd_cov_func)
+      } # close iteration over iter_sel
+    } # close iteration over rep_sel
+  } # close iteration over mice
+  
+  # aggregate acrosss mice, repetition and fold
+  df_smd_cov_func_all_binary_check <- df_smd_cov_func_all_binary_check %>%
+    dplyr::select(-c("Fold", "Rep", "MICE")) %>%
+    group_by(control_var) %>%
+    summarize(SD_before = mean(SD_before), SD_after = mean(SD_after))
+  
+  # summary statisticst
+  df_smd_cov_func_sum_binary_check <- 
+    data.frame(
+      "treatment_setting" = rep("binary", 2),
+      "adjustment" = c("before", "after"),
+      "min" = c(min(df_smd_cov_func_all_binary_check$SD_before),  min(df_smd_cov_func_all_binary_check$SD_after, na.rm = T)),
+      "mean" = c(mean(df_smd_cov_func_all_binary_check$SD_before), mean(df_smd_cov_func_all_binary_check$SD_after, na.rm = T)),
+      "median" = c(median(df_smd_cov_func_all_binary_check$SD_before), median(df_smd_cov_func_all_binary_check$SD_after, na.rm = T)),
+      "max" = c(max(df_smd_cov_func_all_binary_check$SD_before), max(df_smd_cov_func_all_binary_check$SD_after, na.rm = T)),
+      "num_cov_smd_25" = c(sum(df_smd_cov_func_all_binary_check$SD_before > 0.25), 
+                           sum(df_smd_cov_func_all_binary_check$SD_after > 0.25, na.rm = T)), 
+      "num_cov_smd_10" = c(sum(df_smd_cov_func_all_binary_check$SD_before > 0.1), 
+                           sum(df_smd_cov_func_all_binary_check$SD_after > 0.1, na.rm = T)), 
+      "num_cov_smd_5" = c(sum(df_smd_cov_func_all_binary_check$SD_before > 0.05), 
+                          sum(df_smd_cov_func_all_binary_check$SD_after > 0.05, na.rm = T)), 
+      "perc_cov_smd_25" = c(sum(df_smd_cov_func_all_binary_check$SD_before > 0.25) / length(df_smd_cov_func_all_binary_check$SD_before), 
+                            sum(df_smd_cov_func_all_binary_check$SD_after > 0.25, na.rm = T) / df_smd_cov_func_all_binary_check %>% dplyr::select(SD_after) %>% na.omit() %>% nrow()), 
+      "perc_cov_smd_10" = c(sum(df_smd_cov_func_all_binary_check$SD_before > 0.1) / length(df_smd_cov_func_all_binary_check$SD_before), 
+                            sum(df_smd_cov_func_all_binary_check$SD_after > 0.1, na.rm = T) / df_smd_cov_func_all_binary_check %>% dplyr::select(SD_after) %>% na.omit() %>% nrow()), 
+      "perc_cov_smd_5" = c(sum(df_smd_cov_func_all_binary_check$SD_before > 0.05) / length(df_smd_cov_func_all_binary_check$SD_before), 
+                           sum(df_smd_cov_func_all_binary_check$SD_after > 0.05, na.rm = T) / df_smd_cov_func_all_binary_check %>% dplyr::select(SD_after) %>% na.omit() %>% nrow())
+    )
+  
+  df_smd_cov_func_sum_binary_check <- df_smd_cov_func_sum_binary_check %>% mutate(outcome = outcome_var_sel)
+  df_smd_cov_func_all_binary_check <- df_smd_cov_func_all_binary_check %>% mutate(outcome = outcome_var_sel)
+  
+  # append to overall data frame
+  df_smd_sum_binary_check <- rbind(df_smd_sum_binary_check, df_smd_cov_func_sum_binary_check)
+  df_smd_all_binary_check <- rbind(df_smd_all_binary_check, df_smd_cov_func_all_binary_check)
+  
+}
+
+df_smd_sum_binary_check <- df_smd_sum_binary_check %>% dplyr::select(
+  outcome, treatment_setting, adjustment, everything()
+)
+
+df_smd_all_binary_check <- df_smd_all_binary_check %>% dplyr::select(
+  outcome, control_var, SD_before, SD_after
+)
+
+# aggregate over personality
+df_smd_sum_binary_check <- rbind(
+  df_smd_sum_binary_check,
+  df_smd_sum_binary_check %>% 
+    filter(outcome != "grades") %>%
+    mutate(outcome = "personality") %>%
+    group_by(outcome, treatment_setting, adjustment) %>%
+    summarize_all(mean)
+)
+
+
+
+## MULTI ## 
+df_smd_sum_multi_check <- data.frame()
+df_smd_all_multi_check <- data.frame()
+df_iterate <- data.frame("Rep" = c(rep(1,4), rep(2,4), rep(3,4), rep(4,4), rep(5,4)), "Fold" = rep(c(1:4), 5))
+
+# iterate over outcome variables
+for (outcome_var_sel in c("grades", "agreeableness", "extraversion", "conscientiousness", "neuroticism", "openness")) {
+  
+  print(paste("Start Outcome:", str_to_title(outcome_var_sel)))
+  
+  # load data 
+  if (str_detect(outcome_var_sel, "grade")) {
+    dml_result_all_multi_check <- 
+      readRDS(paste0("Output/DML/Estimation/Grades/multi_", outcome_var_sel, 
+                     "_postlasso_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming",
+                     model_trimming, "_K4-2_Rep5", ".rds"))
+  } else {
+    dml_result_all_multi_check <- 
+      readRDS(paste0("Output/DML/Estimation/Personality/multi_", outcome_var_sel, 
+                     "_postlasso_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming",
+                     model_trimming, "_K4-2_Rep5", ".rds"))
+  }
+  
+  df_smd_cov_func_all_multi_check <- data.frame()
+  for (mice_sel in 1:5) { # iterate over MICE data sets
+    print(paste("Data Set:", mice_sel))
+    for (rep_sel in 1:5) { # iterate over repetitions
+      df_iterate_sel <- df_iterate %>% filter(Rep == rep_sel)
+      for (iter_sel in 1:nrow(df_iterate_sel)) { # iterate over folds
+        df_iterate_sel_2 <- df_iterate_sel[iter_sel, ]
+        
+        # predictions
+        df_pred_cov_func <- dml_result_all_multi_check[[mice_sel]]$pred %>% 
+          filter(Repetition == rep_sel, Fold == iter_sel) %>%
+          mutate(D_1 = ifelse(treatment == 1, 1, 0), D_2 = ifelse(treatment == 2, 1, 0), D_3 = ifelse(treatment == 3, 1, 0))
+        
+        # control variables
+        df_controls_multi_check <- dml_result_all_multi_check[[mice_sel]]$cov_balance[[mice_sel]][[df_iterate_sel_2$Rep]][[df_iterate_sel_2$Fold]]$controls
+        
+        # control variables
+        if (outcome_var_sel == "grades") {
+          x <- df_controls_multi_check %>% dplyr::select(-all_of(
+            c("outcome_grade", "treatment_sport_freq", "treatment_sport_freq_na", "treatment_sport_freq_monthly_less", "treatment_sport_freq_never",
+              "treatment_sport_freq_weekly_atleast", "Fold", "Repetition", "group")))
+        } else {
+          x <- df_controls_multi_check %>% dplyr::select(-all_of(
+            c(paste0("outcome_bigfive_", outcome_var_sel), "treatment_sport_freq", "treatment_sport_freq_na", "treatment_sport_freq_monthly_less", "treatment_sport_freq_never",
+              "treatment_sport_freq_weekly_atleast", "Fold", "Repetition", "group")))
+        }
+        
+        
+        # calculate covariate balance
+        df_smd_cov_func_all <- list()
+        for (treatment_var_sel in c("D_1", "D_2", "D_3")) { # iterate over treatments
+          D <- df_pred_cov_func %>% pull(treatment_var_sel) %>% as.character() %>% as.numeric() 
+          m <- df_pred_cov_func %>% pull(str_replace(treatment_var_sel, "D_", "m")) %>% as.character() %>% as.numeric() 
+          
+          # calculate weights
+          weights_multi_check <- func_weights("binary", df_pred_cov_func %>% mutate(treatment = D, m = m), x)
+          
+          # calculate ASMD
+          balance <- bal.tab(
+            as.data.frame(x), treat = D, stats = "mean.diffs", weights = weights_multi_check, method = "weighting",
+            s.d.denom = "pooled", # pooled standard deviation (most appropriate for ATE; for ATTE: "treated")
+            disp.v.ratio = TRUE, disp.ks = TRUE, 
+            un = TRUE, # display statistics also for before DML
+            continuous = "std", binary = "std" # also standardized multi covariates
+          )
+          
+          # prepare data frame
+          df_smd_cov_func <- balance$Balance %>% 
+            dplyr::select(Diff.Un, Diff.Adj) %>% 
+            mutate(SD_before = abs(Diff.Un), SD_after = abs(Diff.Adj)) %>%
+            dplyr::select(-c(Diff.Un, Diff.Adj)) %>%
+            mutate(Rep = rep_sel, Fold = iter_sel, MICE = mice_sel) %>%
+            mutate(control_var = rownames(.)) %>%
+            rename(!!rlang::sym(paste0("SD_before_", treatment_var_sel)) := SD_before,
+                   !!rlang::sym(paste0("SD_after_", treatment_var_sel)) := SD_after)
+          rownames(df_smd_cov_func) <- 1:nrow(df_smd_cov_func)
+          
+          # save data frame in list
+          df_smd_cov_func_all[[treatment_var_sel]] <- df_smd_cov_func
+        } # close iteration over treatment variables
+        
+        # append ASMD across treatments in one data frame
+        df_smd_cov_func_all <- left_join(
+          df_smd_cov_func_all[["D_1"]], df_smd_cov_func_all[["D_2"]], by = c("control_var", "Rep", "Fold", "MICE")
+        ) %>%
+          left_join(df_smd_cov_func_all[["D_3"]], by = c("control_var", "Rep",  "Fold", "MICE"))
+        
+        # aggregate and append
+        df_smd_cov_func_all <- df_smd_cov_func_all %>%
+          ungroup() %>%
+          group_by(control_var, Rep, Fold, MICE) %>%
+          summarize(SD_before = mean(c(SD_before_D_1, SD_before_D_2, SD_before_D_3)),
+                    SD_after = mean(c(SD_after_D_1, SD_after_D_2, SD_after_D_3))) %>%
+          ungroup()
+        
+        df_smd_cov_func_all_multi_check <- rbind(df_smd_cov_func_all_multi_check, df_smd_cov_func_all)
+      } # close for loop over iterations
+    } # close iteration over repetitions
+  } # close iteration over for mice data sets
+  
+  # summarize across controls: MICE, repetitions and folds
+  df_smd_cov_func_all_multi_check <- df_smd_cov_func_all_multi_check %>%
+    ungroup() %>%
+    dplyr::select(-c("Rep", "MICE", "Fold")) %>%
+    group_by(control_var) %>%
+    summarize(SD_before = mean(SD_before), SD_after = mean(SD_after)) %>% 
+    mutate(outcome = "GPA")
+  
+  # summary statistics
+  df_smd_cov_func_sum_multi_check <- 
+    data.frame(
+      "treatment_setting" = rep("multi", 2),
+      "adjustment" = c("before", "after"),
+      "min" = c(min(df_smd_cov_func_all_multi_check$SD_before),  min(df_smd_cov_func_all_multi_check$SD_after, na.rm = T)),
+      "mean" = c(mean(df_smd_cov_func_all_multi_check$SD_before), mean(df_smd_cov_func_all_multi_check$SD_after, na.rm = T)),
+      "median" = c(median(df_smd_cov_func_all_multi_check$SD_before), median(df_smd_cov_func_all_multi_check$SD_after, na.rm = T)),
+      "max" = c(max(df_smd_cov_func_all_multi_check$SD_before), max(df_smd_cov_func_all_multi_check$SD_after, na.rm = T)),
+      "num_cov_smd_25" = c(sum(df_smd_cov_func_all_multi_check$SD_before > 0.25), 
+                           sum(df_smd_cov_func_all_multi_check$SD_after > 0.25, na.rm = T)), 
+      "num_cov_smd_10" = c(sum(df_smd_cov_func_all_multi_check$SD_before > 0.1), 
+                           sum(df_smd_cov_func_all_multi_check$SD_after > 0.1, na.rm = T)), 
+      "num_cov_smd_5" = c(sum(df_smd_cov_func_all_multi_check$SD_before > 0.05), 
+                          sum(df_smd_cov_func_all_multi_check$SD_after > 0.05, na.rm = T)), 
+      "perc_cov_smd_25" = c(sum(df_smd_cov_func_all_multi_check$SD_before > 0.25) / length(df_smd_cov_func_all_multi_check$SD_before), 
+                            sum(df_smd_cov_func_all_multi_check$SD_after > 0.25, na.rm = T) / df_smd_cov_func_all_multi_check %>% dplyr::select(SD_after) %>% na.omit() %>% nrow()), 
+      "perc_cov_smd_10" = c(sum(df_smd_cov_func_all_multi_check$SD_before > 0.1) / length(df_smd_cov_func_all_multi_check$SD_before), 
+                            sum(df_smd_cov_func_all_multi_check$SD_after > 0.1, na.rm = T) / df_smd_cov_func_all_multi_check %>% dplyr::select(SD_after) %>% na.omit() %>% nrow()), 
+      "perc_cov_smd_5" = c(sum(df_smd_cov_func_all_multi_check$SD_before > 0.05) / length(df_smd_cov_func_all_multi_check$SD_before), 
+                           sum(df_smd_cov_func_all_multi_check$SD_after > 0.05, na.rm = T) / df_smd_cov_func_all_multi_check %>% dplyr::select(SD_after) %>% na.omit() %>% nrow())
+    )
+  
+  df_smd_cov_func_sum_multi_check <- df_smd_cov_func_sum_multi_check %>% mutate(outcome = outcome_var_sel)
+  df_smd_cov_func_all_multi_check <- df_smd_cov_func_all_multi_check %>% mutate(outcome = outcome_var_sel)
+  
+  # append to overall data frame
+  df_smd_sum_multi_check <- rbind(df_smd_sum_multi_check, df_smd_cov_func_sum_multi_check)
+  df_smd_all_multi_check <- rbind(df_smd_all_multi_check, df_smd_cov_func_all_multi_check)
+  
+} # close loop over outcome_var_sel()
+
+
+df_smd_sum_multi_check <- df_smd_sum_multi_check %>% dplyr::select(
+  outcome, treatment_setting, adjustment, everything()
+)
+
+df_smd_all_multi_check <- df_smd_all_multi_check %>% dplyr::select(
+  outcome, control_var, SD_before, SD_after
+)
+
+# aggregate over personality
+df_smd_sum_multi_check <- rbind(
+  df_smd_sum_multi_check,
+  df_smd_sum_multi_check %>% 
+    filter(outcome != "grades") %>%
+    mutate(outcome = "personality") %>%
+    group_by(outcome, treatment_setting, adjustment) %>%
+    summarize_all(mean)
+)
+
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### RC: PENALTY CHOICE ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+## MULTI ## 
+df_smd_sum_multi_rc_hyper <- data.frame()
+df_smd_all_multi_rc_hyper <- data.frame()
+df_iterate <- data.frame("Rep" = c(rep(1,4), rep(2,4), rep(3,4), rep(4,4), rep(5,4)), "Fold" = rep(c(1:4), 5))
+
+# iterate over outcome variables
+for (hyperparam_var_sel in c("1SE", "1SE_plus")) {
+  
+  print(paste("Start Hyperparameter:", hyperparam_var_sel))
+  
+  # load data 
+  dml_result_all_multi_rc_hyper <- 
+    readRDS(paste0("Output/DML/Estimation/Grades/multi_", "grades", 
+                   "_postlasso_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming",
+                   model_trimming, "_K4-2_Rep5_", hyperparam_var_sel, "_covbal.rds"))
+  
+  
+  df_smd_cov_func_all_multi_rc_hyper <- data.frame()
+  for (mice_sel in 1:5) { # iterate over MICE data sets
+    print(paste("Data Set:", mice_sel))
+    for (rep_sel in 1:5) { # iterate over repetitions
+      df_iterate_sel <- df_iterate %>% filter(Rep == rep_sel)
+      for (iter_sel in 1:nrow(df_iterate_sel)) { # iterate over folds
+        df_iterate_sel_2 <- df_iterate_sel[iter_sel, ]
+        
+        # predictions
+        df_pred_cov_func <- dml_result_all_multi_rc_hyper[[mice_sel]]$pred %>% 
+          filter(Repetition == rep_sel, Fold == iter_sel) %>%
+          mutate(D_1 = ifelse(treatment == 1, 1, 0), D_2 = ifelse(treatment == 2, 1, 0), D_3 = ifelse(treatment == 3, 1, 0))
+        
+        # control variables
+        df_controls_multi_rc_hyper <- dml_result_all_multi_rc_hyper[[mice_sel]]$cov_balance[[mice_sel]][[df_iterate_sel_2$Rep]][[df_iterate_sel_2$Fold]]$controls
+        
+        # control variables
+        x <- df_controls_multi_rc_hyper %>% dplyr::select(-all_of(
+          c("outcome_grade", "treatment_sport_freq", "treatment_sport_freq_na", "treatment_sport_freq_monthly_less", "treatment_sport_freq_never",
+            "treatment_sport_freq_weekly_atleast", "Fold", "Repetition", "group")))
+        
+        # calculate covariate balance
+        df_smd_cov_func_all <- list()
+        for (treatment_var_sel in c("D_1", "D_2", "D_3")) { # iterate over treatments
+          D <- df_pred_cov_func %>% pull(treatment_var_sel) %>% as.character() %>% as.numeric() 
+          m <- df_pred_cov_func %>% pull(str_replace(treatment_var_sel, "D_", "m")) %>% as.character() %>% as.numeric() 
+          
+          # calculate weights
+          weights_multi_rc_hyper <- func_weights("binary", df_pred_cov_func %>% mutate(treatment = D, m = m), x)
+          
+          # calculate ASMD
+          balance <- bal.tab(
+            as.data.frame(x), treat = D, stats = "mean.diffs", weights = weights_multi_rc_hyper, method = "weighting",
+            s.d.denom = "pooled", # pooled standard deviation (most appropriate for ATE; for ATTE: "treated")
+            disp.v.ratio = TRUE, disp.ks = TRUE, 
+            un = TRUE, # display statistics also for before DML
+            continuous = "std", binary = "std" # also standardized multi covariates
+          )
+          
+          # prepare data frame
+          df_smd_cov_func <- balance$Balance %>% 
+            dplyr::select(Diff.Un, Diff.Adj) %>% 
+            mutate(SD_before = abs(Diff.Un), SD_after = abs(Diff.Adj)) %>%
+            dplyr::select(-c(Diff.Un, Diff.Adj)) %>%
+            mutate(Rep = rep_sel, Fold = iter_sel, MICE = mice_sel) %>%
+            mutate(control_var = rownames(.)) %>%
+            rename(!!rlang::sym(paste0("SD_before_", treatment_var_sel)) := SD_before,
+                   !!rlang::sym(paste0("SD_after_", treatment_var_sel)) := SD_after)
+          rownames(df_smd_cov_func) <- 1:nrow(df_smd_cov_func)
+          
+          # save data frame in list
+          df_smd_cov_func_all[[treatment_var_sel]] <- df_smd_cov_func
+        } # close iteration over treatment variables
+        
+        # append ASMD across treatments in one data frame
+        df_smd_cov_func_all <- left_join(
+          df_smd_cov_func_all[["D_1"]], df_smd_cov_func_all[["D_2"]], by = c("control_var", "Rep", "Fold", "MICE")
+        ) %>%
+          left_join(df_smd_cov_func_all[["D_3"]], by = c("control_var", "Rep",  "Fold", "MICE"))
+        
+        # aggregate and append
+        df_smd_cov_func_all <- df_smd_cov_func_all %>%
+          ungroup() %>%
+          group_by(control_var, Rep, Fold, MICE) %>%
+          summarize(SD_before = mean(c(SD_before_D_1, SD_before_D_2, SD_before_D_3)),
+                    SD_after = mean(c(SD_after_D_1, SD_after_D_2, SD_after_D_3))) %>%
+          ungroup()
+        
+        df_smd_cov_func_all_multi_rc_hyper <- rbind(df_smd_cov_func_all_multi_rc_hyper, df_smd_cov_func_all)
+      } # close for loop over iterations
+    } # close iteration over repetitions
+  } # close iteration over for mice data sets
+  
+  # summarize across controls: MICE, repetitions and folds
+  df_smd_cov_func_all_multi_rc_hyper <- df_smd_cov_func_all_multi_rc_hyper %>%
+    ungroup() %>%
+    dplyr::select(-c("Rep", "MICE", "Fold")) %>%
+    group_by(control_var) %>%
+    summarize(SD_before = mean(SD_before), SD_after = mean(SD_after)) %>% 
+    mutate(outcome = "GPA")
+  
+  # summary statistics
+  df_smd_cov_func_sum_multi_rc_hyper <- 
+    data.frame(
+      "treatment_setting" = rep("multi", 2),
+      "adjustment" = c("before", "after"),
+      "min" = c(min(df_smd_cov_func_all_multi_rc_hyper$SD_before),  min(df_smd_cov_func_all_multi_rc_hyper$SD_after, na.rm = T)),
+      "mean" = c(mean(df_smd_cov_func_all_multi_rc_hyper$SD_before), mean(df_smd_cov_func_all_multi_rc_hyper$SD_after, na.rm = T)),
+      "median" = c(median(df_smd_cov_func_all_multi_rc_hyper$SD_before), median(df_smd_cov_func_all_multi_rc_hyper$SD_after, na.rm = T)),
+      "max" = c(max(df_smd_cov_func_all_multi_rc_hyper$SD_before), max(df_smd_cov_func_all_multi_rc_hyper$SD_after, na.rm = T)),
+      "num_cov_smd_25" = c(sum(df_smd_cov_func_all_multi_rc_hyper$SD_before > 0.25), 
+                           sum(df_smd_cov_func_all_multi_rc_hyper$SD_after > 0.25, na.rm = T)), 
+      "num_cov_smd_10" = c(sum(df_smd_cov_func_all_multi_rc_hyper$SD_before > 0.1), 
+                           sum(df_smd_cov_func_all_multi_rc_hyper$SD_after > 0.1, na.rm = T)), 
+      "num_cov_smd_5" = c(sum(df_smd_cov_func_all_multi_rc_hyper$SD_before > 0.05), 
+                          sum(df_smd_cov_func_all_multi_rc_hyper$SD_after > 0.05, na.rm = T)), 
+      "perc_cov_smd_25" = c(sum(df_smd_cov_func_all_multi_rc_hyper$SD_before > 0.25) / length(df_smd_cov_func_all_multi_rc_hyper$SD_before), 
+                            sum(df_smd_cov_func_all_multi_rc_hyper$SD_after > 0.25, na.rm = T) / df_smd_cov_func_all_multi_rc_hyper %>% dplyr::select(SD_after) %>% na.omit() %>% nrow()), 
+      "perc_cov_smd_10" = c(sum(df_smd_cov_func_all_multi_rc_hyper$SD_before > 0.1) / length(df_smd_cov_func_all_multi_rc_hyper$SD_before), 
+                            sum(df_smd_cov_func_all_multi_rc_hyper$SD_after > 0.1, na.rm = T) / df_smd_cov_func_all_multi_rc_hyper %>% dplyr::select(SD_after) %>% na.omit() %>% nrow()), 
+      "perc_cov_smd_5" = c(sum(df_smd_cov_func_all_multi_rc_hyper$SD_before > 0.05) / length(df_smd_cov_func_all_multi_rc_hyper$SD_before), 
+                           sum(df_smd_cov_func_all_multi_rc_hyper$SD_after > 0.05, na.rm = T) / df_smd_cov_func_all_multi_rc_hyper %>% dplyr::select(SD_after) %>% na.omit() %>% nrow())
+    )
+  
+  df_smd_cov_func_sum_multi_rc_hyper <- df_smd_cov_func_sum_multi_rc_hyper %>% mutate(outcome = "GPA", hyperparam = hyperparam_var_sel)
+  df_smd_cov_func_all_multi_rc_hyper <- df_smd_cov_func_all_multi_rc_hyper %>% mutate(outcome = "GPA", hyperparam = hyperparam_var_sel)
+  
+  # append to overall data frame
+  df_smd_sum_multi_rc_hyper <- rbind(df_smd_sum_multi_rc_hyper, df_smd_cov_func_sum_multi_rc_hyper)
+  df_smd_all_multi_rc_hyper <- rbind(df_smd_all_multi_rc_hyper, df_smd_cov_func_all_multi_rc_hyper)
+  
+} # close loop over hyperparam_sel()
+
+
+df_smd_sum_multi_rc_hyper <- df_smd_sum_multi_rc_hyper %>% dplyr::select(
+  outcome, hyperparam, treatment_setting, adjustment, everything()
+) %>% filter(adjustment == "after")
+
+df_smd_all_multi_rc_hyper <- df_smd_all_multi_rc_hyper %>% dplyr::select(
+  outcome, hyperparam, control_var, SD_before, SD_after
+)
+
+saveRDS(df_smd_sum_multi_rc_hyper, "Output/DML/Covariate_Balancing/covariate_balancing_summary_rc_hyper.rds")
