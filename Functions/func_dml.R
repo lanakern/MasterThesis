@@ -360,7 +360,7 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
         df_param_all <- rbind(df_param_all, data_param)
         
         # feature importance
-        data_imp <- xgb_ml$imp %>% mutate(Repetition = S_rep, Fold = fold_sel)
+        data_imp <- rf_ml$imp %>% mutate(Repetition = S_rep, Fold = fold_sel)
         df_imp_all <- rbind(df_imp_all, data_imp)
         
       } else {
