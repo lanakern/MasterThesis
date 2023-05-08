@@ -102,7 +102,8 @@ for (mice_data_sel in 1:5) {
                      starts_with("uni_time_employment"), starts_with("uni_entrance_quali_access_"),
                      starts_with("personality_sociable"), starts_with("personality_criticize"),
                      starts_with("personality_thorough"), starts_with("personality_nervous"), 
-                     starts_with("personality_imaginative"), starts_with("personality_sensitive")))
+                     starts_with("personality_imaginative"), starts_with("personality_sensitive"),
+                     starts_with("motivation_degree_4_lag")))
   
   # also drop big five lags because they are identical to true value
   data_final <- data_final %>% dplyr::select(-c(starts_with("bigfive") & ends_with("lag")))
@@ -237,7 +238,7 @@ for (mice_data_sel in 1:5) {
       "data_prep_treatment_def" = treatment_def,
       "data_prep_extraact" = extra_act, 
       "data_prep_covbal" = cov_balance,
-      "num_id" = length(unique(data_final_raw$id_t)), 
+      "num_id" = length(unique(data_final$group)), 
       "num_rows" = mean(data_binary_num_cols$num_rows),
       "num_cols" = mean(data_binary_num_cols$num_cols),
       "time_stamp" = Sys.time()
@@ -264,7 +265,7 @@ for (mice_data_sel in 1:5) {
       "data_prep_treatment_def" = treatment_def,
       "data_prep_extraact" = extra_act, 
       "data_prep_covbal" = cov_balance,
-      "num_id" = length(unique(data_final_raw$id_t)), 
+      "num_id" = length(unique(data_final$group)), 
       "num_rows" = mean(data_binary_num_cols_nolags$num_rows),
       "num_cols" = mean(data_binary_num_cols_nolags$num_cols),
       "time_stamp" = Sys.time()
@@ -314,7 +315,7 @@ for (mice_data_sel in 1:5) {
         "data_prep_treatment_def" = treatment_def,
         "data_prep_extraact" = extra_act,
         "data_prep_covbal" = cov_balance,
-        "num_id" = length(unique(data_final_raw$id_t)),
+        "num_id" = length(unique(data_final$group)),
         "num_rows" = round(mean(data_binary_num_cols_all$num_rows)),
         "num_cols" = round(mean(data_binary_num_cols_all$num_cols)),
         "time_stamp" = Sys.time()
@@ -387,7 +388,7 @@ for (mice_data_sel in 1:5) {
       "data_prep_treatment_def" = treatment_def,
       "data_prep_extraact" = extra_act,
       "data_prep_covbal" = cov_balance,
-      "num_id" = length(unique(data_final_raw$id_t)),
+      "num_id" = length(unique(data_final$group)),
       "num_rows" = mean(data_multi_num_cols$num_rows),
       "num_cols" = mean(data_multi_num_cols$num_cols),
       "time_stamp" = Sys.time()
@@ -414,7 +415,7 @@ for (mice_data_sel in 1:5) {
       "data_prep_treatment_def" = treatment_def,
       "data_prep_extraact" = extra_act, 
       "data_prep_covbal" = cov_balance,
-      "num_id" = length(unique(data_final_raw$id_t)), 
+      "num_id" = length(unique(data_final$group)), 
       "num_rows" = mean(data_multi_num_cols_nolags$num_rows),
       "num_cols" = mean(data_multi_num_cols_nolags$num_cols),
       "time_stamp" = Sys.time()
@@ -485,7 +486,7 @@ for (mice_data_sel in 1:5) {
         "data_prep_treatment_def" = treatment_def,
         "data_prep_extraact" = extra_act,
         "data_prep_covbal" = cov_balance,
-        "num_id" = length(unique(data_final_raw$id_t)),
+        "num_id" = length(unique(data_final$group)),
         "num_rows" = round(mean(data_multi_num_cols_all$num_rows)),
         "num_cols" = round(mean(data_multi_num_cols_all$num_cols)),
         "time_stamp" = Sys.time()
