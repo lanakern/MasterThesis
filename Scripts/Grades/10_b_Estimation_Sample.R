@@ -119,7 +119,7 @@ for (mice_data_sel in 1:5) {
   if (mice_data_sel == 1 & cohort_prep == main_cohort_prep & treatment_def == main_treatment_def &
       treatment_repl == main_treatment_repl & extra_act == main_extra_act) {
     saveRDS(data_final, "Data/Grades/Prep_10/COMPARE_ID_GRADES.rds")
-    }
+  }
   
   # drop ID_t, interview_date, etc. which is not used in the estimation
   data_final <- data_final %>% 
