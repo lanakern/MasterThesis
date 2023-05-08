@@ -14,7 +14,7 @@
 # define input parameters
 cohort_prep <- main_cohort_prep
 treatment_repl <- main_treatment_repl
-treatment_def <- main_treatment_def
+treatment_def <- main_treatment_def # "weekly" -> changed manually for other preparation (not used anymore)
 extra_act <- main_extra_act
 cov_balance <- "yes"
 
@@ -161,7 +161,7 @@ gc()
 #++++++++++++++++++++++++++++++++#
 
 # Decide if interactions should be created (takes a long time)
-create_interactions <- "yes" 
+create_interactions <- "no" 
   
 # Prepare control variables
 source("Scripts/Personality/10_a_Estimation_Sample_Personality.R") 
