@@ -566,6 +566,7 @@ model_trimming <- main_model_trimming # 0.1, min-max
 model_post_sel <- FALSE
 probscore_separate <- TRUE
 hyperparam_sel <- "best"
+model_hyperparam_sel <- "best"
 cov_balance  <- main_cov_balance
 
 # for lasso and xgboost higher K as they are computationally faster
