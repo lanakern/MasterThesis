@@ -44,6 +44,14 @@ func_feature_importance_plot <- function(treatment_setting, df_score, ml_algo, s
   
   ## BINARY TREATMENT SETTING ##
   
+  # x-axis maximum limit
+  if (max(df_score$Importance)) {
+    plus_x <- 0.01
+  } else {
+    plus_x <- 0.1
+  }
+  
+  
   if (treatment_setting == "binary") {
     
     ## Aggregated over Outcome ##
@@ -53,7 +61,9 @@ func_feature_importance_plot <- function(treatment_setting, df_score, ml_algo, s
         df_score %>% filter(str_detect(Pred_Type, "Treatment")) %>%
         ggplot(aes(y = reorder(Variable, Importance), x = Importance)) +
         geom_point(color = "black", size = 4) +
-        scale_x_continuous(limits = c(0, max(df_score$Importance) + 0.1)) +
+        scale_x_continuous(limits = c(0, df_score %>% 
+                                        filter(str_detect(Pred_Type, "Treatment")) %>% 
+                                        pull(Importance) %>% max() + plus_x)) +
         labs(
           title = paste(ml_algo, "-", "Treatment Prediction"),
           y = "", x = "\n Importance Score"
@@ -67,7 +77,9 @@ func_feature_importance_plot <- function(treatment_setting, df_score, ml_algo, s
         df_score %>% filter(str_detect(Pred_Type, "Outcome")) %>%
         ggplot(aes(y = reorder(Variable, Importance), x = Importance)) +
         geom_point(color = "black", size = 4) +
-        scale_x_continuous(limits = c(0, max(df_score$Importance) + 0.1)) +
+        scale_x_continuous(limits = c(0, df_score %>% 
+                                        filter(str_detect(Pred_Type, "Outcome")) %>% 
+                                        pull(Importance) %>% max() + plus_x)) +
         labs(
           title = paste(ml_algo, "-", "Outcome Prediction"),
           y = "", x = "\n Importance Score"
@@ -89,7 +101,9 @@ func_feature_importance_plot <- function(treatment_setting, df_score, ml_algo, s
         df_score %>% filter(str_detect(Pred_Type, "Treatment")) %>%
         ggplot(aes(y = reorder(Variable, Importance), x = Importance)) +
         geom_point(color = "black", size = 4) +
-        scale_x_continuous(limits = c(0, max(df_score$Importance) + 0.1)) +
+        scale_x_continuous(limits = c(0, df_score %>% 
+                                        filter(str_detect(Pred_Type, "Treatment")) %>% 
+                                        pull(Importance) %>% max() + plus_x)) +
         labs(
           title = paste(ml_algo, "-", "Treatment Prediction"),
           y = "", x = "\n Importance Score"
@@ -103,7 +117,9 @@ func_feature_importance_plot <- function(treatment_setting, df_score, ml_algo, s
         df_score %>% filter(str_detect(Pred_Type, "Outcome 0")) %>%
         ggplot(aes(y = reorder(Variable, Importance), x = Importance)) +
         geom_point(color = "black", size = 4) +
-        scale_x_continuous(limits = c(0, max(df_score$Importance) + 0.1)) +
+        scale_x_continuous(limits = c(0, df_score %>% 
+                                        filter(str_detect(Pred_Type, "Outcome 0")) %>% 
+                                        pull(Importance) %>% max() + plus_x)) +
         labs(
           title = paste(ml_algo, "-", "Outcome 0 Prediction"),
           y = "", x = "\n Importance Score"
@@ -117,7 +133,9 @@ func_feature_importance_plot <- function(treatment_setting, df_score, ml_algo, s
         df_score %>% filter(str_detect(Pred_Type, "Outcome 1")) %>%
         ggplot(aes(y = reorder(Variable, Importance), x = Importance)) +
         geom_point(color = "black", size = 4) +
-        scale_x_continuous(limits = c(0, max(df_score$Importance) + 0.1)) +
+        scale_x_continuous(limits = c(0, df_score %>% 
+                                        filter(str_detect(Pred_Type, "Outcome 1")) %>% 
+                                        pull(Importance) %>% max() + plus_x)) +
         labs(
           title = paste(ml_algo, "-", "Outcome 1 Prediction"),
           y = "", x = "\n Importance Score"
@@ -142,7 +160,7 @@ func_feature_importance_plot <- function(treatment_setting, df_score, ml_algo, s
       df_score %>% 
         ggplot(aes(y = reorder(Variable, Importance), x = Importance)) +
         geom_point(color = "black", size = 4) +
-        scale_x_continuous(limits = c(0, max(df_score$Importance) + 0.1)) +
+        scale_x_continuous(limits = c(0, max(df_score$Importance) + plus_x)) +
         labs(
           title = paste(ml_algo, "-", "Treatment 1 Prediction"),
           y = "", x = "\n Importance Score"
@@ -156,7 +174,7 @@ func_feature_importance_plot <- function(treatment_setting, df_score, ml_algo, s
         df_score %>% filter(str_detect(Pred_Type, "Treatment 1")) %>%
         ggplot(aes(y = reorder(Variable, Importance), x = Importance)) +
         geom_point(color = "black", size = 4) +
-        scale_x_continuous(limits = c(0, max(df_score$Importance) + 0.1)) +
+        scale_x_continuous(limits = c(0, max(df_score$Importance) + plus_x)) +
         labs(
           title = paste(ml_algo, "-", "Treatment 1 Prediction"),
           y = "", x = "\n Importance Score"
@@ -169,7 +187,7 @@ func_feature_importance_plot <- function(treatment_setting, df_score, ml_algo, s
         df_score %>% filter(str_detect(Pred_Type, "Treatment 2")) %>%
         ggplot(aes(y = reorder(Variable, Importance), x = Importance)) +
         geom_point(color = "black", size = 4) +
-        scale_x_continuous(limits = c(0, max(df_score$Importance) + 0.1)) +
+        scale_x_continuous(limits = c(0, max(df_score$Importance) + plus_x)) +
         labs(
           title = paste(ml_algo, "-", "Treatment 1 Prediction"),
           y = "", x = "\n Importance Score"
@@ -182,7 +200,7 @@ func_feature_importance_plot <- function(treatment_setting, df_score, ml_algo, s
         df_score %>% filter(str_detect(Pred_Type, "Treatment 3")) %>%
         ggplot(aes(y = reorder(Variable, Importance), x = Importance)) +
         geom_point(color = "black", size = 4) +
-        scale_x_continuous(limits = c(0, max(df_score$Importance) + 0.1)) +
+        scale_x_continuous(limits = c(0, max(df_score$Importance) + plus_x)) +
         labs(
           title = paste(ml_algo, "-", "Treatment 3 Prediction"),
           y = "", x = "\n Importance Score"
@@ -195,7 +213,7 @@ func_feature_importance_plot <- function(treatment_setting, df_score, ml_algo, s
         df_score %>% filter(str_detect(Pred_Type, "Outcome 1")) %>%
         ggplot(aes(y = reorder(Variable, Importance), x = Importance)) +
         geom_point(color = "black", size = 4) +
-        scale_x_continuous(limits = c(0, max(df_score$Importance) + 0.1)) +
+        scale_x_continuous(limits = c(0, max(df_score$Importance) + plus_x)) +
         labs(
           title = paste(ml_algo, "-", "Outcome 1 Prediction"),
           y = "", x = "\n Importance Score"
@@ -209,7 +227,7 @@ func_feature_importance_plot <- function(treatment_setting, df_score, ml_algo, s
         df_score %>% filter(str_detect(Pred_Type, "Outcome 2")) %>%
         ggplot(aes(y = reorder(Variable, Importance), x = Importance)) +
         geom_point(color = "black", size = 4) +
-        scale_x_continuous(limits = c(0, max(df_score$Importance) + 0.1)) +
+        scale_x_continuous(limits = c(0, max(df_score$Importance) + plus_x)) +
         labs(
           title = paste(ml_algo, "-", "Outcome 2 Prediction"),
           y = "", x = "\n Importance Score"
@@ -223,7 +241,7 @@ func_feature_importance_plot <- function(treatment_setting, df_score, ml_algo, s
         df_score %>% filter(str_detect(Pred_Type, "Outcome 3")) %>%
         ggplot(aes(y = reorder(Variable, Importance), x = Importance)) +
         geom_point(color = "black", size = 4) +
-        scale_x_continuous(limits = c(0, max(df_score$Importance) + 0.1)) +
+        scale_x_continuous(limits = c(0, max(df_score$Importance) + plus_x)) +
         labs(
           title = paste(ml_algo, "-", "Outcome 3 Prediction"),
           y = "", x = "\n Importance Score"
