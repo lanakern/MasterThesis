@@ -13,7 +13,9 @@
 # -> "data_pred": data frame containing all nuisance parameter predictions.
 # -> "min_trimming": minimal trimming threshold (data frame in multivalued treatment setting)
 # -> "max_trimming: maximal trimming threshold (data frame in multivalued treatment setting)
-# -> "text_trimming" indicates if trimming thresholds should be displayed. "yes" or "no"
+# -> "text_trimming" indicates if trimming thresholds should be displayed. "yes" or "no".
+# In this case line is also always displayed.
+# -> "line_trimming" indicates if trimming line should be displayed
 # -> "ml_algo": ML algorithm used to create the plot (only used in plot title)
 # -> "dec_places": number of decimal places
 #+++
@@ -23,7 +25,8 @@
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 func_dml_common_support <- function(treatment_setting, data_pred, min_trimming, 
-                                    max_trimming, text_trimming, ml_algo, dec_places) {
+                                    max_trimming, text_trimming, line_trimming, 
+                                    ml_algo, dec_places) {
   
   # extract trimming thresholds for binary treatment setting (only one)
   if (treatment_setting == "binary") {
@@ -66,12 +69,14 @@ func_dml_common_support <- function(treatment_setting, data_pred, min_trimming,
                        xintercept = min_trimming, vjust = -0.7, linetype = "longdash", size = 6) +
         geom_textvline(label = paste("max. trimming:", sprintf(paste0("%.", dec_places, "f"), unique(max_trimming))),  
                        xintercept = max_trimming, vjust = -0.7, linetype = "longdash", size = 6) 
-    } else {
+    } else if (line_trimming == "yes") {
       plot_trimming <- plot_trimming + 
         geom_vline(xintercept = min_trimming, linetype = "longdash", 
                    color = "black", size = 0.5) +
         geom_vline(xintercept = max_trimming, linetype = "longdash", 
                    color = "black", size = 0.5)
+    } else {
+      plot_trimming <- plot_trimming
     }
     
     # finalize layout
