@@ -8,8 +8,6 @@
 # In this file, covariate balancing and the main drivers of selection are
 # assessed by calculating mean standardized differences following Yang et al. (2016)
 # and Knaus (2018).
-# This analysis is only done in the main model, but for both the binary and multivalued
-# treatment setting. 
 #++ 
 # Sources:
 # -> https://cran.r-project.org/web/packages/cobalt/vignettes/cobalt.html
@@ -29,43 +27,6 @@ if (cov_balance == "yes") {
 } else {
   cov_balance_save <- ""
 }
-
-# load all MICE data sets and append them
-# data_all_mice_grades <- data.frame()
-# for (mice_data_sel in 1:5) {
-#   data_load <- paste0("Data/Grades/Prep_10/prep_10_dml_binary_all_weekly_down_extradrop", 
-#                       cov_balance_save, "_mice", mice_data_sel, ".rds")
-#   data_all_mice_sub <- readRDS(data_load)
-#   data_all_mice_sub <- data_all_mice_sub %>% ungroup() %>% mutate(MICE = mice_data_sel)
-#   data_all_mice_grades <- rbind(data_all_mice_grades, data_all_mice_sub)
-# }
-# 
-# data_all_mice_personality <- data.frame()
-# for (mice_data_sel in 1:5) {
-#   data_load <- paste0("Data/Personality/Prep_10/prep_10_dml_binary_all_weekly_down_extradrop", 
-#                       cov_balance_save, "_mice", mice_data_sel, "_personality.rds")
-#   data_all_mice_sub <- readRDS(data_load)
-#   data_all_mice_sub <- data_all_mice_sub %>% ungroup() %>% mutate(MICE = mice_data_sel)
-#   data_all_mice_personality <- rbind(data_all_mice_personality, data_all_mice_sub)
-# }
-# 
-# data_all_mice_grades_multi <- data.frame()
-# for (mice_data_sel in 1:5) {
-#   data_load <- paste0("Data/Grades/Prep_10/prep_10_dml_multi_all_weekly_down_extradrop", 
-#                       cov_balance_save, "_mice", mice_data_sel, ".rds")
-#   data_all_mice_sub <- readRDS(data_load)
-#   data_all_mice_sub <- data_all_mice_sub %>% ungroup() %>% mutate(MICE = mice_data_sel)
-#   data_all_mice_grades_multi <- rbind(data_all_mice_grades_multi, data_all_mice_sub)
-# }
-# 
-# data_all_mice_personality_multi <- data.frame()
-# for (mice_data_sel in 1:5) {
-#   data_load <- paste0("Data/Personality/Prep_10/prep_10_dml_multi_all_weekly_down_extradrop", 
-#                       cov_balance_save, "_mice", mice_data_sel, "_personality.rds")
-#   data_all_mice_sub <- readRDS(data_load)
-#   data_all_mice_sub <- data_all_mice_sub %>% ungroup() %>% mutate(MICE = mice_data_sel)
-#   data_all_mice_personality_multi <- rbind(data_all_mice_personality_multi, data_all_mice_sub)
-# }
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -87,13 +48,13 @@ for (outcome_var_sel in c("grades", "agreeableness", "extraversion", "conscienti
   
   if (str_detect(outcome_var_sel, "grade")) {
     dml_result_all <- 
-      readRDS(paste0("Output/DML/Estimation/Grades/binary_", outcome_var_sel, 
-                     "_postlasso_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming",
+      readRDS(paste0("Output/DML/Estimation/Grades/binary_", outcome_var_sel, "_postlasso_all_controlssameoutcome_",
+                     treatment_def, "_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming",
                      model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
   } else {
     dml_result_all <- 
-      readRDS(paste0("Output/DML/Estimation/Personality/binary_", outcome_var_sel, 
-                     "_postlasso_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming",
+      readRDS(paste0("Output/DML/Estimation/Personality/binary_", outcome_var_sel, "_postlasso_all_controlssameoutcome_", 
+                     treatment_def, "_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming",
                      model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
   }
   
@@ -204,6 +165,7 @@ df_smd_sum_binary <- rbind(
   summarize_all(mean)
 )
 
+
 # save
 saveRDS(df_smd_sum_binary, "Output/DML/Covariate_Balancing/covariate_balancing_summary_binary.rds")
 saveRDS(df_smd_all_binary, "Output/DML/Covariate_Balancing/covariate_balancing_asdm_binary.rds")
@@ -227,12 +189,14 @@ for (outcome_var_sel in c("grades", "agreeableness", "extraversion", "conscienti
   if (str_detect(outcome_var_sel, "grade")) {
     dml_result_all_multi <- 
       readRDS(paste0("Output/DML/Estimation/Grades/multi_", outcome_var_sel, 
-                     "_postlasso_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming",
+                     "_postlasso_all_controlssameoutcome_", treatment_def, 
+                     "_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming",
                      model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
   } else {
     dml_result_all_multi <- 
       readRDS(paste0("Output/DML/Estimation/Personality/multi_", outcome_var_sel, 
-                     "_postlasso_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming",
+                     "_postlasso_all_controlssameoutcome_", treatment_def, 
+                     "_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming",
                      model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
   }
   
@@ -413,16 +377,6 @@ for (outcome_var_sel in c("grades", "personality")) {
 }
 
 
-# plot_cov_bal_binary_save <- ggarrange(
-#   plot_cov_bal_binary[["grades"]] + ggtitle("GPA"),
-#   plot_cov_bal_binary[["personality"]] + ylab(""),
-#   nrow = 1, ncol = 2, common.legend = TRUE, legend = "bottom"
-# )
-# 
-# ggsave("Output/DML/Covariate_Balancing/plot_cov_balance_binary.png", plot_cov_bal_binary_save,
-#        width = 20, height = 15, dpi = 300, units = "in", device = 'png')
-
-
 # Multi
 plot_cov_bal_multi <- list()
 df_smd_all_multi_plot <- df_smd_all_multi %>% mutate(
@@ -469,12 +423,13 @@ ggsave("Output/DML/Covariate_Balancing/plot_cov_balance.png", plot_cov_bal_save,
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 # extract 50 variables with highest ASMD before DML
-df_main_drivers <- df_smd_all_binary %>%
+df_main_drivers <- df_smd_all_multi %>%
+  filter(outcome == "grades") %>% dplyr::select(-outcome) %>%
   arrange(-SD_before) %>%
   group_by(control_var) %>% 
   summarize_all(mean) %>% 
   arrange(desc(SD_before)) %>%
-  head(50)
+  head(50) 
 
 
 saveRDS(df_main_drivers %>% as.data.frame(), "Output/DML/Covariate_Balancing/main_drivers.rds")
