@@ -225,6 +225,11 @@ func_weights <- function(treatment_setting, data_pred, data_controls) {
       #  X_t'X_t 
       XtX <- crossprod(x[t[,i] == 1,])
       
+      # skip iteration if error occurs
+      skip_to_next <- FALSE
+      tryCatch(MASS::ginv(XtX), error = function(e) { skip_to_next <<- TRUE})
+      if (skip_to_next) { next }
+      
       # X_t(X_t'X_t)-1 for treated
       XXtX <- x[t[,i] == 1,] %*% MASS::ginv(XtX)
       
