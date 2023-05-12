@@ -94,7 +94,9 @@ func_ml_error_metrics <- function(treatment_setting, data_pred, S_rep, fold_sel,
     # Area under the curve
     m_auc <- yardstick::roc_auc(data_pred %>% mutate(m_0 = 1 - m), truth = treatment, 
                                 # 1-m to get probability for class 0 (first class is taken as positive class in roc_auc)
-                                estimate = m_0) %>% dplyr::select(.estimate) %>% pull()
+                                estimate = m_0) %>% dplyr::select(.estimate) %>% pull() %>% unique()
+    
+    if (is.na(m_auc)) {m_auc <- mlr3measures::auc(data_pred$treatment, data_pred$m, positive = "1")}
     
     # combine data set
     df_error_class <- data.frame(
