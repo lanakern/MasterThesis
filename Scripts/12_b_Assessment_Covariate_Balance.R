@@ -201,6 +201,7 @@ for (outcome_var_sel in c("grades", "agreeableness", "extraversion", "conscienti
   }
   
   df_smd_cov_func_all_multi <- data.frame()
+  df_smd_cov_func_all_detail_multi <- data.frame()
   for (mice_sel in 1:5) { # iterate over MICE data sets
     print(paste("Data Set:", mice_sel))
     for (rep_sel in 1:5) { # iterate over repetitions
@@ -267,6 +268,8 @@ for (outcome_var_sel in c("grades", "agreeableness", "extraversion", "conscienti
         ) %>%
           left_join(df_smd_cov_func_all[["D_3"]], by = c("control_var", "Rep",  "Fold", "MICE"))
         
+        df_smd_cov_func_all_detail_multi <- rbind(df_smd_cov_func_all_detail_multi, df_smd_cov_func_all)
+        
         # aggregate and append
         df_smd_cov_func_all <- df_smd_cov_func_all %>%
           ungroup() %>%
@@ -276,7 +279,7 @@ for (outcome_var_sel in c("grades", "agreeableness", "extraversion", "conscienti
           ungroup()
         
         df_smd_cov_func_all_multi <- rbind(df_smd_cov_func_all_multi, df_smd_cov_func_all)
-      } # close for loop over iterations
+      } # close for loop over folds
     } # close iteration over repetitions
   } # close iteration over for mice data sets
   
@@ -286,7 +289,15 @@ for (outcome_var_sel in c("grades", "agreeableness", "extraversion", "conscienti
     dplyr::select(-c("Rep", "MICE", "Fold")) %>%
     group_by(control_var) %>%
     summarize(SD_before = mean(SD_before), SD_after = mean(SD_after)) %>% 
-    mutate(outcome = "GPA")
+    mutate(outcome = outcome_var_sel)
+  
+  df_smd_cov_func_all_detail_multi <- df_smd_cov_func_all_detail_multi %>%
+    ungroup() %>%
+    dplyr::select(-c("Rep", "MICE", "Fold")) %>%
+    group_by(control_var) %>%
+    summarize(SD_before_D_1 = mean(SD_before_D_1), SD_before_D_2 = mean(SD_before_D_2), 
+              SD_before_D_3 = mean(SD_before_D_3)) %>% 
+    mutate(outcome = outcome_var_sel)
   
   # summary statistics
   df_smd_cov_func_sum_multi <- 
@@ -320,7 +331,6 @@ for (outcome_var_sel in c("grades", "agreeableness", "extraversion", "conscienti
   
 } # close loop over outcome_var_sel()
 
-
 df_smd_sum_multi <- df_smd_sum_multi %>% dplyr::select(
   outcome, treatment_setting, adjustment, everything()
 )
@@ -343,7 +353,7 @@ df_smd_sum_multi <- rbind(
 # save
 saveRDS(df_smd_sum_multi, "Output/DML/Covariate_Balancing/covariate_balancing_summary_multi.rds")
 saveRDS(df_smd_all_multi, "Output/DML/Covariate_Balancing/covariate_balancing_asdm_multi.rds")
-
+saveRDS(df_smd_cov_func_all_detail_multi, "Output/DML/Covariate_Balancing/covariate_balancing_asdm_multi_separate.rds")
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 #### Covariate Balancing: Plot ####
