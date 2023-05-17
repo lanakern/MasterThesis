@@ -997,8 +997,22 @@ func_ml_xgboost <- function(treatment_setting, data_train, data_test, outcome, t
         df_pred <- df_pred
       }
       
+      #%%%%%%%%%%%%%%%%%%%%%%%%%%#
+      #### Feature Importance ####
+      #%%%%%%%%%%%%%%%%%%%%%%%%%%#
+      
+      xgb_scores <- rbind(
+        func_feature_importance_score(xgb_fit_final_m1, length(X_controls)) %>% mutate("Pred_Type" = "Treatment 1 Prediction"),
+        func_feature_importance_score(xgb_fit_final_m2, length(X_controls)) %>% mutate("Pred_Type" = "Treatment 2 Prediction"),
+        func_feature_importance_score(xgb_fit_final_m3, length(X_controls)) %>% mutate("Pred_Type" = "Treatment 3 Prediction"),
+        func_feature_importance_score(xgb_fit_final_g1, length(X_controls)) %>% mutate("Pred_Type" = "Outcome 1 Prediction"),
+        func_feature_importance_score(xgb_fit_final_g2, length(X_controls)) %>% mutate("Pred_Type" = "Outcome 2 Prediction"),
+        func_feature_importance_score(xgb_fit_final_g3, length(X_controls)) %>% mutate("Pred_Type" = "Outcome 3 Prediction")
+      ) %>% mutate(MICE = mice_data_sel)
+      
+      
       # return data frame with predictions
-      return(list("pred" = df_pred, "param" = df_best_param))
+      return(list("pred" = df_pred, "param" = df_best_param, "imp" = xgb_scores))
       
     
     #### TREATMENT: MULTIONOMINAL LOGISTIC REGRESSION ####
