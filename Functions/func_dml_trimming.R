@@ -143,15 +143,8 @@ func_dml_trimming <- function(treatment_setting, data_pred, data_test, trimming)
       # for saving
       min_trimming <- mean(df_select_trimming$min_trimming)
       max_trimming <- mean(df_select_trimming$max_trimming)
-      
-      # trimming thresholds
-      # min_trimming <- max(df_select_trimming$min_m) # maximum of minimum
-      # max_trimming <- min(df_select_trimming$max_m) # minimum of maximum
-      # 
-      # indices_keep_1 <- which(between(data_pred$m1, min_trimming, max_trimming))
-      # indices_keep_2 <- which(between(data_pred$m2, min_trimming, max_trimming))
-      # indices_keep_3 <- which(between(data_pred$m3, min_trimming, max_trimming))
-      
+    
+      # indices
       indices_keep_1 <- which(between(data_pred$m1, df_select_trimming %>% filter(model == "m1") %>% pull(min_trimming), 
                                       df_select_trimming %>% filter(model == "m1") %>% pull(max_trimming)))
       indices_keep_2 <- which(between(data_pred$m2, df_select_trimming %>% filter(model == "m2") %>% pull(min_trimming), 
