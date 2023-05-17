@@ -264,13 +264,6 @@ for (mice_sel in 1:5) {
       mutate(MICE = mice_sel)
   )
   
-  # xgb_grades_boxplot <- rbind(
-  #   xgb_grades_boxplot,
-  #   xgb_grades[[mice_sel]]$detail %>%
-  #     dplyr::select(ML_algo, Type, Rep, Treatment_Effect) %>%
-  #     filter(Type %in% c("ATE", "ATTE")) %>%
-  #     mutate(MICE = mice_sel)
-  # )
 }
 
 xgb_grades_boxplot <- rbind(
@@ -307,6 +300,8 @@ dml_boxplot_binary <-
   facet_wrap(~ Type) + 
   theme_bw() +
   theme(
+    panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
     axis.text = element_text(size = 40), # size of x-axis tick labels
     axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 40), # rotate x-axis ticks
     axis.title = element_text(size = 40), #, face = "bold"), # size of x-axis labels
@@ -355,6 +350,8 @@ dml_boxplot_binary_personality <-
   facet_wrap(~ Type) + 
   theme_bw() +
   theme(
+    panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
     axis.text = element_text(size = 40), # size of x-axis tick labels
     axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 40), # rotate x-axis ticks
     axis.title = element_text(size = 40), #, face = "bold"), # size of x-axis labels
@@ -456,6 +453,8 @@ grades_boxplot_multi_all <-
              scales="free_y", switch = 'y') + 
   theme_bw() +
   theme(
+    panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
     axis.text = element_text(size = 36), # size of x-axis tick labels
     axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 36), # rotate x-axis ticks
     axis.title = element_text(size = 36), #, face = "bold"), # size of x-axis labels
@@ -513,6 +512,8 @@ postlasso_personality_boxplot_multi_all <-
              scales="free_y", switch = 'y') + 
   theme_bw() +
   theme(
+    panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
     axis.text = element_text(size = 36), # size of x-axis tick labels
     axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 36), # rotate x-axis ticks
     axis.title = element_text(size = 36), #, face = "bold"), # size of x-axis labels
