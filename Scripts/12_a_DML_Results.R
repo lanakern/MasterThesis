@@ -49,7 +49,7 @@ lasso_grades <-
 
 # MULTI
 lasso_grades_multi <- 
-  readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_lasso_all_controlssameoutcome_", treatment_def. 
+  readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_lasso_all_controlssameoutcome_", treatment_def,
                  "_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming",
                  model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
 
@@ -124,29 +124,22 @@ postlasso_neuro_multi <-
                  model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
 
 # Robustnesschecks regarding samples
-postlasso_grades_rc1_all <- 
-  readRDS(paste0("Output/DML/Estimation/Grades/binary_grades_", "postlasso", 
-                 "_all_controlssameoutcome_all_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming", 
+postlasso_grades_rc1_lvcf <- 
+  readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_", "postlasso", 
+                 "_all_controlssameoutcome_", treatment_def, 
+                 "_no_extradrop_all_notreatmentoutcomelags_endogyes_trimming", 
                  model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
 
-postlasso_grades_rc2_lvcf <- 
-  readRDS(paste0("Output/DML/Estimation/Grades/binary_grades_", "postlasso", 
-                 "_all_controlssameoutcome_weekly_no_extradrop_all_notreatmentoutcomelags_endogyes_trimming", 
+postlasso_grades_rc2_noextra <- 
+  readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_", "postlasso", 
+                 "_all_controlssameoutcome_", treatment_def, 
+                 "_down_all_notreatmentoutcomelags_endogyes_trimming", 
                  model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
 
-postlasso_grades_rc3_noextra_weekly <- 
-  readRDS(paste0("Output/DML/Estimation/Grades/binary_grades_", "postlasso", 
-                 "_all_controlssameoutcome_weekly_down_all_notreatmentoutcomelags_endogyes_trimming", 
-                 model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
-
-postlasso_grades_rc3_noextra_all <- 
-  readRDS(paste0("Output/DML/Estimation/Grades/binary_grades_", "postlasso", 
-                 "_all_controlssameoutcome_all_down_all_notreatmentoutcomelags_endogyes_trimming", 
-                 model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
-
-postlasso_grades_rc4_endog <- 
-  readRDS(paste0("Output/DML/Estimation/Grades/binary_grades_", "postlasso", 
-                 "_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogno_trimming", 
+postlasso_grades_rc3_endog <- 
+  readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_", "postlasso", 
+                 "_all_controlssameoutcome_", treatment_def, 
+                 "_down_extradrop_all_notreatmentoutcomelags_endogno_trimming", 
                  model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
 
 postlasso_grades_rc5_nocovbal <- 
@@ -191,7 +184,7 @@ xgb_grades <-
 # MULTI
 xgb_grades_multi <- 
   readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_", "xgboost", 
-                 "_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming",
+                 "_all_controlssameoutcome_", treatment_def, "_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming",
                  model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
 
 
@@ -208,7 +201,8 @@ rf_grades <-
 # MULTI
 rf_grades_multi <- 
   readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_", "randomforests", 
-                 "_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming",
+                 "_all_controlssameoutcome_", treatment_def, 
+                 "_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming",
                  model_trimming, "_K4-1_Rep5", cov_balance_save, ".rds"))
 
 
@@ -396,6 +390,7 @@ saveRDS(df_treatment_effects_main_multi_save, "Output/DML/Treatment_Effects/mult
 # plot to show how variable estimates are across MICE data sets and repetitions
 lasso_grades_boxplot_multi <- data.frame()
 postlasso_grades_boxplot_multi <- data.frame()
+rf_grades_boxplot_multi <- data.frame()
 for (mice_sel in 1:5) {
   lasso_grades_boxplot_multi <- rbind(
     lasso_grades_boxplot_multi,
@@ -412,9 +407,25 @@ for (mice_sel in 1:5) {
       dplyr::select(ML_algo, Treatment, Type, Rep, Treatment_Effect) %>%
       mutate(MICE = mice_sel)
   )
+  
+ rf_grades_boxplot_multi <- rbind(
+   rf_grades_boxplot_multi,
+    rf_grades_multi[[mice_sel]]$detail %>%
+      filter(Type %in% c("ATE", "ATTE")) %>%
+      dplyr::select(ML_algo, Treatment, Type, Rep, Treatment_Effect) %>%
+      mutate(MICE = mice_sel)
+  )
 }
 
+xgb_grades_boxplot_multi <- 
+  xgb_grades_multi[[1]]$detail %>%
+    filter(Type %in% c("ATE", "ATTE")) %>%
+    dplyr::select(ML_algo, Treatment, Type, Rep, Treatment_Effect) %>%
+    mutate(MICE = 1)
+
 df_multi_boxplot <- rbind(lasso_grades_boxplot_multi, postlasso_grades_boxplot_multi)
+df_multi_boxplot <- rbind(df_multi_boxplot, rf_grades_boxplot_multi)
+df_multi_boxplot <- rbind(df_multi_boxplot, xgb_grades_boxplot_multi)
 
 df_multi_boxplot <- df_multi_boxplot %>%
   mutate(
@@ -423,43 +434,38 @@ df_multi_boxplot <- df_multi_boxplot %>%
       ML_algo == "randomforests" ~ "RANDOM FORESTS",
       ML_algo == "xgboost" ~ "XGBOOST"
     )
-  )
+  ) %>%
+  mutate(
+    Treatment = case_when(
+      Treatment == "monthly_weekly" ~ "Weekly - Monthly", 
+      Treatment == "no_weekly" ~ "Weekly - Never",
+      Treatment == "no_monthly" ~ "Monthly - Never", TRUE ~ as.character(NA))
+  ) %>%
+  mutate(across(Treatment, factor, levels=c("Weekly - Monthly","Weekly - Never","Monthly - Never")))
 
-df_multi_boxplot_ate <- df_multi_boxplot %>% filter(Type == "ATE")
-dml_boxplot_ate_multi <- 
-  ggplot(df_multi_boxplot_ate, aes(x = ML_algo, y = Treatment_Effect)) +
-  geom_boxplot(fill = "grey") +
+grades_boxplot_multi_all <- 
+  ggplot(df_multi_boxplot, aes(x = ML_algo, y = Treatment_Effect)) +
+  geom_boxplot(fill = "grey", outlier.size = 5, linewidth = 0.8) +
+  stat_summary(fun.y=mean, geom = "point", shape = 15, size = 5, color = "darkblue",
+               position = position_dodge2(width = 0.75,   
+                                          preserve = "single")) +
   #xlab("\nMachine Learning Algorithms\n") +
-  xlab("") + ylab("Treatment Effect Estimates") + #ylab("\nTreatment Effect Estimates\n") +
-  facet_wrap(~ Treatment) + 
+  xlab("") + ylab("\nTreatment Effect Estimates\n") + 
+  ylim(-0.15, 0.25) +
+  facet_grid(rows = vars(Type), cols = vars(Treatment),
+             scales="free_y", switch = 'y') + 
   theme_bw() +
   theme(
-    axis.text = element_text(size = 26), # size of x-axis tick labels
-    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 26), # rotate x-axis ticks
-    axis.title = element_text(size = 26), #, face = "bold"), # size of x-axis labels
-    strip.text.x = element_text(size = 30) # size of facet text
+    axis.text = element_text(size = 36), # size of x-axis tick labels
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 36), # rotate x-axis ticks
+    axis.title = element_text(size = 36), #, face = "bold"), # size of x-axis labels
+    strip.text.x = element_text(size = 40), strip.text.y = element_text(size = 40) # size of facet text
   ) 
-dml_boxplot_ate_multi
-# ggsave("Output/DML/Treatment_Effects/plot_multi_main_ate_treatment_effects_variability.png",
-#        dml_boxplot_ate_multi)
+grades_boxplot_multi_all
+ggsave("Output/DML/Treatment_Effects/plot_multi_main_grades_treatment_effects_variability_all.png",
+       grades_boxplot_multi_all,
+       width = 20, height = 15, dpi = 300, units = "in", device = 'png')
 
-df_multi_boxplot_atte <- df_multi_boxplot %>% filter(Type == "ATTE")
-dml_boxplot_atte_multi <- 
-  ggplot(df_multi_boxplot_atte, aes(x = ML_algo, y = Treatment_Effect)) +
-  geom_boxplot(fill = "grey") +
-  #xlab("\nMachine Learning Algorithms\n") +
-  xlab("") + ylab("Treatment Effect Estimates") + #ylab("\nTreatment Effect Estimates\n") +
-  facet_wrap(~ Treatment) + 
-  theme_bw() +
-  theme(
-    axis.text = element_text(size = 26), # size of x-axis tick labels
-    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 26), # rotate x-axis ticks
-    axis.title = element_text(size = 26), #, face = "bold"), # size of x-axis labels
-    strip.text.x = element_text(size = 30) # size of facet text
-  ) 
-dml_boxplot_atte_multi
-# ggsave("Output/DML/Treatment_Effects/plot_multi_main_atte_treatment_effects_variability.png",
-#        dml_boxplot_atte_multi)
 
 
 # personality
@@ -488,11 +494,11 @@ postlasso_personality_boxplot_multi <- postlasso_personality_boxplot_multi %>%
   ) %>%
   mutate(
     Treatment = case_when(
-      Treatment == "monthly_weekly" ~ "Weekly vs. Monthly", 
-      Treatment == "no_weekly" ~ "Weekly vs. Never",
-      Treatment == "no_monthly" ~ "Monthly vs. Never", TRUE ~ as.character(NA))
+      Treatment == "monthly_weekly" ~ "Weekly - Monthly", 
+      Treatment == "no_weekly" ~ "Weekly - Never",
+      Treatment == "no_monthly" ~ "Monthly - Never", TRUE ~ as.character(NA))
   ) %>%
-  mutate(across(Treatment, factor, levels=c("Weekly vs. Monthly","Weekly vs. Never","Monthly vs. Never")))
+  mutate(across(Treatment, factor, levels=c("Weekly - Monthly","Weekly - Never","Monthly - Never")))
 
 postlasso_personality_boxplot_multi_all <- 
   ggplot(postlasso_personality_boxplot_multi, aes(x = Outcome, y = Treatment_Effect)) +
@@ -507,10 +513,10 @@ postlasso_personality_boxplot_multi_all <-
              scales="free_y", switch = 'y') + 
   theme_bw() +
   theme(
-    axis.text = element_text(size = 40), # size of x-axis tick labels
-    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 40), # rotate x-axis ticks
-    axis.title = element_text(size = 40), #, face = "bold"), # size of x-axis labels
-    strip.text.x = element_text(size = 45), strip.text.y = element_text(size = 45) # size of facet text
+    axis.text = element_text(size = 36), # size of x-axis tick labels
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 36), # rotate x-axis ticks
+    axis.title = element_text(size = 36), #, face = "bold"), # size of x-axis labels
+    strip.text.x = element_text(size = 40), strip.text.y = element_text(size = 40) # size of facet text
   ) 
 postlasso_personality_boxplot_multi_all
 ggsave("Output/DML/Treatment_Effects/plot_multi_main_personality_treatment_effects_variability_all.png",
@@ -518,54 +524,7 @@ ggsave("Output/DML/Treatment_Effects/plot_multi_main_personality_treatment_effec
        width = 20, height = 15, dpi = 300, units = "in", device = 'png')
 
 
-postlasso_personality_boxplot_ATE_multi <- postlasso_personality_boxplot_multi %>%
-  filter(Type == "ATE")
-postlasso_personality_boxplot_ATE_multi <- 
-  ggplot(postlasso_personality_boxplot_ATE_multi, aes(x = Outcome, y = Treatment_Effect)) +
-  geom_boxplot(fill = "grey", outlier.size = 5, linewidth = 0.8) +
-  stat_summary(fun.y=mean, geom = "point", shape = 15, size = 5, color = "darkblue",
-               position = position_dodge2(width = 0.75,   
-                                          preserve = "single")) +
-  #xlab("\nMachine Learning Algorithms\n") +
-  xlab("") + ylab("\nTreatment Effect Estimates\n") + 
-  ylim(-0.15, 0.25) +
-  facet_wrap(~ Treatment) + 
-  theme_bw() +
-  theme(
-    axis.text = element_text(size = 40), # size of x-axis tick labels
-    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 40), # rotate x-axis ticks
-    axis.title = element_text(size = 40), #, face = "bold"), # size of x-axis labels
-    strip.text.x = element_text(size = 45) # size of facet text
-  ) 
-postlasso_personality_boxplot_ATE_multi
-# ggsave("Output/DML/Treatment_Effects/plot_multi_main_personality_treatment_effects_variability_ate.png",
-#        postlasso_personality_boxplot_ATE_multi,
-#        width = 20, height = 15, dpi = 300, units = "in", device = 'png')
 
-
-postlasso_personality_boxplot_ATTE_multi <- postlasso_personality_boxplot_multi %>%
-  filter(Type == "ATE")
-postlasso_personality_boxplot_ATTE_multi <- 
-  ggplot(postlasso_personality_boxplot_ATTE_multi, aes(x = Outcome, y = Treatment_Effect)) +
-  geom_boxplot(fill = "grey", outlier.size = 5, linewidth = 0.8) +
-  stat_summary(fun.y=mean, geom = "point", shape = 15, size = 5, color = "darkblue",
-               position = position_dodge2(width = 0.75,   
-                                          preserve = "single")) +
-  #xlab("\nMachine Learning Algorithms\n") +
-  xlab("") + ylab("\nTreatment Effect Estimates\n") + 
-  ylim(-0.15, 0.25) +
-  facet_wrap(~ Treatment) + 
-  theme_bw() +
-  theme(
-    axis.text = element_text(size = 40), # size of x-axis tick labels
-    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 40), # rotate x-axis ticks
-    axis.title = element_text(size = 40), #, face = "bold"), # size of x-axis labels
-    strip.text.x = element_text(size = 45) # size of facet text
-  ) 
-postlasso_personality_boxplot_ATTE_multi
-# ggsave("Output/DML/Treatment_Effects/plot_multi_main_personality_treatment_effects_variability_atte.png",
-#        postlasso_personality_boxplot_ATTE_multi,
-#        width = 20, height = 15, dpi = 300, units = "in", device = 'png')
 
 
 #### Robustness Checks ####
@@ -612,22 +571,19 @@ saveRDS(df_treatment_effects_rc_trimming_binary, "Output/DML/Treatment_Effects/b
 
 ## MULTI ##
 
-# ADD:model_hyperparam_sel
 df_treatment_effects_rc_multi <- df_dml_main_multi %>% 
   mutate(sample = ifelse(
     cohort_prep == main_cohort_prep & treatment_def == main_treatment_def & 
       treatment_repl == main_treatment_repl & extra_act == main_extra_act & 
       model_type == main_model_type & model_k == main_model_k & model_s_rep == main_model_s_rep & 
-      model_trimming == main_model_trimming & model_controls_lag == main_model_controls_lag & 
+      model_k_tuning %in% c(1,2) & model_trimming == main_model_trimming & model_controls_lag == main_model_controls_lag & 
       model_controls_endog == main_model_controls_endog &  model_hyperparam_sel == "best" &
       model_covbal == "yes", "main", "rc"
   )) %>% 
   filter(Type %in% c("ATE", "ATTE"), sample == "rc", model_algo == "postlasso", 
          outcome == "grade") %>%
-  dplyr::select(cohort_prep, treatment_repl, extra_act,
-                model_controls_endog, model_covbal, model_trimming,
-                model_hyperparam_sel, Treatment, Type, theta_median, 
-                se_median, pvalue_median, time_stamp) 
+  dplyr::select(cohort_prep, treatment_repl, extra_act, starts_with("model"), Treatment, 
+                Type, theta_median, se_median, pvalue_median, time_stamp) 
 df_treatment_effects_rc_multi
 
 
@@ -818,19 +774,34 @@ df_ape_multi <- left_join(df_ape_multi, df_multi_se_monthly_weekly, by = "variab
 # as outcome vars are not replaced as they do not contain any missing values)
 data_stand_grades <- 
   readRDS(paste0("Data/Grades/Prep_10/prep_10_dml_binary_all_", treatment_def, "_down_extradrop", cov_balance_save, "_mice1.rds"))
-data_stand_grades <- data_stand_grades %>%
-  summarize(mean = mean(outcome_grade), sd = sd(outcome_grade)) 
+data_stand_grades <- cbind(data_stand_grades %>%
+  summarize(mean = mean(outcome_grade), sd = sd(outcome_grade)),
+  data_stand_grades %>% 
+    group_by(treatment_sport) %>% 
+    summarize(mean = mean(outcome_grade)) %>% 
+    spread(treatment_sport, mean) %>%
+    rename(mean_no = `0`, mean_yes = `1`))
 
 data_stand_pers <- readRDS(paste0("Data/Personality/Prep_10/prep_10_dml_binary_all_", treatment_def, "_down_extradrop",
                                   cov_balance_save, "_mice1_personality.rds"))
-data_stand_pers <- data_stand_pers %>%
+data_stand_pers <- cbind(data_stand_pers %>%
   summarize(agree_mean = mean(bigfive_agreeableness), agree_sd = sd(bigfive_agreeableness),
             consc_mean = mean(bigfive_conscientiousness), consc_sd = sd(bigfive_conscientiousness),
             extra_mean = mean(bigfive_extraversion), extra_sd = sd(bigfive_extraversion),
             open_mean = mean(bigfive_openness), open_sd = sd(bigfive_openness),
-            neuro_mean = mean(bigfive_neuroticism), neuro_sd = sd(bigfive_neuroticism)) 
-
-
+            neuro_mean = mean(bigfive_neuroticism), neuro_sd = sd(bigfive_neuroticism)), 
+  data_stand_pers %>% 
+    filter(treatment_sport == 0) %>% 
+    summarize(agree_mean_no = mean(bigfive_agreeableness), consc_mean_no = mean(bigfive_conscientiousness),
+              extra_mean_no = mean(bigfive_extraversion), open_mean_no = mean(bigfive_openness),
+              neuro_mean_no = mean(bigfive_neuroticism))) %>% 
+  cbind(
+    data_stand_pers %>% 
+      filter(treatment_sport == 1) %>% 
+      summarize(agree_mean_yes = mean(bigfive_agreeableness), consc_mean_yes = mean(bigfive_conscientiousness),
+                extra_mean_yes = mean(bigfive_extraversion), open_mean_yes = mean(bigfive_openness),
+                neuro_mean_yes = mean(bigfive_neuroticism))) 
+  
 
 #### BINARY TREATMENT SETTING ####
 #++++++++++++++++++++++++++++++++#
@@ -843,6 +814,7 @@ for (outcome_var_sel in c("grades", "agree", "consc", "extra", "neuro", "open"))
       print(load_pred_algo)
       if (exists(load_pred_algo) == FALSE) stop("Does not exist")
       
+      # load predictions
       ml_grades_pred <- data.frame()
       for (mice_sel in 1:length(get(load_pred_algo))) {
         ml_grades_pred_sub <- left_join(get(load_pred_algo)[[mice_sel]]$pred, 
@@ -852,7 +824,10 @@ for (outcome_var_sel in c("grades", "agree", "consc", "extra", "neuro", "open"))
         ml_grades_pred <- rbind(ml_grades_pred, ml_grades_pred_sub)
       }
       
+      # re-standardize outcomes
       if (outcome_var_sel == "grades") {
+        df_sd_mean <- data_stand_grades 
+        
         df_pred <- ml_grades_pred %>% 
           mutate(
             # standardized outcomes
@@ -867,6 +842,7 @@ for (outcome_var_sel in c("grades", "agree", "consc", "extra", "neuro", "open"))
         df_sd_mean <- data_stand_pers %>% 
           dplyr::select(starts_with(outcome_var_sel)) 
         colnames(df_sd_mean) <- sub(".*_", "", colnames(df_sd_mean))
+        df_sd_mean <- df_sd_mean %>% rename(mean_no = "no", mean_yes = "yes")
         
         # convert
         df_pred <- ml_grades_pred %>% 
@@ -880,21 +856,28 @@ for (outcome_var_sel in c("grades", "agree", "consc", "extra", "neuro", "open"))
           )
       }
       
+      # calculate error metrics
       df_error_sub <- func_ml_error_metrics("binary", df_pred, 1, 1, TRUE) %>%
         dplyr::select(-c(Repetition, Fold)) %>%
         mutate(outcome = outcome_var_sel, ml_algo = model_algo_sel) %>%
         dplyr::select(outcome, ml_algo, everything())
-      df_error_main_binary <- rbind(df_error_main_binary, df_error_sub)
       
+      # calculate RRMSE
+      df_error_sub <- df_error_sub %>%
+        mutate(RRMSE_g0 = (RMSE_g0 / df_sd_mean$mean_no)*100, 
+               RRMSE_g1 = (RMSE_g1 / df_sd_mean$mean_yes)*100) 
+      
+      # bind row
+      df_error_main_binary <- rbind(df_error_main_binary, df_error_sub)
       
     }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")}) # close tryCatch()
   } # close for loop model_algo_sel
 } # close for loop outcome_var_sel
 
-
-# calculate error metrics for paper
+# extract error metrics for paper
 df_error_main_binary <- df_error_main_binary %>%
-  dplyr::select(outcome, ml_algo, AUC_m, ACC_m, BACC_m, RMSE_g0, MAE_g0, RMSE_g1, MAE_g1)
+  dplyr::select(outcome, ml_algo, AUC_m, ACC_m, BACC_m, RMSE_g0, RRMSE_g0, MAE_g0, RMSE_g1, RRMSE_g1, MAE_g1)
+
 saveRDS(df_error_main_binary, "Output/DML/binary_main_error_metrics.rds")
 
 
@@ -917,6 +900,7 @@ for (outcome_var_sel in c("grades", "agree", "consc", "extra", "neuro", "open"))
       }
       
       if (outcome_var_sel == "grades") {
+        df_sd_mean <- data_stand_grades
         df_pred <- ml_grades_pred %>% 
           mutate(
             # standardized outcomes
@@ -948,6 +932,14 @@ for (outcome_var_sel in c("grades", "agree", "consc", "extra", "neuro", "open"))
         dplyr::select(-c(Repetition, Fold)) %>%
         mutate(outcome = outcome_var_sel, ml_algo = model_algo_sel) %>%
         dplyr::select(outcome, ml_algo, everything())
+      
+      
+      # calculate RRMSE
+      df_error_sub <- df_error_sub %>%
+        mutate(RRMSE_g0 = (RMSE_g0 / df_sd_mean$mean_no)*100, 
+               RRMSE_g1 = (RMSE_g1 / df_sd_mean$mean_yes)*100) 
+      
+      # bind row
       df_error_main_binary_bef_trimming <- rbind(df_error_main_binary_bef_trimming, df_error_sub)
       
       
@@ -957,9 +949,7 @@ for (outcome_var_sel in c("grades", "agree", "consc", "extra", "neuro", "open"))
 
 
 df_error_main_binary_bef_trimming <- df_error_main_binary_bef_trimming %>%
-  # rowwise() %>%
-  # mutate(RMSE_g = mean(c(RMSE_g0, RMSE_g1)), MAPE_g = mean(c(MAPE_g0, MAPE_g1))) %>%
-  dplyr::select(outcome, ml_algo, AUC_m, ACC_m, BACC_m, RMSE_g0, MAE_g0, RMSE_g1, MAE_g1)
+  dplyr::select(outcome, ml_algo, AUC_m, ACC_m, BACC_m, RMSE_g0, RRMSE_g0, MAE_g0, RMSE_g1, RRMSE_g1, MAE_g1)
 saveRDS(df_error_main_binary_bef_trimming, "Output/DML/binary_main_error_metrics_bef_trimming.rds")
 
 
@@ -1046,6 +1036,37 @@ saveRDS(df_error_main_binary_rc, "Output/DML/binary_rc_error_metrics.rds")
 #### MULTIVALUED TREATMENT SETTING ####
 #+++++++++++++++++++++++++++++++++++++#
 
+data_stand_grades_multi <- 
+  readRDS(paste0("Data/Grades/Prep_10/prep_10_dml_multi_all_", treatment_def, "_down_extradrop", cov_balance_save, "_mice1.rds"))
+data_stand_grades_multi <- cbind(data_stand_grades_multi %>% summarize(mean = mean(outcome_grade), sd = sd(outcome_grade)),
+                                 data_stand_grades_multi %>% 
+                                   group_by(treatment_sport_freq) %>% 
+                                   summarize(mean = mean(outcome_grade)) %>% 
+                                   spread(treatment_sport_freq, mean) %>%
+                                   rename(mean_weekly = `1`, mean_monthly = `2`, mean_never = `3`))
+
+data_stand_pers_multi <- readRDS(paste0("Data/Personality/Prep_10/prep_10_dml_multi_all_", treatment_def, "_down_extradrop",
+                                        cov_balance_save, "_mice1_personality.rds"))
+data_stand_pers_multi <- cbind(data_stand_pers_multi %>%
+                           summarize(agree_mean = mean(bigfive_agreeableness), agree_sd = sd(bigfive_agreeableness),
+                                     consc_mean = mean(bigfive_conscientiousness), consc_sd = sd(bigfive_conscientiousness),
+                                     extra_mean = mean(bigfive_extraversion), extra_sd = sd(bigfive_extraversion),
+                                     open_mean = mean(bigfive_openness), open_sd = sd(bigfive_openness),
+                                     neuro_mean = mean(bigfive_neuroticism), neuro_sd = sd(bigfive_neuroticism)), 
+                           data_stand_pers_multi %>% 
+                           filter(treatment_sport_freq == 1) %>% 
+                           summarize(agree_mean_weekly = mean(bigfive_agreeableness), consc_mean_weekly = mean(bigfive_conscientiousness),
+                                     extra_mean_weekly = mean(bigfive_extraversion), open_mean_weekly = mean(bigfive_openness),
+                                     neuro_mean_weekly = mean(bigfive_neuroticism))) %>% 
+  cbind(data_stand_pers_multi %>% filter(treatment_sport_freq == 2) %>% 
+          summarize(agree_mean_monthly = mean(bigfive_agreeableness), consc_mean_monthly = mean(bigfive_conscientiousness),
+                    extra_mean_monthly = mean(bigfive_extraversion), open_mean_monthly = mean(bigfive_openness),
+                    neuro_mean_monthly = mean(bigfive_neuroticism))) %>%
+  cbind(data_stand_pers_multi %>% filter(treatment_sport_freq == 3) %>% 
+          summarize(agree_mean_never = mean(bigfive_agreeableness), consc_mean_never = mean(bigfive_conscientiousness),
+                    extra_mean_never = mean(bigfive_extraversion), open_mean_never = mean(bigfive_openness),
+                    neuro_mean_never = mean(bigfive_neuroticism))) 
+
 df_error_main_multi <- data.frame()
 for (outcome_var_sel in c("grades", "agree", "consc", "extra", "neuro", "open")) {
   for (model_algo_sel in c("lasso", "postlasso", "rf", "xgb")) {
@@ -1055,7 +1076,7 @@ for (outcome_var_sel in c("grades", "agree", "consc", "extra", "neuro", "open"))
       if (exists(load_pred_algo) == FALSE) stop("Does not exist")
       
       ml_grades_pred <- data.frame()
-      for (mice_sel in 1:5) {
+      for (mice_sel in 1:length(get(load_pred_algo))) {
         ml_grades_pred_sub <- left_join(get(load_pred_algo)[[mice_sel]]$pred, 
                                         get(load_pred_algo)[[mice_sel]]$trimming, 
                                         by = "Repetition") %>%
@@ -1064,31 +1085,32 @@ for (outcome_var_sel in c("grades", "agree", "consc", "extra", "neuro", "open"))
       }
       
       if (outcome_var_sel == "grades") {
+        df_sd_mean_multi <- data_stand_grades_multi
         df_pred <- ml_grades_pred %>% 
           mutate(
             # standardized outcomes
             outcome_stand = outcome, g1_stand = g1,  g2_stand = g2,  g3_stand = g3,
             # original scale
-            outcome = outcome_stand*data_stand_grades$sd + data_stand_grades$mean,
-            g1 = g1_stand*data_stand_grades$sd + data_stand_grades$mean,
-            g2 = g2_stand*data_stand_grades$sd + data_stand_grades$mean,
-            g3 = g3_stand*data_stand_grades$sd + data_stand_grades$mean
+            outcome = outcome_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean,
+            g1 = g1_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean,
+            g2 = g2_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean,
+            g3 = g3_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean
           )
       } else {
-        data_stand_pers_sub <- data_stand_pers %>%
+        df_sd_mean_multi <- data_stand_pers_multi %>%
           dplyr::select(starts_with(outcome_var_sel)) 
-        colnames(data_stand_pers_sub) <- 
-          str_remove(colnames(data_stand_pers_sub), paste0(outcome_var_sel, "_"))
+        colnames(df_sd_mean_multi) <- 
+          str_remove(colnames(df_sd_mean_multi), paste0(outcome_var_sel, "_"))
         
         df_pred <- ml_grades_pred %>% 
           mutate(
             # standardized outcomes
             outcome_stand = outcome, g1_stand = g1,  g2_stand = g2,  g3_stand = g3,
             # original scale
-            outcome = outcome_stand*data_stand_pers_sub$sd + data_stand_pers_sub$mean,
-            g1 = g1_stand*data_stand_pers_sub$sd + data_stand_pers_sub$mean,
-            g2 = g2_stand*data_stand_pers_sub$sd + data_stand_pers_sub$mean,
-            g3 = g3_stand*data_stand_pers_sub$sd + data_stand_pers_sub$mean
+            outcome = outcome_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean,
+            g1 = g1_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean,
+            g2 = g2_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean,
+            g3 = g3_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean
           )
       }
       
@@ -1096,6 +1118,14 @@ for (outcome_var_sel in c("grades", "agree", "consc", "extra", "neuro", "open"))
         dplyr::select(-c(Repetition, Fold)) %>%
         mutate(outcome = outcome_var_sel, ml_algo = model_algo_sel) %>%
         dplyr::select(outcome, ml_algo, everything())
+      
+      # calculate RRMSE
+      df_error_sub <- df_error_sub %>%
+        mutate(RRMSE_g1 = (RMSE_g1 / df_sd_mean_multi$mean_weekly)*100, 
+               RRMSE_g2 = (RMSE_g2 / df_sd_mean_multi$mean_monthly)*100,
+               RRMSE_g3 = (RMSE_g3 / df_sd_mean_multi$mean_never)*100) 
+      
+      # bind row
       df_error_main_multi <- rbind(df_error_main_multi, df_error_sub)
       
       
@@ -1106,7 +1136,7 @@ for (outcome_var_sel in c("grades", "agree", "consc", "extra", "neuro", "open"))
 # calculate error metrics for paper
 df_error_main_multi <- df_error_main_multi %>%
   dplyr::select(outcome, ml_algo, starts_with("AUC"), starts_with("ACC"), starts_with("BACC"), 
-                starts_with("RMSE"), starts_with("MAE")) %>%
+                starts_with("RMSE"), starts_with("RRMSE"), starts_with("MAE")) %>%
   # rowwise() %>%
   # mutate(
   #   AUC_m = mean(c(AUC_m1, AUC_m2, AUC_m3)), ACC_m = mean(c(ACC_m1, ACC_m2, ACC_m3)), BACC_m = mean(c(BACC_m1, BACC_m2, BACC_m3)),
@@ -1423,7 +1453,102 @@ df_trimming_drop_main_multi <- df_dml_main_multi %>%
          n_treats_diff_perf = ((n_treats_before - n_treats_after) / n_treats_before)*100)
 
 
-saveRDS(df_trimming_drop_main_multi, "Output/DML/multi_main_trimming_obs.rds")
+# enforce other trimming thresholds
+df_trimming_drop_thresholds_multi <- data.frame()
+for (outcome_var_sel in c("grades", "agree", "consc", "extra", "neuro", "open")) {
+  for (model_algo_sel in c("lasso", "postlasso", "rf", "xgb")) {
+    load_pred_algo <- paste0(model_algo_sel, "_", outcome_var_sel, "_multi")
+    tryCatch({
+      print(load_pred_algo)
+      if (exists(load_pred_algo) == FALSE) stop("Does not exist")
+      
+      # extract predictions
+      for (mice_sel in 1:length(get(load_pred_algo))) { # iterate over MICE
+        ml_grades_pred_sub <- get(load_pred_algo)[[mice_sel]]$pred_bef_trimming %>% 
+          dplyr::select(Repetition, Fold, treatment, m1, m2, m3)
+        
+        # apply trimming thresholds: min-max and 0.01 and 0.1
+        for (rep_sel in 1:max(ml_grades_pred_sub$Repetition)) { # iterate over repetition
+          for (fold_sel in 1:max(ml_grades_pred_sub$Fold)) { # iterate over folds
+            # subset on repetition and fold
+            ml_grades_pred_sub_fold <- ml_grades_pred_sub %>% filter(Repetition == rep_sel, Fold == fold_sel)
+            # 0.01 trimming
+            indices_keep_1 <- which(between(ml_grades_pred_sub_fold$m1, 0.01, 0.99))
+            indices_keep_2 <- which(between(ml_grades_pred_sub_fold$m2, 0.01, 0.99))
+            indices_keep_3 <- which(between(ml_grades_pred_sub_fold$m3, 0.01, 0.99))
+            indices_keep_001 <- intersect(indices_keep_1, indices_keep_2)
+            indices_keep_001 <- intersect(indices_keep_001, indices_keep_3)
+            # 0.1 trimming
+            indices_keep_1 <- which(between(ml_grades_pred_sub_fold$m1, 0.1, 0.9))
+            indices_keep_2 <- which(between(ml_grades_pred_sub_fold$m2, 0.1, 0.9))
+            indices_keep_3 <- which(between(ml_grades_pred_sub_fold$m3, 0.1, 0.9))
+            indices_keep_01 <- intersect(indices_keep_1, indices_keep_2)
+            indices_keep_01 <- intersect(indices_keep_01, indices_keep_3)
+            # min-max trimming
+            df_select_trimming <- 
+              # m1
+              ml_grades_pred_sub_fold %>% 
+              mutate(treatment_1 = ifelse(treatment == 1, 1, 0)) %>%
+              group_by(treatment_1) %>% 
+              summarise(min_m = min(m1), max_m = max(m1)) %>%
+              summarise(min_trimming = max(min_m), max_trimming = min(max_m)) %>%
+              mutate(model = "m1") %>% rbind(
+                # m2
+                ml_grades_pred_sub_fold %>% 
+                  mutate(treatment_2 = ifelse(treatment == 2, 1, 0)) %>%
+                  group_by(treatment_2) %>% 
+                  summarise(min_m = min(m2), max_m = max(m2)) %>%
+                  summarise(min_trimming = max(min_m), max_trimming = min(max_m)) %>%
+                  mutate(model = "m2")
+              ) %>% rbind(
+                # m3
+                ml_grades_pred_sub_fold %>% 
+                  mutate(treatment_3 = ifelse(treatment == 3, 1, 0)) %>%
+                  group_by(treatment_3) %>% 
+                  summarise(min_m = min(m3), max_m = max(m3)) %>%
+                  summarise(min_trimming = max(min_m), max_trimming = min(max_m)) %>%
+                  mutate(model = "m3")
+              )
+            
+            indices_keep_1 <- which(between(ml_grades_pred_sub_fold$m1, df_select_trimming %>% filter(model == "m1") %>% pull(min_trimming), 
+                                            df_select_trimming %>% filter(model == "m1") %>% pull(max_trimming)))
+            indices_keep_2 <- which(between(ml_grades_pred_sub_fold$m2, df_select_trimming %>% filter(model == "m2") %>% pull(min_trimming), 
+                                            df_select_trimming %>% filter(model == "m2") %>% pull(max_trimming)))
+            indices_keep_3 <- which(between(ml_grades_pred_sub_fold$m3, df_select_trimming %>% filter(model == "m3") %>% pull(min_trimming), 
+                                            df_select_trimming %>% filter(model == "m3") %>% pull(max_trimming)))
+            indices_keep_minmax <- intersect(indices_keep_1, indices_keep_2)
+            indices_keep_minmax <- intersect(indices_keep_minmax, indices_keep_3)
+            
+            # enforce common support
+            ml_grades_pred_001 <- ml_grades_pred_sub_fold[indices_keep_001, ]
+            ml_grades_pred_01 <- ml_grades_pred_sub_fold[indices_keep_01, ]
+            ml_grades_pred_minmax <- ml_grades_pred_sub_fold[indices_keep_minmax, ]
+            
+            # calculate percentage of obs dropped
+            n_treats_diff_perf_001 <- ((nrow(ml_grades_pred_sub_fold) - nrow(ml_grades_pred_001)) / 
+                                         nrow(ml_grades_pred_sub_fold))*100
+            n_treats_diff_perf_01 <- ((nrow(ml_grades_pred_sub_fold) - nrow(ml_grades_pred_01)) / 
+                                        nrow(ml_grades_pred_sub_fold))*100
+            n_treats_diff_perf_minmax <- ((nrow(ml_grades_pred_sub_fold) - nrow(ml_grades_pred_minmax)) / 
+                                            nrow(ml_grades_pred_sub_fold))*100
+            
+            df_trimming_drop_thresholds_multi <- rbind(
+              df_trimming_drop_thresholds_multi,
+              data.frame("outcome" = outcome_var_sel, "model" = model_algo_sel,
+                         "MICE" = mice_sel, "Fold" = fold_sel, "Repetition" = rep_sel,
+                         "trimming_minmax_perc" = n_treats_diff_perf_minmax,
+                         "trimming_001_perc" = n_treats_diff_perf_001,
+                         "trimming_01_perc" = n_treats_diff_perf_01)
+            )
+          }
+        } # close iteration over rep_sel
+      } # close iteration over mice_sel
+    }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")}) # close tryCatch()
+  } # close for loop model_algo_sel
+} # close for loop outcome_var_sel
+df_trimming_drop_thresholds_multi <- df_trimming_drop_thresholds_multi %>%
+  group_by(outcome, model) %>% summarize_all(mean)
+
 
 
 #++++++++++++++++++++#
@@ -1490,7 +1615,7 @@ for (model_algo_sel in c("lasso", "postlasso", "rf", "xgb")) {
       binary_plot_common_support_sub <- func_dml_common_support(
         "binary", df_dml_pred_all_binary_sub, 
         unique(df_dml_pred_all_binary_sub$min_trimming), unique(df_dml_pred_all_binary_sub$max_trimming), 
-        "no", "no", model_algo_sel, dec_places_sel)
+        "no", "no", model_algo_sel, dec_places_sel, bar_border = NA)
       list_binary_plot_common_support[[outcome_var_sel]][[model_algo_sel]] <- binary_plot_common_support_sub
     
     }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
@@ -1501,28 +1626,43 @@ for (model_algo_sel in c("lasso", "postlasso", "rf", "xgb")) {
 
 # Grades
 binary_plot_common_support <- ggarrange(
-  list_binary_plot_common_support$grades$lasso + xlab("") + ggtitle("LASSO"), 
-  list_binary_plot_common_support$grades$postlasso + xlab("") + ylab("") + ggtitle("POST-LASSO"),
-  list_binary_plot_common_support$grades$rf + ggtitle("RANDOM FORESTS"), 
-  list_binary_plot_common_support$grades$xgb + ylab("") + ggtitle("XGBOOST"),
+  list_binary_plot_common_support$grades$lasso + xlab("") + ylim(0,4) + 
+    theme(axis.ticks.x = element_blank(), axis.text.x = element_blank()) + ggtitle("LASSO"), 
+  list_binary_plot_common_support$grades$postlasso + xlab("") + ylab("") + ylim(0,4) + 
+    theme(axis.ticks = element_blank(), axis.text = element_blank()) + ggtitle("POST-LASSO"),
+  list_binary_plot_common_support$grades$rf + ylim(0,4) + 
+    scale_x_continuous(breaks = c(0, 0.5, 1), labels = c("0", "0.5", "1")) + ggtitle("RANDOM FORESTS"), 
+  list_binary_plot_common_support$grades$xgb + ylab("") + ylim(0,4) + 
+    scale_x_continuous(breaks = c(0, 0.5, 1), labels = c("0", "0.5", "1")) + 
+    theme(axis.ticks.y = element_blank(), axis.text.y = element_blank()) + ggtitle("XGBOOST"),
   nrow = 2, ncol = 2, common.legend = T, legend = "bottom"
 ) 
 ggsave(paste0("Output/DML/Common_Support/dml_plot_common_support_binary_grades_allalgos_all.png"), 
        binary_plot_common_support,
-       width = 20, height = 15, dpi = 300, units = "in", device = 'png')
+       width = 15, height = 10, dpi = 300, units = "in", device = 'png')
 
 # Personality
 binary_plot_common_support_personality <- ggarrange(
-  list_binary_plot_common_support$agree$postlasso + xlab("") + xlim(0, 1) + ggtitle("Agreeableness"), 
-  list_binary_plot_common_support$consc$postlasso + xlab("") + xlim(0, 1) + ylab("") + ggtitle("Conscientiousness"),
-  list_binary_plot_common_support$extra$postlasso + xlab("") + ylab("") + xlim(0, 1) + ggtitle("Extroversion"), 
-  list_binary_plot_common_support$neuro$postlasso + xlim(0, 1) + ggtitle("Neuroticism"),
-  list_binary_plot_common_support$open$postlasso + ylab("") + xlim(0, 1) + ggtitle("Openness"),
-  nrow = 2, ncol = 3, common.legend = T, legend = "bottom"
+  list_binary_plot_common_support$agree$postlasso + 
+    xlab("") + scale_y_continuous(breaks = c(0, 1, 2)) + 
+    theme(axis.ticks.x = element_blank(), axis.text.x = element_blank()) + ggtitle("Agreeableness"), 
+  list_binary_plot_common_support$consc$postlasso + 
+    xlab("") + ylab("") +
+    theme(axis.ticks = element_blank(), axis.text = element_blank()) + ggtitle("Conscientiousness"),
+  list_binary_plot_common_support$extra$postlasso +
+    xlab("") + ylab("") +
+    theme(axis.ticks = element_blank(), axis.text = element_blank()) + ggtitle("Extroversion"), 
+  list_binary_plot_common_support$neuro$postlasso + 
+    scale_y_continuous(breaks = c(0, 1, 2)) + scale_x_continuous(breaks = c(0, 0.5, 1), labels = c("0", "0.5", "1"))  + ggtitle("Neuroticism"),
+  list_binary_plot_common_support$open$postlasso + 
+    ylab("") + theme(axis.ticks.y = element_blank(), axis.text.y = element_blank()) +
+    scale_y_continuous(breaks = c(0, 1, 2)) + scale_x_continuous(breaks = c(0, 0.5, 1), labels = c("0", "0.5", "1")) + ggtitle("Openness"),
+  nrow = 2, ncol = 3, common.legend = T, legend = "bottom",
+  widths = rep(1,5)
 ) 
 ggsave(paste0("Output/DML/Common_Support/dml_plot_common_support_binary_personality_postlasso_all.png"), 
        binary_plot_common_support_personality,
-       width = 20, height = 15, dpi = 300, units = "in", device = 'png')
+       width = 15, height = 10, dpi = 300, units = "in", device = 'png')
 
 
 # For MICE = 1, K = 1, S = 1
@@ -1580,7 +1720,7 @@ for (model_algo_sel in c("lasso", "postlasso", "rf", "xgb")) {
       binary_plot_common_support_sub <- func_dml_common_support(
         "binary", df_dml_pred_all_binary_sub, 
         unique(df_dml_pred_all_binary_sub$min_trimming), unique(df_dml_pred_all_binary_sub$max_trimming), 
-        "yes", "yes", model_algo_sel, dec_places_sel)
+        "yes", "yes", model_algo_sel, dec_places_sel, bar_border = NA)
       list_binary_plot_common_support_fold[[outcome_var_sel]][[model_algo_sel]] <- binary_plot_common_support_sub
       
     }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
@@ -1681,7 +1821,7 @@ for (model_algo_sel in c("lasso", "postlasso", "rf", "xgb")) {
         "multi", df_dml_pred_all_multi, 
         df_dml_trimming_all_multi %>% dplyr::select(model, min_trimming), 
         df_dml_trimming_all_multi %>% dplyr::select(model, max_trimming), 
-        "yes", model_algo_sel, 4)
+        "no", "no", model_algo_sel, 4, NA)
       list_multi_plot_common_support[[outcome_var_sel]][[model_algo_sel]] <- multi_plot_common_support_sub
       
     }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
@@ -1691,14 +1831,21 @@ for (model_algo_sel in c("lasso", "postlasso", "rf", "xgb")) {
 }
 
 
-ggarrange(
-  list_multi_plot_common_support$grades$lasso,
-  list_multi_plot_common_support$grades$postlasso,
-  list_multi_plot_common_support$grades$rf,
-  list_multi_plot_common_support$grades$xgb,
-  nrow = 1, common.legend = TRUE
+multi_plot <- ggarrange(
+  list_multi_plot_common_support$grades$postlasso$m1 + ylim(0,5) + xlim(0, 1.2) +
+    scale_x_continuous(breaks = c(0, 0.5, 1)) + ggtitle("Weekly Sport Participation"),
+  list_multi_plot_common_support$grades$postlasso$m2 + ylab("") + ylim(0,5) +
+    theme(axis.ticks.y = element_blank(), axis.text.y = element_blank()) +
+    scale_x_continuous(breaks = c(0, 0.5, 1)) + ggtitle("Monthly Sport Participation"),
+  list_multi_plot_common_support$grades$postlasso$m3 + ylab("") + ylim(0,5) +
+    theme(axis.ticks.y = element_blank(), axis.text.y = element_blank()) +
+    scale_x_continuous(breaks = c(0, 0.5, 1)) + ggtitle("No Sport Participation"),
+  nrow = 1, common.legend = TRUE, legend = "bottom"
 )
 
+ggsave(paste0("Output/DML/Common_Support/dml_plot_common_support_multi_grades_postlasso_all.png"), 
+       multi_plot,
+       width = 20, height = 15, dpi = 300, units = "in", device = 'png')
 
 
 #### Check Means ####
@@ -1833,8 +1980,8 @@ df_pred_bef_trimming %>% group_by(model_algo, outcome) %>%
 ## MULTI ##
 df_pred_bef_trimming_multi <- c()
 for (model_algo_sel in c("lasso", "postlasso", "xgb", "rf")) {
-  for (mice_sel in 1:5) {
-    get_algo <- get(paste0(model_algo_sel, "_grades_multi"))
+  get_algo <- get(paste0(model_algo_sel, "_grades_multi"))
+  for (mice_sel in 1:length(get_algo)) {
     df_pred_bef_trimming_multi <- rbind(
       df_pred_bef_trimming_multi,
       get_algo[[mice_sel]]$pred_bef_trimming %>% dplyr::select(m1, m2, m3) %>% mutate(model_algo = model_algo_sel, outcome = "GPA")
