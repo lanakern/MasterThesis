@@ -62,6 +62,13 @@ for (mice_data_sel in 1:5) {
     stop("Please specify correct outcome variable")
   }
   
+  if (model_type == "allpoly") {
+    model_type_2 <- model_type
+    model_type <- "allintpoly"
+  } else {
+    model_type_2 <- model_type
+  }
+  
   ## cohort prep
   if (cohort_prep == "controls_same_outcome") {
     load_data <- paste0(
@@ -78,8 +85,19 @@ for (mice_data_sel in 1:5) {
   }
 
   load_data <- str_replace(load_data, "_level", "") # drop level
+  data_dml <- readRDS(load_data) # load data
   
-  data_dml <- readRDS(load_data)
+  # keep only polynominals if selected by user
+  if (model_type == "allintpoly") {
+    if (model_type_2 == "allpoly") {
+      data_dml <- data_dml %>% dplyr::select(-contains(":")) # drop interactions
+    } else {
+      data_dml <- data_dml
+    }
+  } else {
+    data_dml <- data_dml
+  }
+  
   print(paste("Number of predictors:", ncol(data_dml)))
   
   # drop lags if desired by user
