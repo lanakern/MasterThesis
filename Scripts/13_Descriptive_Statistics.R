@@ -211,7 +211,7 @@ left_join(
                                             TRUE ~ treatment_sport_freq)) %>%
     group_by(treatment_sport_freq) %>% count(),
   by = "treatment_sport_freq"
-)
+) %>% as.data.frame()
 
 
 #### PERSONALITY ####
