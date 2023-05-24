@@ -148,27 +148,15 @@ postlasso_grades_rc5_nocovbal <-
                  model_trimming, "_K4-2_Rep5", ".rds"))
 
 
-# Robustnesschecks regarding trimming
-postlasso_grades_trimming001 <- 
-  readRDS(paste0("Output/DML/Estimation/Grades/binary_grades_", "postlasso", 
-                 "_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming", 
-                 "0.01", "_K4-2_Rep5", cov_balance_save, ".rds"))
-
-postlasso_grades_trimming01 <- 
-  readRDS(paste0("Output/DML/Estimation/Grades/binary_grades_", "postlasso", 
-                 "_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming", 
-                 "0.1", "_K4-2_Rep5", cov_balance_save, ".rds"))
-
-
 # Robustness checks regarding hyperparameters
 postlasso_grades_1SE <- 
   readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_", "postlasso", 
-                 "_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming", 
+                 "_all_controlssameoutcome_all_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming", 
                  model_trimming, "_K4-2_Rep5_1SE", cov_balance_save, ".rds"))
 
 postlasso_grades_1SEplus <- 
   readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_", "postlasso", 
-                 "_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming", 
+                 "_all_controlssameoutcome_all_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming", 
                  model_trimming, "_K4-2_Rep5_1SE_plus", cov_balance_save, ".rds"))
 
 
@@ -281,9 +269,9 @@ df_binary_boxplot <- rbind(df_binary_boxplot, xgb_grades_boxplot)
 df_binary_boxplot <- df_binary_boxplot %>%
   mutate(
     ML_algo = case_when(
-      ML_algo == "lasso" ~ "LASSO", ML_algo == "postlasso" ~ "POST-LASSO",
-      ML_algo == "randomforests" ~ "RANDOM FORESTS",
-      ML_algo == "xgboost" ~ "XGBOOST"
+      ML_algo == "lasso" ~ "LASSO", ML_algo == "postlasso" ~ "Post-LASSO",
+      ML_algo == "randomforests" ~ "Random forests",
+      ML_algo == "xgboost" ~ "XGBoost"
     ),
     Type = case_when(Type == "ATTE" ~ "ATET", TRUE ~ Type)
   )
@@ -427,9 +415,9 @@ df_multi_boxplot <- rbind(df_multi_boxplot, xgb_grades_boxplot_multi)
 df_multi_boxplot <- df_multi_boxplot %>%
   mutate(
     ML_algo = case_when(
-      ML_algo == "lasso" ~ "LASSO", ML_algo == "postlasso" ~ "POST-LASSO",
-      ML_algo == "randomforests" ~ "RANDOM FORESTS",
-      ML_algo == "xgboost" ~ "XGBOOST"
+      ML_algo == "lasso" ~ "LASSO", ML_algo == "postlasso" ~ "Post-LASSO",
+      ML_algo == "randomforests" ~ "Random forests",
+      ML_algo == "xgboost" ~ "XGBoost"
     )
   ) %>%
   mutate(
@@ -585,7 +573,91 @@ df_treatment_effects_rc_multi <- df_dml_main_multi %>%
          outcome == "grade") %>%
   dplyr::select(cohort_prep, treatment_repl, extra_act, starts_with("model"), Treatment, 
                 Type, theta_median, se_median, pvalue_median, time_stamp) 
-df_treatment_effects_rc_multi
+df_treatment_effects_rc_multi %>% 
+  arrange(desc(time_stamp)) %>%
+  dplyr::select(-c("cohort_prep", "model_algo", "model_trimming", "time_stamp"))
+
+
+#### Variability Around Zero ####
+#+++++++++++++++++++++++++++++++#
+
+# this is only relevant for personality sample
+
+## BINARY ##
+df_variability_pers_binary <- data.frame()
+for (outcome_var_sel in c("agree", "neuro", "consc", "extra", "open")) {
+  model_sel <- get(paste0("postlasso_",outcome_var_sel))
+  ate_yes_no <- c()
+  atte_yes_no <- c()
+  for (mice_sel in 1:5) {
+    ate_yes_no <- c(
+      ate_yes_no, 
+      model_sel[[mice_sel]]$detail %>% filter(Type == "ATE") %>% pull(Treatment_Effect)
+    )
+    
+    atte_yes_no <- c(
+      atte_yes_no, 
+      model_sel[[mice_sel]]$detail %>% filter(Type == "ATTE") %>% pull(Treatment_Effect)
+    )
+  } # close iteration over mice_sel
+  df_variability_pers_binary <- rbind(
+    df_variability_pers_binary, 
+    data.frame(outcome = outcome_var_sel, 
+               "ATE" = any(ate_yes_no > 0) & any(ate_yes_no < 0),
+               "ATET" = any(atte_yes_no > 0) & any(atte_yes_no < 0)
+    )
+  )
+} # close iteration over outcome_sel
+
+## MULTI ##
+df_variability_pers_multi <- data.frame()
+for (outcome_var_sel in c("agree", "neuro", "consc", "extra", "open")) {
+  model_sel <- get(paste0("postlasso_",outcome_var_sel, "_multi"))
+  ate_monthly_weekly <- c()
+  ate_no_weekly <- c()
+  ate_no_monthly <- c()
+  atte_monthly_weekly <- c()
+  atte_no_weekly <- c()
+  atte_no_monthly <- c()
+  for (mice_sel in 1:5) {
+    ate_monthly_weekly <- c(
+      ate_monthly_weekly, 
+      model_sel[[mice_sel]]$detail %>% filter(Type == "ATE") %>% filter(Treatment == "monthly_weekly") %>% pull(Treatment_Effect)
+    )
+    ate_no_weekly <- c(
+      ate_no_weekly,
+      model_sel[[mice_sel]]$detail %>% filter(Type == "ATE") %>% filter(Treatment == "no_weekly") %>% pull(Treatment_Effect)
+    )
+    ate_no_monthly <- c(
+      ate_no_monthly,
+      model_sel[[mice_sel]]$detail %>% filter(Type == "ATE") %>% filter(Treatment == "no_monthly") %>% pull(Treatment_Effect)
+    )
+    
+    atte_monthly_weekly <- c(
+      atte_monthly_weekly, 
+      model_sel[[mice_sel]]$detail %>% filter(Type == "ATTE") %>% filter(Treatment == "monthly_weekly") %>% pull(Treatment_Effect)
+    )
+    atte_no_weekly <- c(
+      atte_no_weekly, 
+      model_sel[[mice_sel]]$detail %>% filter(Type == "ATTE") %>% filter(Treatment == "no_weekly") %>% pull(Treatment_Effect)
+    )
+    atte_no_monthly <- c(
+      atte_no_monthly,
+      model_sel[[mice_sel]]$detail %>% filter(Type == "ATTE") %>% filter(Treatment == "no_monthly") %>% pull(Treatment_Effect)
+    )
+  } # close iteration over mice_sel
+  df_variability_pers_multi <- rbind(
+    df_variability_pers_multi, 
+    data.frame(outcome = outcome_var_sel, 
+               "ate_monthly_weekly" = any(ate_monthly_weekly > 0) & any(ate_monthly_weekly < 0),
+               "ate_no_weekly" = any(ate_no_weekly > 0) & any(ate_no_weekly < 0),
+               "ate_no_monthly" = any(ate_no_monthly > 0) & any(ate_no_monthly < 0),
+               "atte_monthly_weekly" = any(atte_monthly_weekly > 0) & any(atte_monthly_weekly < 0),
+               "atte_no_weekly" = any(atte_no_weekly > 0) & any(atte_no_weekly < 0),
+               "atte_no_monthly" = any(atte_no_monthly > 0) & any(atte_no_monthly < 0)
+    )
+  )
+} # close iteration over outcome_sel
 
 
 #%%%%%%%%%%%%%%%%#
@@ -2072,11 +2144,144 @@ for (outcome_var_sel in c("grades", "agree", "extra", "consc", "open", "neuro"))
 } # close for loop over outcome_var_sel
 
 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### RC: SENSITIVITY WRT EXTRACURRICULAR ACTIVITY ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+# error metrics and trimming (not reported in paper, only written)
+df_dml_main_multi %>% 
+  mutate(sample = ifelse(
+    cohort_prep == main_cohort_prep & treatment_def == main_treatment_def & 
+      treatment_repl == main_treatment_repl & extra_act == main_extra_act & 
+      model_type == main_model_type & model_k == main_model_k & model_s_rep == main_model_s_rep & 
+      model_trimming == main_model_trimming & model_controls_lag == main_model_controls_lag & 
+      model_controls_endog == main_model_controls_endog &  model_hyperparam_sel == "best" &
+      model_covbal == "yes", "main", "rc")) %>% 
+  filter(Type %in% c("ATE", "ATTE"), sample == "rc", model_algo == "postlasso", 
+         outcome == "grade", extra_act == "no") %>%
+  dplyr::select(model_hyperparam_sel, num_predictors_m1, starts_with("ACC"),  starts_with("BACC"), starts_with("AUC"),
+                starts_with("RMSE"), starts_with("MAPE"), starts_with("n_treats")) %>%
+  distinct() %>%
+  group_by(model_hyperparam_sel) %>%
+  mutate(ACC = mean(c(ACC_m1, ACC_m2, ACC_m3)), BACC = mean(c(BACC_m1, BACC_m2, BACC_m3)),
+         AUC = mean(c(AUC_m1, AUC_m2, AUC_m3)), RMSE = mean(c(RMSE_g1, RMSE_g2, RMSE_g3)), 
+         MAPE = mean(c(MAPE_g1, MAPE_g2, MAPE_g3))) %>%
+  mutate(n_treats_diff = n_treats_before - n_treats_after, 
+         n_treats_diff_perf = ((n_treats_before - n_treats_after) / n_treats_before)*100) %>% 
+  dplyr::select(model_hyperparam_sel, n_treats_diff_perf, num_predictors_m1, starts_with("ACC"), 
+                starts_with("BACC"), starts_with("AUC"), starts_with("RMSE")) %>%
+  as.data.frame()
+
+
+# error metrics with unstandardized outcome
+ml_grades_pred <- data.frame()
+for (mice_sel in 1:length(postlasso_grades_rc2_noextra )) {
+  ml_grades_pred_sub <- left_join(postlasso_grades_rc2_noextra[[mice_sel]]$pred, 
+                                  postlasso_grades_rc2_noextra[[mice_sel]]$trimming, 
+                                  by = "Repetition") %>%
+    mutate(MICE = mice_sel)
+  ml_grades_pred <- rbind(ml_grades_pred, ml_grades_pred_sub)
+}
+
+
+df_pred <- ml_grades_pred %>% 
+  mutate(
+    # standardized outcomes
+    outcome_stand = outcome, g1_stand = g1,  g2_stand = g2,  g3_stand = g3,
+    # original scale
+    outcome = outcome_stand*data_stand_grades_multi$sd + data_stand_grades_multi$mean,
+    g1 = g1_stand*data_stand_grades_multi$sd + data_stand_grades_multi$mean,
+    g2 = g2_stand*data_stand_grades_multi$sd + data_stand_grades_multi$mean,
+    g3 = g3_stand*data_stand_grades_multi$sd + data_stand_grades_multi$mean
+  )
+
+
+df_error_sub <- func_ml_error_metrics("multi", df_pred, 1, 1, TRUE) %>%
+  dplyr::select(-c(Repetition, Fold))
+
+df_error <- df_error_sub %>%
+  mutate(RRMSE_g1 = (RMSE_g1 / data_stand_grades_multi$mean_weekly)*100, 
+         RRMSE_g2 = (RMSE_g2 / data_stand_grades_multi$mean_monthly)*100,
+         RRMSE_g3 = (RMSE_g3 / data_stand_grades_multi$mean_never)*100) 
+
+df_error %>%
+  dplyr::select(starts_with("AUC"), starts_with("ACC"), starts_with("BACC"), 
+                starts_with("RMSE"), starts_with("RRMSE"), starts_with("MAE")) %>%
+  as.data.frame()
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### RC: SENSITIVITY WRT ENDOGENOUS VARIABLES ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+# error metrics and trimming (not reported in paper, only written)
+df_dml_main_multi %>% 
+  mutate(sample = ifelse(
+    cohort_prep == main_cohort_prep & treatment_def == main_treatment_def & 
+      treatment_repl == main_treatment_repl & extra_act == main_extra_act & 
+      model_type == main_model_type & model_k == main_model_k & model_s_rep == main_model_s_rep & 
+      model_trimming == main_model_trimming & model_controls_lag == main_model_controls_lag & 
+      model_controls_endog == main_model_controls_endog &  model_hyperparam_sel == "best" &
+      model_covbal == "yes", "main", "rc")) %>% 
+  filter(Type %in% c("ATE", "ATTE"), sample == "rc", model_algo == "postlasso", 
+         outcome == "grade", model_controls_endog == "no") %>%
+  dplyr::select(model_hyperparam_sel, num_predictors_m1, starts_with("ACC"),  starts_with("BACC"), starts_with("AUC"),
+                starts_with("RMSE"), starts_with("MAPE"), starts_with("n_treats")) %>%
+  distinct() %>%
+  group_by(model_hyperparam_sel) %>%
+  mutate(ACC = mean(c(ACC_m1, ACC_m2, ACC_m3)), BACC = mean(c(BACC_m1, BACC_m2, BACC_m3)),
+         AUC = mean(c(AUC_m1, AUC_m2, AUC_m3)), RMSE = mean(c(RMSE_g1, RMSE_g2, RMSE_g3)), 
+         MAPE = mean(c(MAPE_g1, MAPE_g2, MAPE_g3))) %>%
+  mutate(n_treats_diff = n_treats_before - n_treats_after, 
+         n_treats_diff_perf = ((n_treats_before - n_treats_after) / n_treats_before)*100) %>% 
+  dplyr::select(model_hyperparam_sel, n_treats_diff_perf, num_predictors_m1, starts_with("ACC"), 
+                starts_with("BACC"), starts_with("AUC"), starts_with("RMSE")) %>%
+  as.data.frame()
+
+
+# error metrics with unstandardized outcome
+ml_grades_pred <- data.frame()
+for (mice_sel in 1:length(postlasso_grades_rc3_endog)) {
+  ml_grades_pred_sub <- left_join(postlasso_grades_rc3_endog[[mice_sel]]$pred, 
+                                  postlasso_grades_rc3_endog[[mice_sel]]$trimming, 
+                                  by = "Repetition") %>%
+    mutate(MICE = mice_sel)
+  ml_grades_pred <- rbind(ml_grades_pred, ml_grades_pred_sub)
+}
+      
+
+df_pred <- ml_grades_pred %>% 
+  mutate(
+    # standardized outcomes
+    outcome_stand = outcome, g1_stand = g1,  g2_stand = g2,  g3_stand = g3,
+    # original scale
+    outcome = outcome_stand*data_stand_grades_multi$sd + data_stand_grades_multi$mean,
+    g1 = g1_stand*data_stand_grades_multi$sd + data_stand_grades_multi$mean,
+    g2 = g2_stand*data_stand_grades_multi$sd + data_stand_grades_multi$mean,
+    g3 = g3_stand*data_stand_grades_multi$sd + data_stand_grades_multi$mean
+    )
+  
+
+df_error_sub <- func_ml_error_metrics("multi", df_pred, 1, 1, TRUE) %>%
+  dplyr::select(-c(Repetition, Fold))
+      
+# calculate RRMSE
+df_error <- df_error_sub %>%
+  mutate(RRMSE_g1 = (RMSE_g1 / data_stand_grades_multi$mean_weekly)*100, 
+         RRMSE_g2 = (RMSE_g2 / data_stand_grades_multi$mean_monthly)*100,
+         RRMSE_g3 = (RMSE_g3 / data_stand_grades_multi$mean_never)*100) 
+
+df_error %>%
+  dplyr::select(starts_with("AUC"), starts_with("ACC"), starts_with("BACC"), 
+                starts_with("RMSE"), starts_with("RRMSE"), starts_with("MAE")) %>%
+  as.data.frame()
+
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 #### RC: SENSITIVITY WRT HYPERPARAMETER CHOICES ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-# error metrics and trimming (noz reported in paper, only written)
+# error metrics and trimming (not reported in paper, only written)
 df_dml_main_multi %>% 
   mutate(sample = ifelse(
     cohort_prep == main_cohort_prep & treatment_def == main_treatment_def & 
@@ -2096,7 +2301,347 @@ df_dml_main_multi %>%
          MAPE = mean(c(MAPE_g1, MAPE_g2, MAPE_g3))) %>%
   mutate(n_treats_diff = n_treats_before - n_treats_after, 
          n_treats_diff_perf = ((n_treats_before - n_treats_after) / n_treats_before)*100) %>% 
-  dplyr::select(model_hyperparam_sel, n_treats_diff_perf, num_predictors_m1, ACC, BACC, AUC, RMSE, MAPE)
+  dplyr::select(model_hyperparam_sel, n_treats_diff_perf, num_predictors_m1, starts_with("ACC"), 
+                starts_with("BACC"), starts_with("AUC"), starts_with("RMSE")) %>%
+  as.data.frame()
+
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### RC: SENSITIVITY WRT TRIMMING THRESHOLDS ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+# enforce other trimming thresholds to assess the sensitivity of the treatment
+# effect estimates wrt to the trimming thresholds
+
+## BINARY ##
+df_effects_trimming_binary <- data.frame()
+for (outcome_var_sel in c("grades", "agree", "consc", "extra", "neuro", "open")) {
+  for (model_algo_sel in c("lasso", "postlasso", "rf", "xgb")) {
+    load_pred_algo <- paste0(model_algo_sel, "_", outcome_var_sel)
+    tryCatch({
+      print(load_pred_algo)
+      if (exists(load_pred_algo) == FALSE) stop("Does not exist")
+      
+      # extract predictions
+      for (mice_sel in 1:length(get(load_pred_algo))) { # iterate over MICE
+        ml_grades_pred_sub <- get(load_pred_algo)[[mice_sel]]$pred_bef_trimming %>% 
+          dplyr::select(Repetition, Fold, outcome, treatment, m, g1, g0) %>%
+          rename(outcome_grade = outcome, treatment_sport = treatment) %>%
+          mutate(treatment_sport = as.numeric(as.character(treatment_sport)))
+        
+        # apply trimming thresholds: min-max and 0.01 and 0.1
+        for (rep_sel in 1:max(ml_grades_pred_sub$Repetition)) { # iterate over repetition
+          # generate vectors to save results
+          theta_ATE_no_all <- c()
+          score_ATE_no_all <- c()
+          theta_ATTE_no_all <- c()
+          score_ATTE_no_all <- c()
+          theta_ATE_001_all <- c()
+          score_ATE_001_all <- c()
+          theta_ATTE_001_all <- c()
+          score_ATTE_001_all <- c()
+          theta_ATE_01_all <- c()
+          score_ATE_01_all <- c()
+          theta_ATTE_01_all <- c()
+          score_ATTE_01_all <- c()
+          theta_ATE_minmax_all <- c()
+          score_ATE_minmax_all <- c()
+          theta_ATTE_minmax_all <- c()
+          score_ATTE_minmax_all <- c()
+          for (fold_sel in 1:max(ml_grades_pred_sub$Fold)) { # iterate over folds
+            # subset on repetition and fold
+            ml_grades_pred_sub_fold <- ml_grades_pred_sub %>% filter(Repetition == rep_sel, Fold == fold_sel)
+            # 0.01 trimming
+            indices_keep_001 <- which(between(ml_grades_pred_sub_fold$m, 0.01, 0.99))
+            # 0.1 trimming
+            indices_keep_01 <- which(between(ml_grades_pred_sub_fold$m, 0.1, 0.9))
+            # min-max trimming
+            df_minmax_trimming <- ml_grades_pred_sub_fold %>% group_by(treatment_sport) %>% 
+              summarise(min_m = min(m), max_m = max(m))
+            indices_kepp_minmax <- which(
+              between(ml_grades_pred_sub_fold$m, max(df_minmax_trimming$min_m), min(df_minmax_trimming$max_m))
+            )
+            
+            # enforce common support
+            data_pred_no <- ml_grades_pred_sub_fold
+            data_pred_001 <- ml_grades_pred_sub_fold[indices_keep_001, ]
+            data_pred_01 <- ml_grades_pred_sub_fold[indices_keep_01, ]
+            data_pred_minmax <- ml_grades_pred_sub_fold[indices_kepp_minmax, ]
+            
+            # calculate treatment effects
+            ls_treatment_effects_no <- func_dml_theta_score("binary", data_pred_no, data_pred_no, "outcome_grade", "treatment_sport")
+            ls_treatment_effects_001 <- func_dml_theta_score("binary", data_pred_001, data_pred_001, "outcome_grade", "treatment_sport")
+            ls_treatment_effects_01 <- func_dml_theta_score("binary", data_pred_01, data_pred_01, "outcome_grade", "treatment_sport")
+            ls_treatment_effects_minmax <- func_dml_theta_score("binary", data_pred_minmax, data_pred_minmax, "outcome_grade", "treatment_sport")
+            
+            # store them in vector for inference
+            theta_ATE_no <- ls_treatment_effects_no$theta_ATE
+            theta_ATE_no_all <- c(theta_ATE_no_all, theta_ATE_no)
+            score_ATE_no <- ls_treatment_effects_no$score_ATE
+            score_ATE_no_all <- c(score_ATE_no_all, score_ATE_no)
+            theta_ATTE_no <- ls_treatment_effects_no$theta_ATTE
+            theta_ATTE_no_all <- c(theta_ATTE_no_all, theta_ATTE_no)
+            score_ATTE_no <- ls_treatment_effects_no$score_ATTE
+            score_ATTE_no_all <- c(score_ATTE_no_all, score_ATTE_no)
+            
+            theta_ATE_001 <- ls_treatment_effects_001$theta_ATE
+            theta_ATE_001_all <- c(theta_ATE_001_all, theta_ATE_001)
+            score_ATE_001 <- ls_treatment_effects_001$score_ATE
+            score_ATE_001_all <- c(score_ATE_001_all, score_ATE_001)
+            theta_ATTE_001 <- ls_treatment_effects_001$theta_ATTE
+            theta_ATTE_001_all <- c(theta_ATTE_001_all, theta_ATTE_001)
+            score_ATTE_001 <- ls_treatment_effects_001$score_ATTE
+            score_ATTE_001_all <- c(score_ATTE_001_all, score_ATTE_001)
+            
+            theta_ATE_01 <- ls_treatment_effects_01$theta_ATE
+            theta_ATE_01_all <- c(theta_ATE_01_all, theta_ATE_01)
+            score_ATE_01 <- ls_treatment_effects_01$score_ATE
+            score_ATE_01_all <- c(score_ATE_01_all, score_ATE_01)
+            theta_ATTE_01 <- ls_treatment_effects_01$theta_ATTE
+            theta_ATTE_01_all <- c(theta_ATTE_01_all, theta_ATTE_01)
+            score_ATTE_01 <- ls_treatment_effects_01$score_ATTE
+            score_ATTE_01_all <- c(score_ATTE_01_all, score_ATTE_01)
+            
+            theta_ATE_minmax <- ls_treatment_effects_minmax$theta_ATE
+            theta_ATE_minmax_all <- c(theta_ATE_minmax_all, theta_ATE_minmax)
+            score_ATE_minmax <- ls_treatment_effects_minmax$score_ATE
+            score_ATE_minmax_all <- c(score_ATE_minmax_all, score_ATE_minmax)
+            theta_ATTE_minmax <- ls_treatment_effects_minmax$theta_ATTE
+            theta_ATTE_minmax_all <- c(theta_ATTE_minmax_all, theta_ATTE_minmax)
+            score_ATTE_minmax <- ls_treatment_effects_minmax$score_ATTE
+            score_ATTE_minmax_all <- c(score_ATTE_minmax_all, score_ATTE_minmax)
+
+          }
+          
+          # inference
+          df_result_ATE_no <- func_dml_inference("binary", "ATE", theta_ATE_no_all, score_ATE_no_all, length(score_ATE_no_all), rep_sel) %>%
+            mutate(trimming = "no")
+          df_result_ATTE_no <- func_dml_inference("binary", "ATTE", theta_ATTE_no_all, score_ATTE_no_all, length(score_ATTE_no_all), rep_sel) %>%
+            mutate(trimming = "no")
+          
+          df_result_ATE_001 <- func_dml_inference("binary", "ATE", theta_ATE_001_all, score_ATE_001_all, length(score_ATE_001_all), rep_sel) %>%
+            mutate(trimming = "001")
+          df_result_ATTE_001 <- func_dml_inference("binary", "ATTE", theta_ATTE_001_all, score_ATTE_001_all, length(score_ATTE_001_all), rep_sel) %>%
+            mutate(trimming = "001")
+          
+          df_result_ATE_01 <- func_dml_inference("binary", "ATE", theta_ATE_01_all, score_ATE_01_all, length(score_ATE_01_all), rep_sel) %>%
+            mutate(trimming = "01")
+          df_result_ATTE_01 <- func_dml_inference("binary", "ATTE", theta_ATTE_01_all, score_ATTE_01_all, length(score_ATTE_01_all), rep_sel) %>%
+            mutate(trimming = "01")
+          
+          df_result_ATE_minmax <- func_dml_inference("binary", "ATE", theta_ATE_minmax_all, score_ATE_minmax_all, length(score_ATE_minmax_all), rep_sel) %>%
+            mutate(trimming = "minmax")
+          df_result_ATTE_minmax <- func_dml_inference("binary", "ATTE", theta_ATTE_minmax_all, score_ATTE_minmax_all, length(score_ATTE_minmax_all), rep_sel) %>%
+            mutate(trimming = "minmax")
+          
+          # store in data frame
+          df_effects_trimming_binary <- rbind(
+            df_effects_trimming_binary,
+            rbind(df_result_ATE_no, df_result_ATTE_no, df_result_ATE_minmax, df_result_ATTE_minmax,
+                  df_result_ATE_001, df_result_ATTE_001, df_result_ATE_01, df_result_ATTE_01) %>%
+              mutate(outcome = outcome_var_sel, mlalgo = model_algo_sel, MICE = mice_sel)
+          )
+          
+        } # close iteration over rep_sel
+      } # close iteration over mice_sel
+    }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")}) # close tryCatch()
+  } # close for loop model_algo_sel
+} # close for loop outcome_var_sel
+
+df_effects_trimming_binary <- df_effects_trimming_binary %>%
+  group_by(outcome, mlalgo, trimming, Treatment, Type) %>% 
+  summarize_all(median) %>%
+  dplyr::select(-Rep, MICE) %>%
+  as.data.frame()
+
+saveRDS(df_effects_trimming_binary, "Output/DML/Treatment_Effects/dml_binary_treatment_effects_rc_trimming.rds")
+
+
+## MULTI ##
+df_effects_trimming_multi <- data.frame()
+for (outcome_var_sel in c("grades", "agree", "consc", "extra", "neuro", "open")) {
+  for (model_algo_sel in c("lasso", "postlasso", "rf", "xgb")) {
+    load_pred_algo <- paste0(model_algo_sel, "_", outcome_var_sel, "_multi")
+    tryCatch({
+      print(load_pred_algo)
+      if (exists(load_pred_algo) == FALSE) stop("Does not exist")
+      
+      # extract predictions
+      for (mice_sel in 1:length(get(load_pred_algo))) { # iterate over MICE
+        ml_grades_pred_sub <- get(load_pred_algo)[[mice_sel]]$pred_bef_trimming %>% 
+          dplyr::select(Repetition, Fold, treatment, outcome, m1, m2, m3, g1, g2, g3) %>%
+          mutate(
+            treatment = as.numeric(as.character(treatment)),
+            treatment_sport_freq_weekly_atleast = ifelse(treatment == 1, 1, 0),
+            treatment_sport_freq_monthly_less = ifelse(treatment == 2, 1, 0),
+            treatment_sport_freq_never = ifelse(treatment == 3, 1, 0)
+          ) %>% rename(
+            outcome_grade = outcome, treatment_sport_freq = treatment
+          )
+        
+        # apply trimming thresholds: min-max and 0.01 and 0.1
+        for (rep_sel in 1:max(ml_grades_pred_sub$Repetition)) { # iterate over repetition
+          # generate vectors to save results
+          theta_ATE_no_all <- c()
+          score_ATE_no_all <- c()
+          theta_ATTE_no_all <- c()
+          score_ATTE_no_all <- c()
+          theta_ATE_001_all <- c()
+          score_ATE_001_all <- c()
+          theta_ATTE_001_all <- c()
+          score_ATTE_001_all <- c()
+          theta_ATE_01_all <- c()
+          score_ATE_01_all <- c()
+          theta_ATTE_01_all <- c()
+          score_ATTE_01_all <- c()
+          theta_ATE_minmax_all <- c()
+          score_ATE_minmax_all <- c()
+          theta_ATTE_minmax_all <- c()
+          score_ATTE_minmax_all <- c()
+          for (fold_sel in 1:max(ml_grades_pred_sub$Fold)) { # iterate over folds
+            # subset on repetition and fold
+            ml_grades_pred_sub_fold <- ml_grades_pred_sub %>% filter(Repetition == rep_sel, Fold == fold_sel)
+            # 0.01 trimming
+            indices_keep_1 <- which(between(ml_grades_pred_sub_fold$m1, 0.01, 0.99))
+            indices_keep_2 <- which(between(ml_grades_pred_sub_fold$m2, 0.01, 0.99))
+            indices_keep_3 <- which(between(ml_grades_pred_sub_fold$m3, 0.01, 0.99))
+            indices_keep_001 <- intersect(indices_keep_1, indices_keep_2)
+            indices_keep_001 <- intersect(indices_keep_001, indices_keep_3)
+            # 0.1 trimming
+            indices_keep_1 <- which(between(ml_grades_pred_sub_fold$m1, 0.1, 0.9))
+            indices_keep_2 <- which(between(ml_grades_pred_sub_fold$m2, 0.1, 0.9))
+            indices_keep_3 <- which(between(ml_grades_pred_sub_fold$m3, 0.1, 0.9))
+            indices_keep_01 <- intersect(indices_keep_1, indices_keep_2)
+            indices_keep_01 <- intersect(indices_keep_01, indices_keep_3)
+            # min-max trimming
+            df_select_trimming <- 
+              # m1
+              ml_grades_pred_sub_fold %>% 
+              mutate(treatment_1 = ifelse(treatment_sport_freq == 1, 1, 0)) %>%
+              group_by(treatment_1) %>% 
+              summarise(min_m = min(m1), max_m = max(m1)) %>%
+              summarise(min_trimming = max(min_m), max_trimming = min(max_m)) %>%
+              mutate(model = "m1") %>% rbind(
+                # m2
+                ml_grades_pred_sub_fold %>% 
+                  mutate(treatment_2 = ifelse(treatment_sport_freq == 2, 1, 0)) %>%
+                  group_by(treatment_2) %>% 
+                  summarise(min_m = min(m2), max_m = max(m2)) %>%
+                  summarise(min_trimming = max(min_m), max_trimming = min(max_m)) %>%
+                  mutate(model = "m2")
+              ) %>% rbind(
+                # m3
+                ml_grades_pred_sub_fold %>% 
+                  mutate(treatment_3 = ifelse(treatment_sport_freq == 3, 1, 0)) %>%
+                  group_by(treatment_3) %>% 
+                  summarise(min_m = min(m3), max_m = max(m3)) %>%
+                  summarise(min_trimming = max(min_m), max_trimming = min(max_m)) %>%
+                  mutate(model = "m3")
+              )
+            
+            indices_keep_1 <- which(between(ml_grades_pred_sub_fold$m1, df_select_trimming %>% filter(model == "m1") %>% pull(min_trimming), 
+                                            df_select_trimming %>% filter(model == "m1") %>% pull(max_trimming)))
+            indices_keep_2 <- which(between(ml_grades_pred_sub_fold$m2, df_select_trimming %>% filter(model == "m2") %>% pull(min_trimming), 
+                                            df_select_trimming %>% filter(model == "m2") %>% pull(max_trimming)))
+            indices_keep_3 <- which(between(ml_grades_pred_sub_fold$m3, df_select_trimming %>% filter(model == "m3") %>% pull(min_trimming), 
+                                            df_select_trimming %>% filter(model == "m3") %>% pull(max_trimming)))
+            indices_keep_minmax <- intersect(indices_keep_1, indices_keep_2)
+            indices_keep_minmax <- intersect(indices_keep_minmax, indices_keep_3)
+            
+            # enforce common support
+            data_prep_no <- ml_grades_pred_sub_fold
+            data_pred_001 <- ml_grades_pred_sub_fold[indices_keep_001, ] 
+            data_pred_01 <- ml_grades_pred_sub_fold[indices_keep_01, ]
+            data_pred_minmax <- ml_grades_pred_sub_fold[indices_keep_minmax, ]
+            
+            # calculate treatment effects
+            ls_treatment_effects_no <- func_dml_theta_score("multi", data_prep_no, data_prep_no, "outcome_grade", "treatment_sport_freq")
+            ls_treatment_effects_001 <- func_dml_theta_score("multi", data_pred_001, data_pred_001, "outcome_grade", "treatment_sport_freq")
+            ls_treatment_effects_01 <- func_dml_theta_score("multi", data_pred_01, data_pred_01, "outcome_grade", "treatment_sport_freq")
+            ls_treatment_effects_minmax <- func_dml_theta_score("multi", data_pred_minmax, data_pred_minmax, "outcome_grade", "treatment_sport_freq")
+            
+            # store them in vector for inference
+            theta_ATE_no <- ls_treatment_effects_no$theta_ATE
+            theta_ATE_no_all <- rbind(theta_ATE_no_all, theta_ATE_no)
+            score_ATE_no <- ls_treatment_effects_no$score_ATE
+            score_ATE_no_all <- rbind(score_ATE_no_all, score_ATE_no)
+            theta_ATTE_no <- ls_treatment_effects_no$theta_ATTE
+            theta_ATTE_no_all <- rbind(theta_ATTE_no_all, theta_ATTE_no)
+            score_ATTE_no <- ls_treatment_effects_no$score_ATTE
+            score_ATTE_no_all <- rbind(score_ATTE_no_all, score_ATTE_no)
+            
+            theta_ATE_001 <- ls_treatment_effects_001$theta_ATE
+            theta_ATE_001_all <- rbind(theta_ATE_001_all, theta_ATE_001)
+            score_ATE_001 <- ls_treatment_effects_001$score_ATE
+            score_ATE_001_all <- rbind(score_ATE_001_all, score_ATE_001)
+            theta_ATTE_001 <- ls_treatment_effects_001$theta_ATTE
+            theta_ATTE_001_all <- rbind(theta_ATTE_001_all, theta_ATTE_001)
+            score_ATTE_001 <- ls_treatment_effects_001$score_ATTE
+            score_ATTE_001_all <- rbind(score_ATTE_001_all, score_ATTE_001)
+            
+            theta_ATE_01 <- ls_treatment_effects_01$theta_ATE
+            theta_ATE_01_all <- rbind(theta_ATE_01_all, theta_ATE_01)
+            score_ATE_01 <- ls_treatment_effects_01$score_ATE
+            score_ATE_01_all <- rbind(score_ATE_01_all, score_ATE_01)
+            theta_ATTE_01 <- ls_treatment_effects_01$theta_ATTE
+            theta_ATTE_01_all <- rbind(theta_ATTE_01_all, theta_ATTE_01)
+            score_ATTE_01 <- ls_treatment_effects_01$score_ATTE
+            score_ATTE_01_all <- rbind(score_ATTE_01_all, score_ATTE_01)
+            
+            theta_ATE_minmax <- ls_treatment_effects_minmax$theta_ATE
+            theta_ATE_minmax_all <- rbind(theta_ATE_minmax_all, theta_ATE_minmax)
+            score_ATE_minmax <- ls_treatment_effects_minmax$score_ATE
+            score_ATE_minmax_all <- rbind(score_ATE_minmax_all, score_ATE_minmax)
+            theta_ATTE_minmax <- ls_treatment_effects_minmax$theta_ATTE
+            theta_ATTE_minmax_all <- rbind(theta_ATTE_minmax_all, theta_ATTE_minmax)
+            score_ATTE_minmax <- ls_treatment_effects_minmax$score_ATTE
+            score_ATTE_minmax_all <- rbind(score_ATTE_minmax_all, score_ATTE_minmax)
+            
+          } # close iteration over fold_sel
+          
+          # inference
+          df_result_ATE_no <- func_dml_inference("multi", "ATE", theta_ATE_no_all, score_ATE_no_all, nrow(score_ATE_no_all), rep_sel) %>%
+            mutate(trimming = "no")
+          df_result_ATTE_no <- func_dml_inference("multi", "ATTE", theta_ATTE_no_all, score_ATTE_no_all, nrow(score_ATTE_no_all), rep_sel) %>%
+            mutate(trimming = "no")
+          
+          df_result_ATE_001 <- func_dml_inference("multi", "ATE", theta_ATE_001_all, score_ATE_001_all, nrow(score_ATE_001_all), rep_sel) %>%
+            mutate(trimming = "001")
+          df_result_ATTE_001 <- func_dml_inference("multi", "ATTE", theta_ATTE_001_all, score_ATTE_001_all, nrow(score_ATTE_001_all), rep_sel) %>%
+            mutate(trimming = "001")
+          
+          df_result_ATE_01 <- func_dml_inference("multi", "ATE", theta_ATE_01_all, score_ATE_01_all, nrow(score_ATE_01_all), rep_sel) %>%
+            mutate(trimming = "01")
+          df_result_ATTE_01 <- func_dml_inference("multi", "ATTE", theta_ATTE_01_all, score_ATTE_01_all, nrow(score_ATTE_01_all), rep_sel) %>%
+            mutate(trimming = "01")
+          
+          df_result_ATE_minmax <- func_dml_inference("multi", "ATE", theta_ATE_minmax_all, score_ATE_minmax_all, nrow(score_ATE_minmax_all), rep_sel) %>%
+            mutate(trimming = "minmax")
+          df_result_ATTE_minmax <- func_dml_inference("multi", "ATTE", theta_ATTE_minmax_all, score_ATTE_minmax_all, nrow(score_ATTE_minmax_all), rep_sel) %>%
+            mutate(trimming = "minmax")
+          
+          # store in data frame
+          df_effects_trimming_multi <- rbind(
+            df_effects_trimming_multi,
+            rbind(df_result_ATE_no, df_result_ATTE_no, df_result_ATE_minmax, df_result_ATTE_minmax,
+                  df_result_ATE_001, df_result_ATTE_001, df_result_ATE_01, df_result_ATTE_01) %>%
+              mutate(outcome = outcome_var_sel, mlalgo = model_algo_sel, MICE = mice_sel)
+            )
+          
+        } # close iteration over rep_sel
+      } # close iteration over mice_sel
+    }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")}) # close tryCatch()
+  } # close for loop model_algo_sel
+} # close for loop outcome_var_sel
+df_effects_trimming_multi <- df_effects_trimming_multi %>%
+  group_by(outcome, mlalgo, trimming, Treatment, Type) %>% 
+  summarize_all(median) %>%
+  dplyr::select(-MICE) %>%
+  as.data.frame()
+
+saveRDS(df_effects_trimming_multi, "Output/DML/Treatment_Effects/dml_multi_treatment_effects_rc_trimming.rds")
+
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
