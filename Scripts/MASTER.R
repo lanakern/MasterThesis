@@ -268,7 +268,6 @@ treatment_setting <- "binary"
 
 outcome_var <- "outcome_grade"
 
-
 #### MAIN MODEL ####
 #++++++++++++++++++#
 
@@ -286,120 +285,65 @@ cov_balance <- main_cov_balance
 
 # for lasso and xgboost higher K as they are computationally faster
 model_k <- 4 
-model_k_tuning <- 2 # 4
-model_s_rep <- 5 # 10
+model_k_tuning <- 2 
+model_s_rep <- 5 
 
 ## LASSO ##
 model_algo <- "lasso"
 source("Scripts/11_a_DML_Binary.R") 
 eval(parse(text = keep_after_file_run))
+gc()
+
+## POST-LASSO ##
+model_algo <- "postlasso"
+model_post_sel <- TRUE
+source("Scripts/11_a_DML_Binary.R")
+eval(parse(text = keep_after_file_run))
+gc()
+model_post_sel <- FALSE
 
 ## XGBoost ##
 model_algo <- "xgboost"
 source("Scripts/11_a_DML_Binary.R") 
 eval(parse(text = keep_after_file_run))
+gc()
 
 ## RANDOM FORESTS ##
-
 # for random forests smaller K and no parameter tuning as it is computationally expensive
 model_k_tuning <- 1 # 1
 model_algo <- "randomforests"
 source("Scripts/11_a_DML_Binary.R") 
-
-
-## POST-LASSO ##
+eval(parse(text = keep_after_file_run))
+gc()
 model_k_tuning <- 2 # parameter tuning
-model_algo <- "postlasso"
-model_post_sel <- TRUE
-source("Scripts/11_a_DML_Binary.R") 
-model_post_sel <- FALSE
 
 
 
 #### ROBUSTNESS CHECKS ####
 #+++++++++++++++++++++++++#
 
-cohort_prep <- main_cohort_prep # "controls_bef_outcome"
-treatment_repl <- main_treatment_repl # "no"
-treatment_def <- main_treatment_def # "all"
+cohort_prep <- main_cohort_prep 
+treatment_repl <- main_treatment_repl 
+treatment_def <- main_treatment_def 
 extra_act <- main_extra_act
-model_type <- main_model_type # "all_int_polys"
-model_controls_lag <- main_model_controls_lag # "no_lags", "all"
-model_controls_endog <- main_model_controls_endog # "no"
-model_trimming <- main_model_trimming # 0.1, min-max
+model_type <- main_model_type 
+model_controls_lag <- main_model_controls_lag 
+model_controls_endog <- main_model_controls_endog 
+model_trimming <- main_model_trimming
 model_hyperparam_sel <- "best"
-model_post_sel <- TRUE # post-lasso
+model_post_sel <- TRUE 
 cov_balance <- main_cov_balance
 model_k <- 4 
 model_k_tuning <- 2
 model_s_rep <- 5 
 model_algo <- "postlasso"
 
-### Robustness Checks wrt Data Preparation ###
-#++++++++++++++++++++++++++++++++++++++++++++#
-
-## RC 1: All sport participants ##
-treatment_def <- "all"
-source("Scripts/11_a_DML_Binary.R") 
-treatment_def <- main_treatment_def
-
-## RC 2: No LVCF ##
-treatment_repl <- "no"
-source("Scripts/11_a_DML_Binary.R") 
-treatment_repl <- main_treatment_repl
-
-## RC 3: No extracurricular activity ##
-extra_act <- "no"
-source("Scripts/11_a_DML_Binary.R") 
-
-treatment_def <- "all" # because "weekly" may be non-significant due to the small sample size
-source("Scripts/11_a_DML_Binary.R") 
-
-extra_act <- main_extra_act
-treatment_def <- main_extra_act
-
-## RC 4: No potentially endogeneous variables ##
+## No endogeneous variables ##
 model_controls_endog <- "no"
-source("Scripts/11_a_DML_Binary.R") 
+source("Scripts/11_a_DML_Binary.R")
+eval(parse(text = keep_after_file_run))
+gc()
 model_controls_endog <- main_model_controls_endog
-
-## RC 5: No covariate balance drop ##
-cov_balance <- "no"
-source("Scripts/11_a_DML_Binary.R") 
-cov_balance <- main_cov_balance
-
-## RC 6: cohort_prep_before ##
-cov_balance <- "controls_bef_outcome"
-source("Scripts/11_a_DML_Binary.R") 
-cohort_prep <- main_cohort_prep 
-
-## RC 7: Include polynominals and interaction terms ##
-
-## RC 8: Include treatment and outcome lags ##
-
-## RC 9: Include no lags at all ##
-
-## RC 10: Change trimming thresholds ##
-
-## RC 11: Change K and S ##
-# combis 5,5,10
-model_k <- 5 
-model_k_tuning <- 5 # 4
-model_s_rep <- 10 # 10
-source("Scripts/11_a_DML_Binary.R") 
-
-### Robustness Checks wrt Trimming Thresholds ###
-#+++++++++++++++++++++++++++++++++++++++++++++++#
-
-# range: [0.01,0.99]
-model_trimming <- 0.01
-source("Scripts/11_a_DML_Binary.R")
-
-# range: [0.10,0.90]
-model_trimming <- 0.11
-source("Scripts/11_a_DML_Binary.R")
-
-model_trimming <- main_model_trimming
 
 
 #%%%%%%%%%%%%%%%%%%%%%%#####%#
@@ -434,9 +378,9 @@ outcome_var <- "outcome_bigfive_agreeableness"
 model_algo <- "postlasso"
 model_post_sel <- TRUE
 source("Scripts/11_a_DML_Binary.R") 
-
-model_algo <- "xgboost"
-
+eval(parse(text = keep_after_file_run))
+gc()
+model_post_sel <- FALSE
 
 ####  Extroversion ####
 #+++++++++++++++++++++#
@@ -446,7 +390,11 @@ outcome_var <- "outcome_bigfive_extraversion"
 model_algo <- "postlasso"
 model_post_sel <- TRUE
 source("Scripts/11_a_DML_Binary.R") 
+eval(parse(text = keep_after_file_run))
+gc()
+model_post_sel <- FALSE
 
+model_algo <- "xgboost" # run only for MICE_sel = 1 in "11_a_DML_Binary.R"
 
 ####  Openness ####
 #+++++++++++++++++#
@@ -468,6 +416,8 @@ outcome_var <- "outcome_bigfive_conscientiousness"
 model_algo <- "postlasso"
 model_post_sel <- TRUE
 source("Scripts/11_a_DML_Binary.R") 
+eval(parse(text = keep_after_file_run))
+gc()
 
 
 #### Neuroticism ####
@@ -499,14 +449,14 @@ outcome_var_multi <- "outcome_grade"
 ## MAIN MODEL ##
 #++++++++++++++#
 
-cohort_prep <- main_cohort_prep # "controls_bef_outcome"
-treatment_repl <- main_treatment_repl # "no"
-treatment_def <- main_treatment_def # "all"
-extra_act <- main_extra_act # "no"
-model_type <- main_model_type # "all_int_polys"
-model_controls_lag <- main_model_controls_lag # "no_lags", "all"
-model_controls_endog <- main_model_controls_endog # "no"
-model_trimming <- main_model_trimming # 0.1, min-max
+cohort_prep <- main_cohort_prep 
+treatment_repl <- main_treatment_repl 
+treatment_def <- main_treatment_def 
+extra_act <- main_extra_act 
+model_type <- main_model_type 
+model_controls_lag <- main_model_controls_lag 
+model_controls_endog <- main_model_controls_endog 
+model_trimming <- main_model_trimming 
 model_post_sel <- FALSE
 probscore_separate <- TRUE
 hyperparam_sel <- "best"
@@ -515,17 +465,28 @@ cov_balance  <- main_cov_balance
 
 # for lasso and xgboost higher K as they are computationally faster
 model_k <- 4 
-model_k_tuning <- 2 # 4
-model_s_rep <- 5 # 10
+model_k_tuning <- 2 
+model_s_rep <- 5 
 
 ## LASSO ##
 multi_model_algo <- "lasso"
 source("Scripts/11_b_DML_Multi.R") 
+eval(parse(text = keep_after_file_run))
+gc()
+
+## Post-Lasso ##
+model_post_sel <- TRUE 
+multi_model_algo <- "postlasso"
+source("Scripts/11_b_DML_Multi.R") 
+eval(parse(text = keep_after_file_run))
+gc()
+model_post_sel <- FALSE
 
 ## XGBoost ##
 multi_model_algo <- "xgboost"
 source("Scripts/11_b_DML_Multi.R") 
-
+eval(parse(text = keep_after_file_run))
+gc()
 
 ## Random Forests ##
 model_k <- 4 
@@ -533,29 +494,148 @@ model_k_tuning <- 1
 model_s_rep <- 5 
 multi_model_algo <- "randomforests"
 source("Scripts/11_b_DML_Multi.R") 
+eval(parse(text = keep_after_file_run))
+gc()
+model_k_tuning <- 2 
 
 
-## Post-Lasso ##
-model_k_tuning <- 2 # 2
-model_post_sel <- TRUE 
+#### ROBUSTNESS CHECKS ####
+#+++++++++++++++++++++++++#
+
 multi_model_algo <- "postlasso"
-source("Scripts/11_b_DML_Multi.R") 
-model_post_sel <- FALSE
+model_post_sel <- TRUE
 
+## No LVCF ##
+treatment_repl <- "no"
+source("Scripts/11_b_DML_Multi.R") 
+eval(parse(text = keep_after_file_run))
+gc()
+treatment_repl <- main_treatment_repl
+
+## No extracurricular activity ##
+extra_act <- "no"
+source("Scripts/11_b_DML_Multi.R") 
+eval(parse(text = keep_after_file_run))
+gc()
+extra_act <- main_extra_act
+
+## No potentially endogeneous variables ##
+model_controls_endog <- "no"
+source("Scripts/11_b_DML_Multi.R") 
+eval(parse(text = keep_after_file_run))
+gc()
+model_controls_endog <- main_model_controls_endog
+
+## Leisure Sport ##
+cov_balance <- "no"
+source("Scripts/11_b_DML_Multi.R")
+eval(parse(text = keep_after_file_run))
+gc()
+cov_balance <- main_cov_balance
+
+## controls_bef_outcome ##
+cohort_prep <- "controls_bef_outcome"
+source("Scripts/11_b_DML_Multi.R") 
+eval(parse(text = keep_after_file_run))
+gc()
+cohort_prep <- main_cohort_prep 
+
+## Include polynominals ##
+model_type <- "allpoly" 
+source("Scripts/11_b_DML_Multi.R")
+eval(parse(text = keep_after_file_run))
+gc()
+model_type <- main_model_type 
+
+## Include treatment and outcome lags ##
+model_controls_lag <- "all"
+source("Scripts/11_b_DML_Multi.R") 
+eval(parse(text = keep_after_file_run))
+gc()
+model_controls_lag <- main_model_controls_lag
+
+## Change trimming thresholds ##
+model_trimming <- 0.01
+source("Scripts/11_b_DML_Multi.R") 
+eval(parse(text = keep_after_file_run))
+gc()
+
+model_trimming <- 0.1
+source("Scripts/11_b_DML_Multi.R") 
+eval(parse(text = keep_after_file_run))
+gc()
+
+model_trimming <- "no"
+source("Scripts/11_b_DML_Multi.R") 
+eval(parse(text = keep_after_file_run))
+gc()
+model_trimming <- main_model_trimming
+
+## Change K and S ##
+# combis: (4, 10, 5), (4,2,10), (5, 2, 5). (5, 10, 20)
+model_k <- 4 
+model_k_tuning <- 10
+model_s_rep <- 5
+source("Scripts/11_b_DML_Multi.R") 
+eval(parse(text = keep_after_file_run))
+gc()
+
+model_k <- 4 
+model_k_tuning <- 2
+model_s_rep <- 10
+source("Scripts/11_b_DML_Multi.R") 
+eval(parse(text = keep_after_file_run))
+gc()
+
+model_k <- 5 
+model_k_tuning <- 2
+model_s_rep <- 5
+source("Scripts/11_b_DML_Multi.R")
+eval(parse(text = keep_after_file_run))
+gc()
+
+model_k <- 5 
+model_k_tuning <- 10
+model_s_rep <- 20
+source("Scripts/11_b_DML_Multi.R")
+eval(parse(text = keep_after_file_run))
+gc()
+
+# reset
+model_k <- 4 
+model_k_tuning <- 2 
+model_s_rep <- 5 
+
+## HYPERPARAMETERS ##
+hyperparam_sel <- "1SE"
+model_hyperparam_sel <- "1SE"
+source("Scripts/11_b_DML_Multi.R") 
+eval(parse(text = keep_after_file_run))
+gc()
+
+hyperparam_sel <- "1SE_plus"
+model_hyperparam_sel <- "1SE_plus"
+source("Scripts/11_b_DML_Multi.R") 
+eval(parse(text = keep_after_file_run))
+gc()
+
+# reset
+model_hyperparam_sel <- model_hyperparam_sel
+hyperparam_sel <- model_hyperparam_sel
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 #### Outome: Personality ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-cohort_prep <- main_cohort_prep # "controls_bef_outcome"
-treatment_repl <- main_treatment_repl # "no"
-treatment_def <- main_treatment_def # "all"
-extra_act <- main_extra_act # "no"
-model_type <- main_model_type # "all_int_polys"
-model_controls_lag <- main_model_controls_lag # "no_lags", "all"
-model_controls_endog <- main_model_controls_endog # "no"
-model_trimming <- main_model_trimming # 0.1, min-max
+cohort_prep <- main_cohort_prep 
+treatment_repl <- main_treatment_repl
+treatment_def <- main_treatment_def 
+extra_act <- main_extra_act
+model_type <- main_model_type 
+model_controls_lag <- main_model_controls_lag 
+model_controls_endog <- main_model_controls_endog 
+model_trimming <- main_model_trimming 
 model_post_sel <- FALSE
 probscore_separate <- TRUE
 hyperparam_sel <- "best"
@@ -564,8 +644,8 @@ cov_balance  <- main_cov_balance
 
 # for lasso and xgboost higher K as they are computationally faster
 model_k <- 4 
-model_k_tuning <- 2 # 4
-model_s_rep <- 5 # 10
+model_k_tuning <- 2 
+model_s_rep <- 5 
 
 
 #### Agreeableness ####
@@ -585,13 +665,15 @@ source("Scripts/11_b_DML_Multi.R")
 gc()
 eval(parse(text = keep_after_file_run))
 
-#### Extraversion ####
+#### Extroversion ####
 outcome_var_multi <- "outcome_bigfive_extraversion"
 multi_model_algo <- "postlasso"
 model_post_sel <- TRUE
 source("Scripts/11_b_DML_Multi.R") 
 gc()
 eval(parse(text = keep_after_file_run))
+
+multi_model_algo <- "xgboost" # run only for MICE = 1
 
 #### Openness ####
 outcome_var_multi <- "outcome_bigfive_openness"
@@ -608,72 +690,6 @@ model_post_sel <- TRUE
 source("Scripts/11_b_DML_Multi.R") 
 gc()
 eval(parse(text = keep_after_file_run))
-
-
-#### ROBUSTNESS CHECKS ####
-#+++++++++++++++++++++++++#
-
-multi_model_algo <- "postlasso"
-model_post_sel <- TRUE
-
-### Robustness Checks wrt Data Preparation ###
-#++++++++++++++++++++++++++++++++++++++++++++#
-
-## RC 1: No LVCF ##
-treatment_repl <- "no"
-source("Scripts/11_b_DML_Multi.R") 
-treatment_repl <- main_treatment_repl
-
-## RC 2: No extracurricular activity ##
-extra_act <- "no"
-source("Scripts/11_b_DML_Multi.R") 
-extra_act <- main_extra_act
-
-## RC 3: No potentially endogeneous variables ##
-model_controls_endog <- "no"
-source("Scripts/11_b_DML_Multi.R") 
-model_controls_endog <- main_model_controls_endog
-
-## RC 4: No covariate balance drop ##
-cov_balance <- "no"
-source("Scripts/11_b_DML_Multi.R") 
-cov_balance <- main_cov_balance
-
-## RC 5: cohort_prep_before ##
-cohort_prep <- "controls_bef_outcome"
-source("Scripts/11_b_DML_Multi.R") 
-cohort_prep <- main_cohort_prep 
-
-## RC 7: Include polynominals and interaction terms ##
-model_type <- "allpoly" 
-source("Scripts/11_b_DML_Multi.R") 
-model_type <- main_model_type 
-
-## RC 7: Include treatment and outcome lags ##
-model_controls_lag <- "all"
-source("Scripts/11_b_DML_Multi.R") 
-model_controls_lag <- main_model_controls_lag
-
-## RC 10: Change trimming thresholds ##
-
-## RC 11: Change K and S ##
-# combis (4, 10, 5), (4,2,10), (5, 2, 5)  -> (5, 10, 20)
-model_k <- 5 # 4
-model_k_tuning <- 2 # 2
-model_s_rep <- 5 # 5
-source("Scripts/11_b_DML_Multi.R") 
-
-
-### Robustness Checks wrt HYPERPARAMETERS ###
-#+++++++++++++++++++++++++++++++++++++++++++#
-
-hyperparam_sel <- "1SE"
-model_hyperparam_sel <- "1SE"
-source("Scripts/11_b_DML_Multi.R") 
-
-hyperparam_sel <- "1SE_plus"
-model_hyperparam_sel <- "1SE_plus"
-source("Scripts/11_b_DML_Multi.R") 
 
 
 
@@ -725,5 +741,9 @@ eval(parse(text = keep_after_file_run))
 gc()
 
 
+#### Mean Values ####
+#+++++++++++++++++++#
+
+source("Scripts/13_MeanValues.R")
 
 
