@@ -378,13 +378,17 @@ for (outcome_var_sel in c("grades", "personality")) {
                 mutate(var_num = 1:nrow(df_smd_plot_grades)),
               aes(x = var_num, y = SD_after, fill = "After DML")) +
     scale_fill_manual(" ", values = c('Before DML' = "grey70", 'After DML' = "grey20")) +
-    ylab("ASMD\n") + xlab("\nRank from highest to lowest ASMD\n") +
+    scale_x_continuous(breaks = c(0, 200, 400), limits = c(0, 500), expand = c(0, 0)) +
+    scale_y_continuous(breaks = c(0.2, 0.4), limits = c(0, 0.5), expand = c(0, 0)) +
+    ylab("ASMD\n") + xlab("\n ASMD Rank \n") +
     ggtitle(str_to_title(outcome_var_sel)) + 
     theme_bw() + 
     theme(legend.position = "right", 
-          plot.title = element_text(hjust = 0.5, size = 45),
-          axis.text = element_text(size = 32), axis.title = element_text(size = 38),
-          legend.text = element_text(size = 40), legend.title = element_text(size = 40)) +
+          panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+          panel.background = element_blank(),
+          plot.title = element_text(hjust = 0.5, size = 48),
+          axis.text = element_text(size = 46), axis.title = element_text(size = 46),
+          legend.text = element_text(size = 46), legend.title = element_text(size = 46)) +
     guides(fill = guide_legend(title = "ASMD:")) 
 }
 
@@ -406,76 +410,151 @@ for (outcome_var_sel in c("grades", "personality")) {
                 mutate(var_num = 1:nrow(df_smd_plot_multi)),
               aes(x = var_num, y = SD_after, fill = "After DML")) + 
     scale_fill_manual(" ", values = c('Before DML' = "grey70", 'After DML' = "grey20")) +
-    ylab("ASMD\n") + xlab("\n Rank from highest to lowest ASMD \n") +
+    scale_x_continuous(breaks = c(0, 200, 400), limits = c(0, 500), expand = c(0, 0)) +
+    scale_y_continuous(breaks = c(0.2, 0.4), limits = c(0, 0.5), expand = c(0, 0)) +
+    ylab("ASMD\n") + xlab("\n ASMD Rank \n") +
     ggtitle(paste("\n", str_to_title(outcome_var_sel))) + 
     theme_bw() + 
     theme(legend.position = "right", 
-          plot.title = element_text(hjust = 0.5, size = 45),
-          axis.text = element_text(size = 32), axis.title = element_text(size = 38),
-          legend.text = element_text(size = 40), legend.title = element_text(size = 40)) +
+          panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+          panel.background = element_blank(),
+          plot.title = element_text(hjust = 0.5, size = 48),
+          axis.text = element_text(size = 46), axis.title = element_text(size = 46),
+          legend.text = element_text(size = 46), legend.title = element_text(size = 46)) +
     guides(fill = guide_legend(title = "ASMD:")) 
 }
 
 
 # Arrange
 plot_cov_bal_save <- 
-  ggarrange(plot_cov_bal_binary$grades + ggtitle("GPA Binary") + ylim(0, 0.5) + xlim(0, 505), 
-            plot_cov_bal_multi$grades + ggtitle("GPA Multi") + rremove("ylab") + ylim(0, 0.5) + xlim(0, 505), 
-            plot_cov_bal_binary$personality + ggtitle("Personality Binary") + rremove("ylab") + ylim(0, 0.5) + xlim(0, 505), 
-            plot_cov_bal_multi$personality + ggtitle("Personality Multi") + rremove("ylab") + ylim(0, 0.5) + xlim(0, 505),
+  ggarrange(plot_cov_bal_binary$grades + ggtitle("GPA Binary"), 
+            plot_cov_bal_multi$grades + ggtitle("GPA Multi") + rremove("ylab") +
+              theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()), 
+            plot_cov_bal_binary$personality + ggtitle("Personality Binary") + rremove("ylab") +
+              theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()),
+            plot_cov_bal_multi$personality + ggtitle("Personality Multi") + rremove("ylab") +
+              theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()),
             nrow = 1, ncol = 4, common.legend = TRUE, legend = "bottom", align = "h")
 
-ggsave("Output/DML/Covariate_Balancing/plot_cov_balance.png", plot_cov_bal_save,
-       width = 40, height = 15, dpi = 300, units = "in", device = 'png')
+# ggsave("Output/DML/Covariate_Balancing/plot_cov_balance.png", plot_cov_bal_save,
+#        width = 40, height = 15, dpi = 300, units = "in", device = 'png')
+pdf("Output/DML/Covariate_Balancing/plot_cov_balance.pdf",
+    width = 30, height = 12, pointsize = 25, family = "Helvetica")
+print(plot_cov_bal_save)
+dev.off()
 
 # Multi: detail
+
+## WEEKLY ##
 df_smd_cov_func_all_detail_multi <- df_smd_cov_func_all_detail_multi %>%
   mutate(control_var = str_sub(control_var, 1, 30))
-ggsave(
-  "Output/DML/Covariate_Balancing/plot_asdm_main_drivers_weekly.png",
+pdf("Output/DML/Covariate_Balancing/plot_asdm_main_drivers_weekly.pdf",
+    width = 20, height = 15, pointsize = 25, family = "Helvetica")
+print(
   df_smd_cov_func_all_detail_multi %>% arrange(desc(SD_before_D_1)) %>% 
     dplyr::select(control_var, SD_before_D_1) %>% 
     head(10) %>%
     ggplot(aes(y = reorder(control_var, SD_before_D_1), x = SD_before_D_1)) +
     geom_bar(fill = "black", width = 0.3, stat = "identity") +
-    xlab("\nASMD before DML\n") + ylab("") + theme_bw() + ggtitle("\nWeekly Sport Participation") +
-    xlim(0, 0.45) +
+    xlab("\nASMD before DML\n") + ylab("") + 
+    scale_x_continuous(breaks = c(0.1, 0.2, 0.3, 0.4), limits = c(0, 0.45), expand = c(0,0)) +
+    theme_bw() + ggtitle("\nWeekly") +
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(),
-          axis.text = element_text(size = 38), axis.title = element_text(size = 38), 
-          plot.title = element_text(size = 45, hjust = 0.5)),
-  width = 20, height = 15, dpi = 300, units = "in", device = 'png'
+          axis.text = element_text(size = 46), axis.title = element_text(size = 46), 
+          plot.title = element_text(size = 48, hjust = 0.5))
 )
+dev.off()
 
-ggsave(
-  "Output/DML/Covariate_Balancing/plot_asdm_main_drivers_monthly.png",
+pdf("Output/DML/Covariate_Balancing/plot_asdm_main_drivers_weekly_notext.pdf",
+    width = 6, height = 10, pointsize = 25, family = "Helvetica")
+print(
+  df_smd_cov_func_all_detail_multi %>% 
+    arrange(desc(SD_before_D_1)) %>% 
+    dplyr::select(control_var, SD_before_D_1) %>% 
+    head(10) %>%
+    ggplot(aes(y = reorder(control_var, SD_before_D_1), x = SD_before_D_1)) +
+    geom_bar(fill = "black", width = 0.3, stat = "identity") +
+    xlab("\nASMD before DML\n") + ylab("") + theme_bw() + ggtitle("\nWeekly") + 
+    scale_x_continuous(breaks = c(0, 0.1, 0.2, 0.3, 0.4), limits = c(0, 0.45), expand = c(0,0)) +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(),
+          axis.text.y = element_blank(), axis.text.x = element_text(size = 28), 
+          axis.ticks.length.y = unit(.25, "cm"), axis.ticks.y = element_line(linewidth = 1),
+          axis.title = element_text(size = 28), plot.title = element_text(size = 30, hjust = 0.5))
+)
+dev.off()
+
+## MONTHLY ##
+pdf("Output/DML/Covariate_Balancing/plot_asdm_main_drivers_monthly.pdf",
+    width = 20, height = 15, pointsize = 25, family = "Helvetica")
+print(
   df_smd_cov_func_all_detail_multi %>% 
     arrange(desc(SD_before_D_2)) %>% 
     dplyr::select(control_var, SD_before_D_2) %>% 
     head(10) %>%
     ggplot(aes(y = reorder(control_var, SD_before_D_2), x = SD_before_D_2)) +
     geom_bar(fill = "black", width = 0.3, stat = "identity") +
-    xlab("\nASMD before DML\n") + ylab("") + theme_bw() + ggtitle("\nMonthly Sport Participation") + 
+    xlab("\nASMD before DML\n") + ylab("") + theme_bw() + ggtitle("\nMonthly") + 
+    scale_x_continuous(breaks = c(0.1, 0.2, 0.3, 0.4), limits = c(0, 0.45), expand = c(0,0)) +
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(),
-          axis.text = element_text(size = 38), axis.title = element_text(size = 38), 
-          plot.title = element_text(size = 45, hjust = 0.5)),
-  width = 20, height = 15, dpi = 300, units = "in", device = 'png'
+          axis.text = element_text(size = 46), axis.title = element_text(size = 46), 
+          plot.title = element_text(size = 48, hjust = 0.5))
 )
+dev.off()
 
-ggsave(
-  "Output/DML/Covariate_Balancing/plot_asdm_main_drivers_no.png",
+pdf("Output/DML/Covariate_Balancing/plot_asdm_main_drivers_monthly_notext.pdf",
+    width = 6, height = 10, pointsize = 25, family = "Helvetica")
+print(
+  df_smd_cov_func_all_detail_multi %>% 
+    arrange(desc(SD_before_D_2)) %>% 
+    dplyr::select(control_var, SD_before_D_2) %>% 
+    head(10) %>%
+    ggplot(aes(y = reorder(control_var, SD_before_D_2), x = SD_before_D_2)) +
+    geom_bar(fill = "black", width = 0.3, stat = "identity") +
+    xlab("\nASMD before DML\n") + ylab("") + theme_bw() + ggtitle("\nMonthly") + 
+    scale_x_continuous(breaks = c(0, 0.1, 0.2, 0.3, 0.4), limits = c(0, 0.45), expand = c(0,0)) +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(),
+          axis.text.y = element_blank(), axis.text.x = element_text(size = 28), 
+          axis.ticks.length.y = unit(.25, "cm"), axis.ticks.y = element_line(linewidth = 1),
+          axis.title = element_text(size = 28), plot.title = element_text(size = 30, hjust = 0.5))
+)
+dev.off()
+
+## NEVER ##
+pdf("Output/DML/Covariate_Balancing/plot_asdm_main_drivers_never.pdf",
+    width = 20, height = 15, pointsize = 25, family = "Helvetica")
+print(
   df_smd_cov_func_all_detail_multi %>% 
     arrange(desc(SD_before_D_3)) %>% 
     dplyr::select(control_var, SD_before_D_3) %>% 
     head(10) %>%
     ggplot(aes(y = reorder(control_var, SD_before_D_3), x = SD_before_D_3)) +
     geom_bar(fill = "black", width = 0.3, stat = "identity") +
-    xlab("\nASMD before DML\n") + ylab("") + theme_bw() + ggtitle("\nNo Sport Participation") + 
+    xlab("\nASMD before DML\n") + ylab("") + theme_bw() + ggtitle("\nNever") + 
+    scale_x_continuous(breaks = c(0, 0.1, 0.2, 0.3, 0.4), limits = c(0, 0.45), expand = c(0,0)) +
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(),
-          axis.text = element_text(size = 38), axis.title = element_text(size = 38), 
-          plot.title = element_text(size = 45, hjust = 0.5)),
-  width = 20, height = 15, dpi = 300, units = "in", device = 'png'
+          axis.text = element_text(size = 46), axis.title = element_text(size = 46), 
+          plot.title = element_text(size = 48, hjust = 0.5))
 )
+dev.off()
 
+
+pdf("Output/DML/Covariate_Balancing/plot_asdm_main_drivers_never_notext.pdf",
+    width = 6, height = 10, pointsize = 25, family = "Helvetica")
+print(
+  df_smd_cov_func_all_detail_multi %>% 
+    arrange(desc(SD_before_D_3)) %>% 
+    dplyr::select(control_var, SD_before_D_3) %>% 
+    head(10) %>%
+    ggplot(aes(y = reorder(control_var, SD_before_D_3), x = SD_before_D_3)) +
+    geom_bar(fill = "black", width = 0.3, stat = "identity") +
+    xlab("\nASMD before DML\n") + ylab("") + theme_bw() + ggtitle("\nNever") + 
+    scale_x_continuous(breaks = c(0, 0.1, 0.2, 0.3, 0.4), limits = c(0, 0.45), expand = c(0,0)) +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(),
+          axis.text.y = element_blank(), axis.text.x = element_text(size = 28), 
+          axis.ticks.length.y = unit(.25, "cm"), axis.ticks.y = element_line(linewidth = 1),
+          axis.title = element_text(size = 28), plot.title = element_text(size = 30, hjust = 0.5))
+)
+dev.off()
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 #### Main Drivers of selection ####

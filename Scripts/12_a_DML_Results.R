@@ -123,6 +123,7 @@ postlasso_neuro_multi <-
                  "_all_controlssameoutcome_", treatment_def, "_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming", 
                  model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
 
+
 # Robustnesschecks regarding samples
 postlasso_grades_rc1_lvcf <- 
   readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_", "postlasso", 
@@ -173,6 +174,17 @@ xgb_grades <-
 xgb_grades_multi <- 
   readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_", "xgboost", 
                  "_all_controlssameoutcome_", treatment_def, "_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming",
+                 model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
+
+# PERSONALITY
+xgb_extra <- 
+  readRDS(paste0("Output/DML/Estimation/Personality/binary_extraversion_", "xgboost", 
+                 "_all_controlssameoutcome_", treatment_def, "_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming", 
+                 model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
+
+xgb_extra_multi <- 
+  readRDS(paste0("Output/DML/Estimation/Personality/multi_extraversion_", "xgboost", 
+                 "_all_controlssameoutcome_", treatment_def, "_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming", 
                  model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
 
 
@@ -296,9 +308,15 @@ dml_boxplot_binary <-
     strip.text.x = element_text(size = 45) # size of facet text
     ) 
 dml_boxplot_binary
-ggsave("Output/DML/Treatment_Effects/plot_binary_main_grades_treatment_effects_variability.png",
-       dml_boxplot_binary,
-       width = 20, height = 15, dpi = 300, units = "in", device = 'png')
+# ggsave("Output/DML/Treatment_Effects/plot_binary_main_grades_treatment_effects_variability.png",
+#        dml_boxplot_binary,
+#        width = 20, height = 15, dpi = 300, units = "in", device = 'png')
+
+
+pdf("Output/DML/Treatment_Effects/plot_binary_main_grades_treatment_effects_variability.pdf",
+    width = 20, height = 15, pointsize = 25, family = "Helvetica")
+print(dml_boxplot_binary)
+dev.off()
 
 
 # PERSONALITY
@@ -346,11 +364,15 @@ dml_boxplot_binary_personality <-
     strip.text.x = element_text(size = 45) # size of facet text
   ) 
 dml_boxplot_binary_personality
-ggsave("Output/DML/Treatment_Effects/plot_binary_main_personality_treatment_effects_variability.png",
-       dml_boxplot_binary_personality,
-       width = 20, height = 15, dpi = 300, units = "in", device = 'png')
+# ggsave("Output/DML/Treatment_Effects/plot_binary_main_personality_treatment_effects_variability.png",
+#        dml_boxplot_binary_personality,
+#        width = 20, height = 15, dpi = 300, units = "in", device = 'png')
 
 
+pdf("Output/DML/Treatment_Effects/plot_binary_main_personality_treatment_effects_variability.pdf",
+    width = 20, height = 15, pointsize = 25, family = "Helvetica")
+print(dml_boxplot_binary_personality)
+dev.off()
 
 
 #### Multivalued Treatment Setting ####
@@ -449,10 +471,14 @@ grades_boxplot_multi_all <-
     strip.text.x = element_text(size = 40), strip.text.y = element_text(size = 40) # size of facet text
   ) 
 grades_boxplot_multi_all
-ggsave("Output/DML/Treatment_Effects/plot_multi_main_grades_treatment_effects_variability_all.png",
-       grades_boxplot_multi_all,
-       width = 20, height = 15, dpi = 300, units = "in", device = 'png')
+# ggsave("Output/DML/Treatment_Effects/plot_multi_main_grades_treatment_effects_variability_all.png",
+#        grades_boxplot_multi_all,
+#        width = 20, height = 15, dpi = 300, units = "in", device = 'png')
 
+pdf("Output/DML/Treatment_Effects/plot_multi_main_grades_treatment_effects_variability_all.pdf",
+    width = 20, height = 15, pointsize = 25, family = "Helvetica")
+print(grades_boxplot_multi_all)
+dev.off()
 
 
 # personality
@@ -508,12 +534,15 @@ postlasso_personality_boxplot_multi_all <-
     strip.text.x = element_text(size = 40), strip.text.y = element_text(size = 40) # size of facet text
   ) 
 postlasso_personality_boxplot_multi_all
-ggsave("Output/DML/Treatment_Effects/plot_multi_main_personality_treatment_effects_variability_all.png",
-       postlasso_personality_boxplot_multi_all,
-       width = 20, height = 15, dpi = 300, units = "in", device = 'png')
+# ggsave("Output/DML/Treatment_Effects/plot_multi_main_personality_treatment_effects_variability_all.png",
+#        postlasso_personality_boxplot_multi_all,
+#        width = 20, height = 15, dpi = 300, units = "in", device = 'png')
 
 
-
+pdf("Output/DML/Treatment_Effects/plot_multi_main_personality_treatment_effects_variability_all.pdf",
+    width = 20, height = 15, pointsize = 25, family = "Helvetica")
+print(postlasso_personality_boxplot_multi_all)
+dev.off()
 
 
 #### Robustness Checks ####
@@ -574,8 +603,11 @@ df_treatment_effects_rc_multi <- df_dml_main_multi %>%
   dplyr::select(cohort_prep, treatment_repl, extra_act, starts_with("model"), Treatment, 
                 Type, theta_median, se_median, pvalue_median, time_stamp) 
 df_treatment_effects_rc_multi %>% 
-  arrange(desc(time_stamp)) %>%
-  dplyr::select(-c("cohort_prep", "model_algo", "model_trimming", "time_stamp"))
+  arrange(desc(time_stamp)) 
+
+
+
+## XGBoost: EXtroversion ##
 
 
 #### Variability Around Zero ####
@@ -1699,44 +1731,102 @@ for (model_algo_sel in c("lasso", "postlasso", "rf", "xgb")) {
 
 # Grades
 binary_plot_common_support <- ggarrange(
-  list_binary_plot_common_support$grades$lasso + xlab("") + ylim(0,4) + 
-    theme(axis.ticks.x = element_blank(), axis.text.x = element_blank()) + ggtitle("LASSO"), 
-  list_binary_plot_common_support$grades$postlasso + xlab("") + ylab("") + ylim(0,4) + 
-    theme(axis.ticks = element_blank(), axis.text = element_blank()) + ggtitle("POST-LASSO"),
-  list_binary_plot_common_support$grades$rf + ylim(0,4) + 
-    scale_x_continuous(breaks = c(0, 0.5, 1), labels = c("0", "0.5", "1")) + ggtitle("RANDOM FORESTS"), 
-  list_binary_plot_common_support$grades$xgb + ylab("") + ylim(0,4) + 
-    scale_x_continuous(breaks = c(0, 0.5, 1), labels = c("0", "0.5", "1")) + 
-    theme(axis.ticks.y = element_blank(), axis.text.y = element_blank()) + ggtitle("XGBOOST"),
-  nrow = 2, ncol = 2, common.legend = T, legend = "bottom"
+  list_binary_plot_common_support$grades$lasso + 
+    ggtitle("LASSO") +  scale_y_continuous(breaks = c(1, 3), limits = c(0, 4.2), expand = c(0, 0)) + 
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+          panel.background = element_blank(),
+          plot.title = element_text(hjust = 0.5, size = 40), 
+          axis.text = element_text(size = 38), axis.title = element_text(size = 38),
+          legend.text = element_text(size = 38), legend.title = element_text(size = 38)),
+  list_binary_plot_common_support$grades$postlasso + ylab("") +  
+    ggtitle("Post-LASSO") + scale_y_continuous(breaks = c(1, 3), limits = c(0, 4.2), expand = c(0, 0)) + 
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+          panel.background = element_blank(),
+          axis.text.y = element_blank(), axis.ticks.y = element_blank(),
+          plot.title = element_text(hjust = 0.5, size = 40), 
+          axis.text = element_text(size = 38), axis.title = element_text(size = 38),
+          legend.text = element_text(size = 38), legend.title = element_text(size = 38)),
+  list_binary_plot_common_support$grades$rf + ylab("") + 
+    ggtitle("Random Forests") +  scale_y_continuous(breaks = c(1, 3), limits = c(0, 4.2), expand = c(0, 0)) + 
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+          panel.background = element_blank(),
+          axis.text.y = element_blank(), axis.ticks.y = element_blank(),
+          plot.title = element_text(hjust = 0.5, size = 40), 
+          axis.text = element_text(size = 38), axis.title = element_text(size = 38),
+          legend.text = element_text(size = 38), legend.title = element_text(size = 38)), 
+  list_binary_plot_common_support$grades$xgb + ylab("") + 
+    ggtitle("XGBoost") +  scale_y_continuous(breaks = c(1, 3), limits = c(0, 4.2), expand = c(0, 0)) + 
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+          panel.background = element_blank(),
+          axis.text.y = element_blank(), axis.ticks.y = element_blank(),
+          plot.title = element_text(hjust = 0.5, size = 40), 
+          axis.text = element_text(size = 38), axis.title = element_text(size = 38),
+          legend.text = element_text(size = 38), legend.title = element_text(size = 38)),
+  nrow = 1, ncol = 4, common.legend = T, legend = "bottom"
 ) 
-ggsave(paste0("Output/DML/Common_Support/dml_plot_common_support_binary_grades_allalgos_all.png"), 
-       binary_plot_common_support,
-       width = 15, height = 10, dpi = 300, units = "in", device = 'png')
+# ggsave("Output/DML/Common_Support/dml_plot_common_support_binary_grades_allalgos_all.png", 
+#        binary_plot_common_support,
+#        width = 30, height = 8, dpi = 500, units = "in", device = 'png')
+pdf("Output/DML/Common_Support/dml_plot_common_support_binary_grades_allalgos_all.pdf",
+    width = 30, height = 8, pointsize = 25, family = "Helvetica")
+print(binary_plot_common_support)
+dev.off()
+
 
 # Personality
 binary_plot_common_support_personality <- ggarrange(
   list_binary_plot_common_support$agree$postlasso + 
-    xlab("") + scale_y_continuous(breaks = c(0, 1, 2)) + 
-    theme(axis.ticks.x = element_blank(), axis.text.x = element_blank()) + ggtitle("Agreeableness"), 
-  list_binary_plot_common_support$consc$postlasso + 
-    xlab("") + ylab("") +
-    theme(axis.ticks = element_blank(), axis.text = element_blank()) + ggtitle("Conscientiousness"),
-  list_binary_plot_common_support$extra$postlasso +
-    xlab("") + ylab("") +
-    theme(axis.ticks = element_blank(), axis.text = element_blank()) + ggtitle("Extroversion"), 
-  list_binary_plot_common_support$neuro$postlasso + 
-    scale_y_continuous(breaks = c(0, 1, 2)) + scale_x_continuous(breaks = c(0, 0.5, 1), labels = c("0", "0.5", "1"))  + ggtitle("Neuroticism"),
-  list_binary_plot_common_support$open$postlasso + 
-    ylab("") + theme(axis.ticks.y = element_blank(), axis.text.y = element_blank()) +
-    scale_y_continuous(breaks = c(0, 1, 2)) + scale_x_continuous(breaks = c(0, 0.5, 1), labels = c("0", "0.5", "1")) + ggtitle("Openness"),
-  nrow = 2, ncol = 3, common.legend = T, legend = "bottom",
-  widths = rep(1,5)
+    scale_y_continuous(breaks = c(1, 2),  limits = c(0, 2.5), expand = c(0, 0)) + 
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+          panel.background = element_blank(),
+          plot.title = element_text(hjust = 0.5, size = 40), 
+          axis.text = element_text(size = 38), axis.title = element_text(size = 38),
+          legend.text = element_text(size = 38), legend.title = element_text(size = 38)) +
+    ggtitle("Agreeableness"), 
+  list_binary_plot_common_support$consc$postlasso + ylab("") + ggtitle("Conscientiousness") +
+    scale_y_continuous(breaks = c(1, 2),  limits = c(0, 2.5), expand = c(0, 0)) + 
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+          panel.background = element_blank(),
+          plot.title = element_text(hjust = 0.5, size = 40), 
+          axis.text.y = element_blank(), axis.ticks.y = element_blank(),
+          axis.text = element_text(size = 38), axis.title = element_text(size = 38),
+          legend.text = element_text(size = 38), legend.title = element_text(size = 38)),
+  list_binary_plot_common_support$extra$postlasso + ylab("") +
+    scale_y_continuous(breaks = c(1, 2),  limits = c(0, 2.5), expand = c(0, 0)) + 
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+          panel.background = element_blank(),
+          plot.title = element_text(hjust = 0.5, size = 40), 
+          axis.text.y = element_blank(), axis.ticks.y = element_blank(),
+          axis.text = element_text(size = 38), axis.title = element_text(size = 38),
+          legend.text = element_text(size = 38), legend.title = element_text(size = 38)) +
+    ggtitle("Extroversion"), 
+  list_binary_plot_common_support$neuro$postlasso + ylab("") + 
+    scale_y_continuous(breaks = c(1, 2),  limits = c(0, 2.5), expand = c(0, 0)) + 
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+          panel.background = element_blank(),
+          axis.text.y = element_blank(), axis.ticks.y = element_blank(),
+          plot.title = element_text(hjust = 0.5, size = 40), 
+          axis.text = element_text(size = 38), axis.title = element_text(size = 38),
+          legend.text = element_text(size = 38), legend.title = element_text(size = 38)) +
+    ggtitle("Neuroticism"),
+  list_binary_plot_common_support$open$postlasso + ylab("") + 
+    scale_y_continuous(breaks = c(1, 2),  limits = c(0, 2.5), expand = c(0, 0)) + 
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+          panel.background = element_blank(),
+          axis.text.y = element_blank(), axis.ticks.y = element_blank(),
+          plot.title = element_text(hjust = 0.5, size = 40), 
+          axis.text = element_text(size = 38), axis.title = element_text(size = 38),
+          legend.text = element_text(size = 38), legend.title = element_text(size = 38)) +
+    ggtitle("Openness"),
+  nrow = 1, ncol = 5, common.legend = T, legend = "bottom"
 ) 
-ggsave(paste0("Output/DML/Common_Support/dml_plot_common_support_binary_personality_postlasso_all.png"), 
-       binary_plot_common_support_personality,
-       width = 15, height = 10, dpi = 300, units = "in", device = 'png')
-
+# ggsave(paste0("Output/DML/Common_Support/dml_plot_common_support_binary_personality_postlasso_all.png"), 
+#        binary_plot_common_support_personality,
+#        width = 30, height = 8, dpi = 300, units = "in", device = 'png')
+pdf("Output/DML/Common_Support/dml_plot_common_support_binary_personality_postlasso_all.pdf",
+    width = 30, height = 8, pointsize = 25, family = "Helvetica")
+print(binary_plot_common_support_personality)
+dev.off()
 
 # For MICE = 1, K = 1, S = 1
 list_binary_plot_common_support_fold <- list()
@@ -1803,30 +1893,55 @@ for (model_algo_sel in c("lasso", "postlasso", "rf", "xgb")) {
 }
 
 binary_plot_common_support_fold <- ggarrange(
-  list_binary_plot_common_support_fold$grades$lasso + xlab("") + ggtitle("LASSO"), 
-  list_binary_plot_common_support_fold$grades$postlasso + xlab("") + ylab("") + ggtitle("POST-LASSO"),
-  list_binary_plot_common_support_fold$grades$rf + ggtitle("RANDOM FORESTS"), 
-  list_binary_plot_common_support_fold$grades$xgb + ylab("") + ggtitle("XGBOOST"),
+  list_binary_plot_common_support_fold$grades$lasso + xlab("") + ggtitle("LASSO") +
+    scale_y_continuous(breaks = c(1, 3, 5),  limits = c(0, 5.2), expand = c(0, 0)), 
+  list_binary_plot_common_support_fold$grades$postlasso + xlab("") + ylab("") + ggtitle("Post-LASSO") +
+    scale_y_continuous(breaks = c(1, 3, 5),  limits = c(0, 5.2), expand = c(0, 0)) +
+    theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()),
+  list_binary_plot_common_support_fold$grades$rf + ggtitle("Random Forests") +
+    scale_y_continuous(breaks = c(1, 3, 5),  limits = c(0, 5.2), expand = c(0, 0)), 
+  list_binary_plot_common_support_fold$grades$xgb + ylab("") + ggtitle("XGBoost") +
+    scale_y_continuous(breaks = c(1, 3, 5),  limits = c(0, 5.2), expand = c(0, 0)) +
+    theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()),
   nrow = 2, ncol = 2, common.legend = T, legend = "bottom"
 ) 
 
-ggsave(paste0("Output/DML/Common_Support/dml_plot_common_support_binary_grades_allalgos_fold.png"), 
-       binary_plot_common_support_fold,
-       width = 20, height = 15, dpi = 300, units = "in", device = 'png')
+# ggsave(paste0("Output/DML/Common_Support/dml_plot_common_support_binary_grades_allalgos_fold.png"), 
+#        binary_plot_common_support_fold,
+#        width = 25, height = 15, dpi = 500, units = "in", device = 'png')
+
+pdf("Output/DML/Common_Support/dml_plot_common_support_binary_grades_allalgos_fold.pdf",
+    width = 25, height = 12, pointsize = 25, family = "Helvetica")
+print(binary_plot_common_support_fold)
+dev.off()
+
 
 binary_plot_common_support_fold_pers <- ggarrange(
-  list_binary_plot_common_support_fold$agree$postlasso + xlab("") + ggtitle("Agreeableness"), 
-  list_binary_plot_common_support_fold$consc$postlasso + xlab("") + ylab("") + ggtitle("Conscientiousness"),
-  list_binary_plot_common_support_fold$extra$postlasso + xlab("") + ylab("") + ggtitle("Extroversion"), 
-  list_binary_plot_common_support_fold$neuro$postlasso + ggtitle("Neuroticism"),
-  list_binary_plot_common_support_fold$open$postlasso + ylab("") + ggtitle("Openness"),
+  list_binary_plot_common_support_fold$agree$postlasso + xlab("") + ggtitle("Agreeableness") +
+    scale_y_continuous(breaks = c(1, 3),  limits = c(0, 3.2), expand = c(0, 0)),
+  list_binary_plot_common_support_fold$consc$postlasso + xlab("") + ylab("") + ggtitle("Conscientiousness") +
+    scale_y_continuous(breaks = c(1, 3),  limits = c(0, 3.2), expand = c(0, 0)) +
+    theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()),
+  list_binary_plot_common_support_fold$extra$postlasso + xlab("") + ylab("") + ggtitle("Extroversion") +
+    scale_y_continuous(breaks = c(1, 3),  limits = c(0, 3.2), expand = c(0, 0)) +
+    theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()),
+  list_binary_plot_common_support_fold$neuro$postlasso + ggtitle("Neuroticism") +
+    scale_y_continuous(breaks = c(1, 3),  limits = c(0, 3.2), expand = c(0, 0)),
+  list_binary_plot_common_support_fold$open$postlasso + ylab("") + ggtitle("Openness") +
+    scale_y_continuous(breaks = c(1, 3),  limits = c(0, 3.2), expand = c(0, 0)) +
+    theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()),
   nrow = 2, ncol = 3, common.legend = T, legend = "bottom"
 ) 
 
-ggsave(paste0("Output/DML/Common_Support/dml_plot_common_support_binary_personality_postlasso_fold.png"), 
-       binary_plot_common_support_fold_pers,
-       width = 20, height = 15, dpi = 300, units = "in", device = 'png')
+# ggsave(paste0("Output/DML/Common_Support/dml_plot_common_support_binary_personality_postlasso_fold.png"), 
+#        binary_plot_common_support_fold_pers,
+#        width = 25, height = 15, dpi = 500, units = "in", device = 'png')
 
+
+pdf("Output/DML/Common_Support/dml_plot_common_support_binary_personality_postlasso_fold.pdf",
+    width = 25, height = 12, pointsize = 25, family = "Helvetica")
+print(binary_plot_common_support_fold_pers)
+dev.off()
 
 ## Multivalued Treatment Setting ##
 #+++++++++++++++++++++++++++++++++#
@@ -1905,21 +2020,26 @@ for (model_algo_sel in c("lasso", "postlasso", "rf", "xgb")) {
 
 
 multi_plot <- ggarrange(
-  list_multi_plot_common_support$grades$postlasso$m1 + ylim(0,5) + xlim(0, 1.2) +
-    scale_x_continuous(breaks = c(0, 0.5, 1)) + ggtitle("Weekly Sport Participation"),
-  list_multi_plot_common_support$grades$postlasso$m2 + ylab("") + ylim(0,5) +
+  list_multi_plot_common_support$grades$postlasso$m1 +
+    scale_y_continuous(breaks = c(1,3,5), limits = c(0,5), expand = c(0,0)) + ggtitle("Weekly"),
+  list_multi_plot_common_support$grades$postlasso$m2 + ylab("") + 
     theme(axis.ticks.y = element_blank(), axis.text.y = element_blank()) +
-    scale_x_continuous(breaks = c(0, 0.5, 1)) + ggtitle("Monthly Sport Participation"),
-  list_multi_plot_common_support$grades$postlasso$m3 + ylab("") + ylim(0,5) +
+    scale_y_continuous(breaks = c(1,3,5), limits = c(0,5), expand = c(0,0)) + ggtitle("Monthly"),
+  list_multi_plot_common_support$grades$postlasso$m3 + ylab("") +
     theme(axis.ticks.y = element_blank(), axis.text.y = element_blank()) +
-    scale_x_continuous(breaks = c(0, 0.5, 1)) + ggtitle("No Sport Participation"),
+    scale_y_continuous(breaks = c(1,3,5), limits = c(0,5), expand = c(0,0)) + ggtitle("Never"),
   nrow = 1, common.legend = TRUE, legend = "bottom"
 )
 
-ggsave(paste0("Output/DML/Common_Support/dml_plot_common_support_multi_grades_postlasso_all.png"), 
-       multi_plot,
-       width = 20, height = 15, dpi = 300, units = "in", device = 'png')
+# ggsave(paste0("Output/DML/Common_Support/dml_plot_common_support_multi_grades_postlasso_all.png"), 
+#        multi_plot,
+#        width = 20, height = 10, dpi = 500, units = "in", device = 'png')
 
+
+pdf("Output/DML/Common_Support/dml_plot_common_support_multi_grades_postlasso_all.pdf",
+    width = 20, height = 10, pointsize = 5, family = "Helvetica")
+print(multi_plot)
+dev.off()
 
 #### Check Means ####
 #+++++++++++++++++++#
