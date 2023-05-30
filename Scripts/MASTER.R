@@ -524,6 +524,13 @@ eval(parse(text = keep_after_file_run))
 gc()
 extra_act <- main_extra_act
 
+## Extracurricular activity within uni ##
+extra_act <- "uni"
+source("Scripts/11_b_DML_Multi.R") 
+eval(parse(text = keep_after_file_run))
+gc()
+extra_act <- main_extra_act
+
 ## controls_bef_outcome ##
 cohort_prep <- "controls_bef_outcome"
 source("Scripts/11_b_DML_Multi.R") 

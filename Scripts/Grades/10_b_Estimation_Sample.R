@@ -28,6 +28,8 @@
 # extract extracurricular activity ending
 if (extra_act == "yes") {
   extra_act_save <- "_extradrop"
+} else if (extra_act == "uni") {
+  extra_act_save <- "_extrauni"
 } else {
   extra_act_save <- ""
 }
@@ -96,6 +98,10 @@ for (mice_data_sel in 1:5) {
   # drop students who do not take part in any extracurricular activity
   if (extra_act == "yes" & cohort_prep == main_cohort_prep) {
     data_final <- data_final %>%
+      filter(extracurricular_num > 0 | treatment_sport == 1)
+  } else if (extra_act == "uni") {
+    data_final <- data_final %>% 
+      filter(extracurricular_uni == 1 | treatment_sport == 1) %>%
       filter(extracurricular_num > 0 | treatment_sport == 1)
   } else {
     data_final <- data_final
