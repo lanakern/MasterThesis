@@ -524,6 +524,13 @@ eval(parse(text = keep_after_file_run))
 gc()
 extra_act <- main_extra_act
 
+## controls_bef_outcome ##
+cohort_prep <- "controls_bef_outcome"
+source("Scripts/11_b_DML_Multi.R") 
+eval(parse(text = keep_after_file_run))
+gc()
+cohort_prep <- main_cohort_prep 
+
 ## No potentially endogeneous variables ##
 model_controls_endog <- "no"
 source("Scripts/11_b_DML_Multi.R") 
@@ -544,21 +551,7 @@ gc()
 
 model_controls_lag <- ain_model_controls_lag
 
-## Leisure Sport ##
-cov_balance <- "no"
-source("Scripts/11_b_DML_Multi.R")
-eval(parse(text = keep_after_file_run))
-gc()
-cov_balance <- main_cov_balance
-
-## controls_bef_outcome ##
-cohort_prep <- "controls_bef_outcome"
-source("Scripts/11_b_DML_Multi.R") 
-eval(parse(text = keep_after_file_run))
-gc()
-cohort_prep <- main_cohort_prep 
-
-## Include polynominals ##
+## Polys ##
 model_type <- "allpoly" 
 source("Scripts/11_b_DML_Multi.R")
 eval(parse(text = keep_after_file_run))
@@ -571,6 +564,13 @@ source("Scripts/11_b_DML_Multi.R")
 eval(parse(text = keep_after_file_run))
 gc()
 model_controls_lag <- main_model_controls_lag
+
+## Leisure Sport ##
+cov_balance <- "no"
+source("Scripts/11_b_DML_Multi.R")
+eval(parse(text = keep_after_file_run))
+gc()
+cov_balance <- main_cov_balance
 
 ## Change trimming thresholds ##
 model_trimming <- 0.01
