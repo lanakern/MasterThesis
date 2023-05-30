@@ -331,12 +331,12 @@ model_controls_lag <- main_model_controls_lag
 model_controls_endog <- main_model_controls_endog 
 model_trimming <- main_model_trimming
 model_hyperparam_sel <- "best"
-model_post_sel <- TRUE 
 cov_balance <- main_cov_balance
 model_k <- 4 
 model_k_tuning <- 2
 model_s_rep <- 5 
 model_algo <- "postlasso"
+model_post_sel <- TRUE 
 
 ## No endogeneous variables ##
 model_controls_endog <- "no"
@@ -345,6 +345,11 @@ eval(parse(text = keep_after_file_run))
 gc()
 model_controls_endog <- main_model_controls_endog
 
+## only lags ##
+model_controls_lag <- "only_lags"
+source("Scripts/11_a_DML_Binary.R")
+eval(parse(text = keep_after_file_run))
+gc()
 
 #%%%%%%%%%%%%%%%%%%%%%%#####%#
 #### Outcome: Personality ####
@@ -525,6 +530,19 @@ source("Scripts/11_b_DML_Multi.R")
 eval(parse(text = keep_after_file_run))
 gc()
 model_controls_endog <- main_model_controls_endog
+
+## lags ##
+model_controls_lag <- "no_lags"
+source("Scripts/11_b_DML_Multi.R") 
+eval(parse(text = keep_after_file_run))
+gc()
+
+model_controls_lag <- "only_lags"
+source("Scripts/11_b_DML_Multi.R") 
+eval(parse(text = keep_after_file_run))
+gc()
+
+model_controls_lag <- ain_model_controls_lag
 
 ## Leisure Sport ##
 cov_balance <- "no"
