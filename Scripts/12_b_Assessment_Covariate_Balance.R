@@ -7,13 +7,15 @@
 #++ 
 # In this file, covariate balancing and the main drivers of selection are
 # assessed by calculating mean standardized differences following Yang et al. (2016)
-# and Knaus (2018).
+# and Knaus (2018). A detailed analysis is provided for the main model. 
+# For the robustness checks only ASMDs are calculated. 
 #++ 
 # Sources:
 # -> https://cran.r-project.org/web/packages/cobalt/vignettes/cobalt.html
 # -> https://cran.r-project.org/web/packages/MatchIt/vignettes/assessing-balance.html
 # -> Thoemmes and Kim (2011)
 # -> Knaus (2018)
+# -> Yang et al. (2016)
 #++
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -1226,7 +1228,152 @@ df_smd_sum_multi_check <- rbind(
 
 
 
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#%%%%%%%%%%%%%%%%%%%%#
+#### RC: TRIMMING ####
+#%%%%%%%%%%%%%%%%%%%%#
+
+## MULTI ## 
+df_smd_sum_multi_rc_trimming <- data.frame()
+df_smd_all_multi_rc_trimming <- data.frame()
+df_iterate <- data.frame("Rep" = c(rep(1,4), rep(2,4), rep(3,4), rep(4,4), rep(5,4)), "Fold" = rep(c(1:4), 5))
+
+# iterate over outcome variables
+for (trimming_sel in c("0.01", "0.1", "no")) {
+  
+  print(paste("Start Trimming:", trimming_sel))
+  
+  # load data 
+  dml_result_all_multi_rc_trimming <- 
+    readRDS(paste0("Output/DML/Estimation/Grades/multi_", "grades", 
+                   "_postlasso_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming",
+                   trimming_sel, "_K4-2_Rep5_", "covbal.rds"))
+  
+  
+  df_smd_cov_func_all_multi_rc_trimming <- data.frame()
+  for (mice_sel in 1:5) { # iterate over MICE data sets
+    print(paste("Data Set:", mice_sel))
+    for (rep_sel in 1:5) { # iterate over repetitions
+      df_iterate_sel <- df_iterate %>% filter(Rep == rep_sel)
+      for (iter_sel in 1:nrow(df_iterate_sel)) { # iterate over folds
+        df_iterate_sel_2 <- df_iterate_sel[iter_sel, ]
+        
+        # predictions
+        df_pred_cov_func <- dml_result_all_multi_rc_trimming[[mice_sel]]$pred %>% 
+          filter(Repetition == rep_sel, Fold == iter_sel) %>%
+          mutate(D_1 = ifelse(treatment == 1, 1, 0), D_2 = ifelse(treatment == 2, 1, 0), D_3 = ifelse(treatment == 3, 1, 0))
+        
+        # control variables
+        df_controls_multi_rc_trimming <- dml_result_all_multi_rc_trimming[[mice_sel]]$cov_balance[[mice_sel]][[df_iterate_sel_2$Rep]][[df_iterate_sel_2$Fold]]$controls
+        
+        # control variables
+        x <- df_controls_multi_rc_trimming %>% dplyr::select(-all_of(
+          c("outcome_grade", "treatment_sport_freq", "treatment_sport_freq_na", "treatment_sport_freq_monthly_less", "treatment_sport_freq_never",
+            "treatment_sport_freq_weekly_atleast", "Fold", "Repetition", "group")))
+        
+        # calculate covariate balance
+        df_smd_cov_func_all <- list()
+        for (treatment_var_sel in c("D_1", "D_2", "D_3")) { # iterate over treatments
+          D <- df_pred_cov_func %>% pull(treatment_var_sel) %>% as.character() %>% as.numeric() 
+          m <- df_pred_cov_func %>% pull(str_replace(treatment_var_sel, "D_", "m")) %>% as.character() %>% as.numeric() 
+          
+          # calculate weights
+          weights_multi_rc_trimming <- func_weights("binary", df_pred_cov_func %>% mutate(treatment = D, m = m), x)
+          
+          # calculate ASMD
+          balance <- bal.tab(
+            as.data.frame(x), treat = D, stats = "mean.diffs", weights = weights_multi_rc_trimming, method = "weighting",
+            s.d.denom = "pooled", # pooled standard deviation (most appropriate for ATE; for ATTE: "treated")
+            disp.v.ratio = TRUE, disp.ks = TRUE, 
+            un = TRUE, # display statistics also for before DML
+            continuous = "std", binary = "std" # also standardized multi covariates
+          )
+          
+          # prepare data frame
+          df_smd_cov_func <- balance$Balance %>% 
+            dplyr::select(Diff.Un, Diff.Adj) %>% 
+            mutate(SD_before = abs(Diff.Un), SD_after = abs(Diff.Adj)) %>%
+            dplyr::select(-c(Diff.Un, Diff.Adj)) %>%
+            mutate(Rep = rep_sel, Fold = iter_sel, MICE = mice_sel) %>%
+            mutate(control_var = rownames(.)) %>%
+            rename(!!rlang::sym(paste0("SD_before_", treatment_var_sel)) := SD_before,
+                   !!rlang::sym(paste0("SD_after_", treatment_var_sel)) := SD_after)
+          rownames(df_smd_cov_func) <- 1:nrow(df_smd_cov_func)
+          
+          # save data frame in list
+          df_smd_cov_func_all[[treatment_var_sel]] <- df_smd_cov_func
+        } # close iteration over treatment variables
+        
+        # append ASMD across treatments in one data frame
+        df_smd_cov_func_all <- left_join(
+          df_smd_cov_func_all[["D_1"]], df_smd_cov_func_all[["D_2"]], by = c("control_var", "Rep", "Fold", "MICE")
+        ) %>%
+          left_join(df_smd_cov_func_all[["D_3"]], by = c("control_var", "Rep",  "Fold", "MICE"))
+        
+        # aggregate and append
+        df_smd_cov_func_all <- df_smd_cov_func_all %>%
+          ungroup() %>%
+          group_by(control_var, Rep, Fold, MICE) %>%
+          summarize(SD_before = max(c(SD_before_D_1, SD_before_D_2, SD_before_D_3)),
+                    SD_after = max(c(SD_after_D_1, SD_after_D_2, SD_after_D_3))) %>%
+          ungroup()
+        
+        df_smd_cov_func_all_multi_rc_trimming <- rbind(df_smd_cov_func_all_multi_rc_trimming, df_smd_cov_func_all)
+      } # close for loop over iterations
+    } # close iteration over repetitions
+  } # close iteration over for mice data sets
+  
+  # summarize across controls: MICE, repetitions and folds
+  df_smd_cov_func_all_multi_rc_trimming <- df_smd_cov_func_all_multi_rc_trimming %>%
+    ungroup() %>%
+    dplyr::select(-c("Rep", "MICE", "Fold")) %>%
+    group_by(control_var) %>%
+    summarize(SD_before = mean(SD_before), SD_after = mean(SD_after)) %>% 
+    mutate(outcome = "GPA")
+  
+  # summary statistics
+  df_smd_cov_func_sum_multi_rc_trimming <- 
+    data.frame(
+      "treatment_setting" = rep("multi", 2),
+      "adjustment" = c("before", "after"),
+      "min" = c(min(df_smd_cov_func_all_multi_rc_trimming$SD_before),  min(df_smd_cov_func_all_multi_rc_trimming$SD_after, na.rm = T)),
+      "mean" = c(mean(df_smd_cov_func_all_multi_rc_trimming$SD_before), mean(df_smd_cov_func_all_multi_rc_trimming$SD_after, na.rm = T)),
+      "median" = c(median(df_smd_cov_func_all_multi_rc_trimming$SD_before), median(df_smd_cov_func_all_multi_rc_trimming$SD_after, na.rm = T)),
+      "max" = c(max(df_smd_cov_func_all_multi_rc_trimming$SD_before), max(df_smd_cov_func_all_multi_rc_trimming$SD_after, na.rm = T)),
+      "num_cov_smd_25" = c(sum(df_smd_cov_func_all_multi_rc_trimming$SD_before > 0.25), 
+                           sum(df_smd_cov_func_all_multi_rc_trimming$SD_after > 0.25, na.rm = T)), 
+      "num_cov_smd_10" = c(sum(df_smd_cov_func_all_multi_rc_trimming$SD_before > 0.1), 
+                           sum(df_smd_cov_func_all_multi_rc_trimming$SD_after > 0.1, na.rm = T)), 
+      "num_cov_smd_5" = c(sum(df_smd_cov_func_all_multi_rc_trimming$SD_before > 0.05), 
+                          sum(df_smd_cov_func_all_multi_rc_trimming$SD_after > 0.05, na.rm = T)), 
+      "perc_cov_smd_25" = c(sum(df_smd_cov_func_all_multi_rc_trimming$SD_before > 0.25) / length(df_smd_cov_func_all_multi_rc_trimming$SD_before), 
+                            sum(df_smd_cov_func_all_multi_rc_trimming$SD_after > 0.25, na.rm = T) / df_smd_cov_func_all_multi_rc_trimming %>% dplyr::select(SD_after) %>% na.omit() %>% nrow()), 
+      "perc_cov_smd_10" = c(sum(df_smd_cov_func_all_multi_rc_trimming$SD_before > 0.1) / length(df_smd_cov_func_all_multi_rc_trimming$SD_before), 
+                            sum(df_smd_cov_func_all_multi_rc_trimming$SD_after > 0.1, na.rm = T) / df_smd_cov_func_all_multi_rc_trimming %>% dplyr::select(SD_after) %>% na.omit() %>% nrow()), 
+      "perc_cov_smd_5" = c(sum(df_smd_cov_func_all_multi_rc_trimming$SD_before > 0.05) / length(df_smd_cov_func_all_multi_rc_trimming$SD_before), 
+                           sum(df_smd_cov_func_all_multi_rc_trimming$SD_after > 0.05, na.rm = T) / df_smd_cov_func_all_multi_rc_trimming %>% dplyr::select(SD_after) %>% na.omit() %>% nrow())
+    )
+  
+  df_smd_cov_func_sum_multi_rc_trimming <- df_smd_cov_func_sum_multi_rc_trimming %>% 
+    mutate(outcome = "GPA", trimming = trimming_sel)
+  df_smd_cov_func_all_multi_rc_trimming <- df_smd_cov_func_all_multi_rc_trimming %>% 
+    mutate(outcome = "GPA", trimming = trimming_sel)
+  
+  # append to overall data frame
+  df_smd_sum_multi_rc_trimming <- rbind(df_smd_sum_multi_rc_trimming, df_smd_cov_func_sum_multi_rc_trimming)
+  df_smd_all_multi_rc_trimming <- rbind(df_smd_all_multi_rc_trimming, df_smd_cov_func_all_multi_rc_trimming)
+  
+} # close loop over trimming_sel()
+
+
+df_smd_sum_multi_rc_trimming <- df_smd_sum_multi_rc_trimming %>% dplyr::select(
+  outcome, trimming, treatment_setting, adjustment, everything()
+) %>% filter(adjustment == "after")
+
+df_smd_all_multi_rc_trimming <- df_smd_all_multi_rc_trimming %>% dplyr::select(
+  outcome, trimming, control_var, SD_before, SD_after
+)
+
+saveRDS(df_smd_sum_multi_rc_trimming, "Output/DML/Covariate_Balancing/covariate_balancing_summary_rc_trimming.rds")
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%#
