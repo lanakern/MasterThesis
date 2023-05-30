@@ -710,6 +710,29 @@ gc()
 eval(parse(text = keep_after_file_run))
 
 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### RUN DML: Chernozhukov and Knaus Function ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+treatment_setting <- "binary"
+cohort_prep <- main_cohort_prep 
+treatment_repl <- main_treatment_repl 
+treatment_def <- main_treatment_def 
+extra_act <- main_extra_act 
+model_type <- main_model_type 
+model_controls_lag <- main_model_controls_lag 
+model_controls_endog <- main_model_controls_endog 
+model_trimming <- main_model_trimming 
+cov_balance <- main_cov_balance
+model_post_sel <- FALSE
+model_k <- 4
+model_k_tuning <- 3
+model_s_rep <- 5
+outcome_var <- "outcome_grade"
+outcome_var_multi <- "outcome_grade"
+
+source("Scripts/11_c_DML_Chernozhukov_Function.R") 
+source("Scripts/11_d_DML_Knaus_Function.R") 
 
 #%%%%%%%%%%%%%%%%%%%%%%%#
 #### ANALYZE RESULTS ####
