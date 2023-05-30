@@ -34,6 +34,17 @@ if (extra_act == "yes") {
   extra_act_save <- ""
 }
 
+# define theme 
+theme_binary_grades_no_y_labels <- theme(
+  panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(),
+  axis.text.y = element_blank(), axis.ticks.length.y = unit(.25, 'cm'), axis.ticks.y = element_line(linewidth = 1),
+  plot.title = element_text(size = 24), axis.text.x = element_text(size = 22), axis.title = element_text(size = 22)
+)
+
+theme_binary_grades_y_labels <- theme(
+  panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(),
+  plot.title = element_text(size = 24), axis.text.x = element_text(size = 22), axis.title = element_text(size = 22)
+)
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 #### USE COEFFICIENTS FROM CROSS-FITTING ####
@@ -91,22 +102,43 @@ var_names_descr <- c(var_names_descr, lasso_binary_coef$Variable)
 lasso_feature_imp_plot <- func_feature_importance_plot("binary", lasso_binary_coef, "LASSO", "separate")
 
 # save plots
-ggsave("Output/DML/Feature_Importance/lasso_binary_feature_importance_m.png", 
-       lasso_feature_imp_plot$m + ggtitle("LASSO") + theme(
-         plot.title = element_text(size = 24), axis.text.x = element_text(size = 22), axis.title = element_text(size = 22)
-       ),
-       width = 10, height = 8, dpi = 300, units = "in", device='png')
-ggsave("Output/DML/Feature_Importance/lasso_binary_feature_importance_g0.png", 
-       lasso_feature_imp_plot$g0 + ggtitle("LASSO") + theme(
-         plot.title = element_text(size = 24), axis.text.x = element_text(size = 22), axis.title = element_text(size = 22)
-       ),
-       width = 10, height = 8, dpi = 300, units = "in", device='png')
-ggsave("Output/DML/Feature_Importance/lasso_binary_feature_importance_g1.png", 
-       lasso_feature_imp_plot$g1 + ggtitle("LASSO") + theme(
-         plot.title = element_text(size = 24), axis.text.x = element_text(size = 22), axis.title = element_text(size = 22)
-       ),
-       width = 10, height = 8, dpi = 300, units = "in", device='png')
+pdf("Output/DML/Feature_Importance/lasso_binary_feature_importance_m.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(lasso_feature_imp_plot$m + ggtitle("LASSO") + theme_binary_grades_y_labels)
+dev.off()
 
+pdf("Output/DML/Feature_Importance/lasso_binary_feature_importance_m_notext.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(lasso_feature_imp_plot$m + ggtitle("LASSO") + theme_binary_grades_no_y_labels)
+dev.off()
+
+
+pdf("Output/DML/Feature_Importance/lasso_binary_feature_importance_g0.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(lasso_feature_imp_plot$g0 + ggtitle("LASSO") + theme_binary_grades_y_labels)
+dev.off()
+
+pdf("Output/DML/Feature_Importance/lasso_binary_feature_importance_g0_notext.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(lasso_feature_imp_plot$g0 + ggtitle("LASSO") + 
+        scale_x_continuous(breaks = c(0, 0.05, 0.1, 0.15, 0.2, 0.25), labels = c("0.00", "0.05", "0.10", "0.15", "0.20", "0.25"),
+                           limits = c(0, 0.28)) + 
+        theme_binary_grades_no_y_labels)
+dev.off()
+
+
+pdf("Output/DML/Feature_Importance/lasso_binary_feature_importance_g1.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(lasso_feature_imp_plot$g1 + ggtitle("LASSO") + theme_binary_grades_y_labels)
+dev.off()
+
+pdf("Output/DML/Feature_Importance/lasso_binary_feature_importance_g1_notext.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(lasso_feature_imp_plot$g0 + ggtitle("LASSO") + 
+        scale_x_continuous(breaks = c(0, 0.05, 0.1, 0.15, 0.2, 0.25), labels = c("0.00", "0.05", "0.10", "0.15", "0.20", "0.25"),
+                           limits = c(0, 0.28)) + 
+        theme_binary_grades_no_y_labels)
+dev.off()
 
 
 #%%%%%%%%%%%%%%%%%%#
@@ -216,67 +248,137 @@ for (outcome_var_sel in c("neuroticism", "openness", "conscientiousness", "extra
 var_names_descr <- c(var_names_descr, postlasso_binary_coef_all$Variable)
 
 # save grades
-ggsave("Output/DML/Feature_Importance/postlasso_binary_feature_importance_grades_m.png", 
-       postlasso_feature_imp_plot$grades$m + ggtitle("POST-LASSO") + theme(plot.title = element_text(size = 24), axis.text.x = element_text(size = 22), axis.title = element_text(size = 22)),
-       width = 10, height = 8, dpi = 300, units = "in", device='png')
-ggsave("Output/DML/Feature_Importance/postlasso_binary_feature_importance_grades_g0.png", 
-       postlasso_feature_imp_plot$grades$g0 + ggtitle("POST-LASSO") + theme(plot.title = element_text(size = 24), axis.text.x = element_text(size = 22), axis.title = element_text(size = 22)),
-       width = 10, height = 8, dpi = 300, units = "in", device='png')
-ggsave("Output/DML/Feature_Importance/postlasso_binary_feature_importance_grades_g1.png", 
-       postlasso_feature_imp_plot$grades$g1 + ggtitle("POST-LASSO") + theme(plot.title = element_text(size = 24), axis.text.x = element_text(size = 22), axis.title = element_text(size = 22)),
-       width = 10, height = 8, dpi = 300, units = "in", device='png')
+pdf("Output/DML/Feature_Importance/postlasso_binary_feature_importance_grades_m.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(postlasso_feature_imp_plot$grades$m  + ggtitle("Post-LASSO") + 
+        scale_x_continuous(breaks = c(0, 0.05, 0.1, 0.15, 0.2, 0.25), labels = c("0.00", "0.05", "0.10", "0.15", "0.20", "0.25"),
+                           limits = c(0, 0.27)) + 
+        theme_binary_grades_y_labels)
+dev.off()
+
+pdf("Output/DML/Feature_Importance/postlasso_binary_feature_importance_grades_g0.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(postlasso_feature_imp_plot$grades$g0 + ggtitle("Post-LASSO") + theme_binary_grades_y_labels)
+dev.off()
+
+
+pdf("Output/DML/Feature_Importance/postlasso_binary_feature_importance_grades_g1.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(postlasso_feature_imp_plot$grades$g1 + ggtitle("Post-LASSO") + theme_binary_grades_no_y_labels)
+dev.off()
+
+
+pdf("Output/DML/Feature_Importance/postlasso_binary_feature_importance_grades_m_notext.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(postlasso_feature_imp_plot$grades$m  + ggtitle("Post-LASSO") + 
+        scale_x_continuous(breaks = c(0, 0.05, 0.1, 0.15, 0.2, 0.25), labels = c("0.00", "0.05", "0.10", "0.15", "0.20", "0.25"),
+                           limits = c(0, 0.27)) + 
+        theme_binary_grades_no_y_labels)
+dev.off()
+
+pdf("Output/DML/Feature_Importance/postlasso_binary_feature_importance_grades_g0_notext.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(postlasso_feature_imp_plot$grades$g0 + ggtitle("Post-LASSO") + 
+        scale_x_continuous(breaks = c(0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3), labels = c("0.00", "0.05", "0.10", "0.15", "0.20", "0.25", "0.30"),
+                           limits = c(0, 0.32)) +
+        theme_binary_grades_no_y_labels)
+dev.off()
+
+
+pdf("Output/DML/Feature_Importance/postlasso_binary_feature_importance_grades_g1_notext.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(postlasso_feature_imp_plot$grades$g1 + ggtitle("Post-LASSO") + 
+        scale_x_continuous(breaks = c(0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3), labels = c("0.00", "0.05", "0.10", "0.15", "0.20", "0.25", "0.30"),
+                           limits = c(0, 0.32)) +
+        theme_binary_grades_no_y_labels)
+dev.off()
+
 
 # save personality
-ggsave("Output/DML/Feature_Importance/postlasso_binary_feature_importance_agreeableness_m.png", 
-       postlasso_feature_imp_plot$agreeableness$m + ggtitle("Agreeableness") +
-         theme(plot.title = element_text(size = 28), axis.text.x = element_text(size = 26), axis.title = element_text(size = 26)),
-       width = 10, height = 8, dpi = 300, units = "in", device='png')
+pdf("Output/DML/Feature_Importance/postlasso_binary_feature_importance_agreeableness_m.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(postlasso_feature_imp_plot$agreeableness$m  + ggtitle("Agreeableness") + theme_binary_grades_y_labels)
+dev.off()
 
-ggsave("Output/DML/Feature_Importance/postlasso_binary_feature_importance_extraversion_m.png", 
-       postlasso_feature_imp_plot$extraversion$m + ggtitle("Extroversion") +
-         theme(plot.title = element_text(size = 28), axis.text.x = element_text(size = 26), axis.title = element_text(size = 26)),
-       width = 10, height = 8, dpi = 300, units = "in", device='png')
+pdf("Output/DML/Feature_Importance/postlasso_binary_feature_importance_extraversion_m.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(postlasso_feature_imp_plot$extraversion$m  + ggtitle("Extroversion") + theme_binary_grades_y_labels)
+dev.off()
 
-ggsave("Output/DML/Feature_Importance/postlasso_binary_feature_importance_conscientiousness_m.png", 
-       postlasso_feature_imp_plot$conscientiousness$m + ggtitle("Conscientiousness") +
-         theme(plot.title = element_text(size = 28), axis.text.x = element_text(size = 26), axis.title = element_text(size = 26)),
-       width = 10, height = 8, dpi = 300, units = "in", device='png')
+pdf("Output/DML/Feature_Importance/postlasso_binary_feature_importance_conscientiousness_m.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(postlasso_feature_imp_plot$conscientiousness$m  + ggtitle("Conscientiousness") + theme_binary_grades_y_labels)
+dev.off()
 
-ggsave("Output/DML/Feature_Importance/postlasso_binary_feature_importance_openness_m.png", 
-       postlasso_feature_imp_plot$openness$m + ggtitle("Openness") +
-         theme(plot.title = element_text(size = 28), axis.text.x = element_text(size = 26), axis.title = element_text(size = 26)),
-       width = 10, height = 8, dpi = 300, units = "in", device='png')
+pdf("Output/DML/Feature_Importance/postlasso_binary_feature_importance_openness_m.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(postlasso_feature_imp_plot$openness$m  + ggtitle("Openness") + theme_binary_grades_y_labels)
+dev.off()
 
-ggsave("Output/DML/Feature_Importance/postlasso_binary_feature_importance_neuroticism_m.png", 
-       postlasso_feature_imp_plot$neuroticism$m + ggtitle("Neuroticism") +
-         theme(plot.title = element_text(size = 28), axis.text.x = element_text(size = 26), axis.title = element_text(size = 26)),
-       width = 10, height = 8, dpi = 300, units = "in", device='png')
+pdf("Output/DML/Feature_Importance/postlasso_binary_feature_importance_neuroticism_m.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(postlasso_feature_imp_plot$neuroticism$m  + ggtitle("Neuroticism") + theme_binary_grades_y_labels)
+dev.off()
 
 
-ggsave("Output/DML/Feature_Importance/postlasso_binary_feature_importance_agreeableness_g.png", 
-       postlasso_feature_imp_plot$agreeableness$g + xlim(0, 0.11) + ggtitle("Agreeableness") +
-         theme(plot.title = element_text(size = 28), axis.text.x = element_text(size = 26), axis.title = element_text(size = 26)),
-       width = 10, height = 8, dpi = 300, units = "in", device='png')
+pdf("Output/DML/Feature_Importance/postlasso_binary_feature_importance_agreeableness_g.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(postlasso_feature_imp_plot$agreeableness$g  + ggtitle("Agreeableness") + theme_binary_grades_y_labels)
+dev.off()
 
-ggsave("Output/DML/Feature_Importance/postlasso_binary_feature_importance_extraversion_g.png", 
-       postlasso_feature_imp_plot$extraversion$g + ggtitle("Extroversion") +
-         theme(plot.title = element_text(size = 28), axis.text.x = element_text(size = 26), axis.title = element_text(size = 26)),
-       width = 10, height = 8, dpi = 300, units = "in", device='png')
+pdf("Output/DML/Feature_Importance/postlasso_binary_feature_importance_extraversion_g.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(postlasso_feature_imp_plot$extraversion$g  + ggtitle("Extroversion") + theme_binary_grades_y_labels)
+dev.off()
 
-ggsave("Output/DML/Feature_Importance/postlasso_binary_feature_importance_conscientiousness_g.png", 
-       postlasso_feature_imp_plot$conscientiousness$g + ggtitle("Conscientiousness") +
-         theme(plot.title = element_text(size = 28), axis.text.x = element_text(size = 26), axis.title = element_text(size = 26)),
-       width = 10, height = 8, dpi = 300, units = "in", device='png')
+pdf("Output/DML/Feature_Importance/postlasso_binary_feature_importance_conscientiousness_g.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(postlasso_feature_imp_plot$conscientiousness$g  + ggtitle("Conscientiousness") + theme_binary_grades_y_labels)
+dev.off()
 
-ggsave("Output/DML/Feature_Importance/postlasso_binary_feature_importance_openness_g.png", 
-       postlasso_feature_imp_plot$openness$g + ggtitle("Openness") +
-         theme(plot.title = element_text(size = 28), axis.text.x = element_text(size = 26), axis.title = element_text(size = 26)),
-       width = 10, height = 8, dpi = 300, units = "in", device='png')
+pdf("Output/DML/Feature_Importance/postlasso_binary_feature_importance_openness_g.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(postlasso_feature_imp_plot$openness$g  + ggtitle("Openness") + theme_binary_grades_y_labels)
+dev.off()
 
-ggsave("Output/DML/Feature_Importance/postlasso_binary_feature_importance_neuroticism_g.png", 
-       postlasso_feature_imp_plot$neuroticism$g + ggtitle("Neuroticism") +
-         theme(plot.title = element_text(size = 28), axis.text.x = element_text(size = 26), axis.title = element_text(size = 26)),
-       width = 10, height = 8, dpi = 300, units = "in", device='png')
+pdf("Output/DML/Feature_Importance/postlasso_binary_feature_importance_neuroticism_g.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(postlasso_feature_imp_plot$neuroticism$g  + ggtitle("Neuroticism") + theme_binary_grades_y_labels)
+dev.off()
+
+
+
+
+pdf("Output/DML/Feature_Importance/postlasso_binary_feature_importance_agreeableness_g_notext.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(postlasso_feature_imp_plot$agreeableness$g  + ggtitle("Agreeableness") + 
+        scale_x_continuous(breaks = c(0, 0.02, 0.04, 0.06, 0.08), labels = c("0.00", "0.02", "0.04", "0.06", "0.08"),
+                           limits = c(0, 0.09)) +
+        theme_binary_grades_no_y_labels)
+dev.off()
+
+pdf("Output/DML/Feature_Importance/postlasso_binary_feature_importance_extraversion_g_notext.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(postlasso_feature_imp_plot$extraversion$g  + ggtitle("Extroversion") + theme_binary_grades_no_y_labels)
+dev.off()
+
+pdf("Output/DML/Feature_Importance/postlasso_binary_feature_importance_conscientiousness_g_notext.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(postlasso_feature_imp_plot$conscientiousness$g  + ggtitle("Conscientiousness") + theme_binary_grades_no_y_labels)
+dev.off()
+
+pdf("Output/DML/Feature_Importance/postlasso_binary_feature_importance_openness_g_notext.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(postlasso_feature_imp_plot$openness$g  + ggtitle("Openness") + theme_binary_grades_no_y_labels)
+dev.off()
+
+pdf("Output/DML/Feature_Importance/postlasso_binary_feature_importance_neuroticism_g_notext.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(postlasso_feature_imp_plot$neuroticism$g  + ggtitle("Neuroticism") + 
+        scale_x_continuous(breaks = c(0, 0.1, 0.2, 0.3), labels = c("0.00", "0.10", "0.20", "0.30"),
+                           limits = c(0, 0.35)) +
+        theme_binary_grades_no_y_labels)
+dev.off()
 
 
 #%%%%%%%%%%%%%%%%%%%%%%#
@@ -319,22 +421,41 @@ var_names_descr <- c(var_names_descr, rf_binary_imp$Variable)
 rf_feature_imp_plot <- func_feature_importance_plot("binary", rf_binary_imp, "Random Forests", "separate")
 
 # save
-ggsave("Output/DML/Feature_Importance/rf_binary_feature_importance_m.png", 
-       rf_feature_imp_plot$m + ggtitle("RANDOM FORESTS") + theme(
-         plot.title = element_text(size = 24), axis.text.x = element_text(size = 22), axis.title = element_text(size = 22)
-       ),
-       width = 10, height = 8, dpi = 300, units = "in", device='png')
-ggsave("Output/DML/Feature_Importance/rf_binary_feature_importance_g0.png", 
-       rf_feature_imp_plot$g0 + ggtitle("RANDOM FORESTS") + theme(
-         plot.title = element_text(size = 24), axis.text.x = element_text(size = 22), axis.title = element_text(size = 22)
-       ),
-       width = 10, height = 8, dpi = 300, units = "in", device='png')
-ggsave("Output/DML/Feature_Importance/rf_binary_feature_importance_g1.png", 
-       rf_feature_imp_plot$g1 + ggtitle("RANDOM FORESTS") + theme(
-         plot.title = element_text(size = 24), axis.text.x = element_text(size = 22), axis.title = element_text(size = 22)
-       ),
-       width = 10, height = 8, dpi = 300, units = "in", device='png')
+pdf("Output/DML/Feature_Importance/rf_binary_feature_importance_grades_m.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(rf_feature_imp_plot$m  + ggtitle("Random Forests") + theme_binary_grades_y_labels)
+dev.off()
 
+
+pdf("Output/DML/Feature_Importance/rf_binary_feature_importance_grades_g0.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(rf_feature_imp_plot$g0 + ggtitle("Random Forests") + theme_binary_grades_y_labels)
+dev.off()
+
+
+pdf("Output/DML/Feature_Importance/rf_binary_feature_importance_grades_g1.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(rf_feature_imp_plot$g1 + ggtitle("Random Forests") + theme_binary_grades_y_labels)
+dev.off()
+
+
+pdf("Output/DML/Feature_Importance/rf_binary_feature_importance_grades_m_notext.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(rf_feature_imp_plot$m  + ggtitle("Random Forests") + theme_binary_grades_no_y_labels)
+dev.off()
+
+
+pdf("Output/DML/Feature_Importance/rf_binary_feature_importance_grades_g0_notext.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(rf_feature_imp_plot$g0 + ggtitle("Random Forests") + theme_binary_grades_no_y_labels)
+dev.off()
+
+
+pdf("Output/DML/Feature_Importance/rf_binary_feature_importance_grades_g1_notext.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(rf_feature_imp_plot$g1 + ggtitle("Random Forests") + 
+        theme_binary_grades_no_y_labels)
+dev.off()
 
 
 #%%%%%%%%%%%%%%%#
@@ -365,16 +486,44 @@ xgb_binary_imp <- xgb_binary_imp %>%
 
 var_names_descr <- c(var_names_descr, xgb_binary_imp$Variable)
 xgb_feature_imp_plot <- func_feature_importance_plot("binary", xgb_binary_imp, "XGBoost", "separate")
-ggsave("Output/DML/Feature_Importance/xgboost_binary_feature_importance_m.png", 
-       xgb_feature_imp_plot$m + ggtitle("XGBOOST") + theme(plot.title = element_text(size = 24), axis.text.x = element_text(size = 22), axis.title = element_text(size = 22)),
-       width = 10, height = 8, dpi = 300, units = "in", device='png')
-ggsave("Output/DML/Feature_Importance/xgboost_binary_feature_importance_g0.png", 
-       xgb_feature_imp_plot$g0 + ggtitle("XGBOOST") + theme(plot.title = element_text(size = 24), axis.text.x = element_text(size = 22), axis.title = element_text(size = 22)),
-       width = 10, height = 8, dpi = 300, units = "in", device='png')
-ggsave("Output/DML/Feature_Importance/xgboost_binary_feature_importance_g1.png", 
-       xgb_feature_imp_plot$g1 + xlim(0, 0.26) + ggtitle("XGBOOST") + theme(plot.title = element_text(size = 24), axis.text.x = element_text(size = 22), axis.title = element_text(size = 22)),
-       width = 10, height = 8, dpi = 300, units = "in", device='png')
 
+pdf("Output/DML/Feature_Importance/xgb_binary_feature_importance_grades_m.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(xgb_feature_imp_plot$m  + ggtitle("XGBoost") + theme_binary_grades_y_labels)
+dev.off()
+
+
+pdf("Output/DML/Feature_Importance/xgb_binary_feature_importance_grades_g0.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(xgb_feature_imp_plot$g0 + ggtitle("XGBoost") + theme_binary_grades_y_labels)
+dev.off()
+
+
+pdf("Output/DML/Feature_Importance/xgb_binary_feature_importance_grades_g1.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(xgb_feature_imp_plot$g1 + ggtitle("XGBoost") + theme_binary_grades_y_labels)
+dev.off()
+
+
+pdf("Output/DML/Feature_Importance/xgb_binary_feature_importance_grades_m_notext.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(xgb_feature_imp_plot$m  + ggtitle("XGBoost") + theme_binary_grades_no_y_labels)
+dev.off()
+
+
+pdf("Output/DML/Feature_Importance/xgb_binary_feature_importance_grades_g0_notext.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(xgb_feature_imp_plot$g0 + ggtitle("XGBoost") + theme_binary_grades_no_y_labels)
+dev.off()
+
+
+pdf("Output/DML/Feature_Importance/xgb_binary_feature_importance_grades_g1_notext.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(xgb_feature_imp_plot$g1 + ggtitle("XGBoost") + 
+        scale_x_continuous(breaks = c(0, 0.05, 0.1, 0.15, 0.2, 0.25), labels = c("0.00", "0.05", "0.10", "0.15", "0.20", "0.25"),
+                           limits = c(0, 0.28)) + 
+        theme_binary_grades_no_y_labels)
+dev.off()
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -503,36 +652,70 @@ var_names_descr <- c(var_names_descr, postlasso_multi_coef$Variable)
 
 postlasso_multi_feature_imp_plot <- func_feature_importance_plot(
   "multi", postlasso_multi_coef, "POST-LASSO", "separate")
-ggsave("Output/DML/Feature_Importance/postlasso_multi_feature_importance_m1.png", 
-       postlasso_multi_feature_imp_plot$m1 + ggtitle("Weekly Sport Participation") + theme(
-         plot.title = element_text(size = 22), axis.text.x = element_text(size = 20), 
-         axis.text.y = element_text(size = 16), axis.title = element_text(size = 20)
-         ), width = 10, height = 8, dpi = 300)
-ggsave("Output/DML/Feature_Importance/postlasso_multi_feature_importance_m2.png", 
-       postlasso_multi_feature_imp_plot$m2 + ggtitle("Monthly Sport Participation") + theme(
-         plot.title = element_text(size = 22), axis.text.x = element_text(size = 20), 
-         axis.text.y = element_text(size = 16), axis.title = element_text(size = 20)
-       ), width = 10, height = 8, dpi = 300)
-ggsave("Output/DML/Feature_Importance/postlasso_multi_feature_importance_m3.png", 
-       postlasso_multi_feature_imp_plot$m3 + ggtitle("No Sport Participation") + theme(
-         plot.title = element_text(size = 22), axis.text.x = element_text(size = 20), 
-         axis.text.y = element_text(size = 16), axis.title = element_text(size = 20)
-       ), width = 10, height = 8, dpi = 300)
-ggsave("Output/DML/Feature_Importance/postlasso_multi_feature_importance_g1.png", 
-       postlasso_multi_feature_imp_plot$g1 + ggtitle("Outcome for Weekly Sport Participation") + theme(
-         plot.title = element_text(size = 22), axis.text.x = element_text(size = 20), 
-         axis.text.y = element_text(size = 16), axis.title = element_text(size = 20)
-       ), width = 10, height = 8, dpi = 300)
-ggsave("Output/DML/Feature_Importance/postlasso_multi_feature_importance_g2.png", 
-       postlasso_multi_feature_imp_plot$g2 + ggtitle("Outcome for Monthly Sport Participation") + theme(
-         plot.title = element_text(size = 22), axis.text.x = element_text(size = 20), 
-         axis.text.y = element_text(size = 16), axis.title = element_text(size = 20)
-       ), width = 10, height = 8, dpi = 300)
-ggsave("Output/DML/Feature_Importance/postlasso_multi_feature_importance_g3.png", 
-       postlasso_multi_feature_imp_plot$g3 + ggtitle("Outcome for No Sport Participation") + theme(
-         plot.title = element_text(size = 22), axis.text.x = element_text(size = 20), 
-         axis.text.y = element_text(size = 16), axis.title = element_text(size = 20)
-       ), width = 10, height = 8, dpi = 300)
+
+
+pdf("Output/DML/Feature_Importance/postlasso_multi_feature_importance_m1.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(postlasso_multi_feature_imp_plot$m1 + ggtitle("Weekly") + theme_binary_grades_y_labels)
+dev.off()
+
+pdf("Output/DML/Feature_Importance/postlasso_multi_feature_importance_m2.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(postlasso_multi_feature_imp_plot$m2 + ggtitle("Monthly") + theme_binary_grades_y_labels)
+dev.off()
+
+pdf("Output/DML/Feature_Importance/postlasso_multi_feature_importance_m3.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(postlasso_multi_feature_imp_plot$m3 + ggtitle("Never") + theme_binary_grades_y_labels)
+dev.off()
+
+
+pdf("Output/DML/Feature_Importance/postlasso_multi_feature_importance_m1_notext.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(postlasso_multi_feature_imp_plot$m1 + ggtitle("Weekly") + theme_binary_grades_no_y_labels)
+dev.off()
+
+pdf("Output/DML/Feature_Importance/postlasso_multi_feature_importance_m2_notext.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(postlasso_multi_feature_imp_plot$m2 + ggtitle("Monthly") + theme_binary_grades_no_y_labels)
+dev.off()
+
+pdf("Output/DML/Feature_Importance/postlasso_multi_feature_importance_m3_notext.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(postlasso_multi_feature_imp_plot$m3 + ggtitle("Never") + theme_binary_grades_no_y_labels)
+dev.off()
+
+
+pdf("Output/DML/Feature_Importance/postlasso_multi_feature_importance_g1.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(postlasso_multi_feature_imp_plot$g1 + ggtitle("Outcome for Weekly") + theme_binary_grades_y_labels)
+dev.off()
+
+pdf("Output/DML/Feature_Importance/postlasso_multi_feature_importance_g2.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(postlasso_multi_feature_imp_plot$g2 + ggtitle("Outcome for Monthly") + theme_binary_grades_y_labels)
+dev.off()
+
+pdf("Output/DML/Feature_Importance/postlasso_multi_feature_importance_g3.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(postlasso_multi_feature_imp_plot$g3 + ggtitle("Outcome for Never") + theme_binary_grades_y_labels)
+dev.off()
+
+
+pdf("Output/DML/Feature_Importance/postlasso_multi_feature_importance_g1_notext.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(postlasso_multi_feature_imp_plot$g1 + ggtitle("Outcome for Weekly") + theme_binary_grades_no_y_labels)
+dev.off()
+
+pdf("Output/DML/Feature_Importance/postlasso_multi_feature_importance_g2_notext.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(postlasso_multi_feature_imp_plot$g2 + ggtitle("Outcome for Monthly") + theme_binary_grades_no_y_labels)
+dev.off()
+
+pdf("Output/DML/Feature_Importance/postlasso_multi_feature_importance_g3_notext.pdf",
+    width = 8, height = 8, pointsize = 25, family = "Helvetica")
+print(postlasso_multi_feature_imp_plot$g3 + ggtitle("Outcome for Never") + theme_binary_grades_no_y_labels)
+dev.off()
 
 
 
