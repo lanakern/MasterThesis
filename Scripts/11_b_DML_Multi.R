@@ -42,6 +42,8 @@ for (mice_data_sel in 1:5) {
     ## extracurricular activity ending
   if (extra_act == "yes") {
     extra_act_save <- "_extradrop"
+  } else if (extra_act == "uni") {
+    extra_act_save <- "_extrauni"
   } else {
     extra_act_save <- ""
   }

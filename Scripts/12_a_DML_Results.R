@@ -222,7 +222,7 @@ df_treatment_effects_main_binary <- df_dml_main_binary %>% filter(
   model_type == main_model_type, model_k == main_model_k, model_s_rep == main_model_s_rep,
   model_trimming == main_model_trimming, model_controls_lag == main_model_controls_lag,
   model_controls_endog == main_model_controls_endog, model_hyperparam_sel == "best",
-  model_covbal == "yes", Type %in% c("ATE", "ATTE")
+  model_covbal == "yes", Type %in% c("ATE", "ATET")
 ) %>% 
   mutate(model = "main") 
 
@@ -244,7 +244,7 @@ for (mice_sel in 1:5) {
     lasso_grades_boxplot,
     lasso_grades[[mice_sel]]$detail %>%
       dplyr::select(ML_algo, Type, Rep, Treatment_Effect) %>%
-      filter(Type %in% c("ATE", "ATTE")) %>%
+      filter(Type %in% c("ATE", "ATET")) %>%
       mutate(MICE = mice_sel)
   )
   
@@ -252,7 +252,7 @@ for (mice_sel in 1:5) {
     postlasso_grades_boxplot,
     postlasso_grades[[mice_sel]]$detail %>%
       dplyr::select(ML_algo, Type, Rep, Treatment_Effect) %>%
-      filter(Type %in% c("ATE", "ATTE")) %>%
+      filter(Type %in% c("ATE", "ATET")) %>%
       mutate(MICE = mice_sel)
   )
   
@@ -260,7 +260,7 @@ for (mice_sel in 1:5) {
     rf_grades_boxplot,
     rf_grades[[mice_sel]]$detail %>%
       dplyr::select(ML_algo, Type, Rep, Treatment_Effect) %>%
-      filter(Type %in% c("ATE", "ATTE")) %>%
+      filter(Type %in% c("ATE", "ATET")) %>%
       mutate(MICE = mice_sel)
   )
   
@@ -270,7 +270,7 @@ xgb_grades_boxplot <- rbind(
   xgb_grades_boxplot,
   xgb_grades[[1]]$detail %>%
     dplyr::select(ML_algo, Type, Rep, Treatment_Effect) %>%
-    filter(Type %in% c("ATE", "ATTE")) %>%
+    filter(Type %in% c("ATE", "ATET")) %>%
     mutate(MICE = mice_sel)
 )
 
@@ -448,6 +448,7 @@ df_multi_boxplot <- df_multi_boxplot %>%
       Treatment == "no_weekly" ~ "Weekly - Never",
       Treatment == "no_monthly" ~ "Monthly - Never", TRUE ~ as.character(NA))
   ) %>%
+  mutate(Type = ifelse(Type == "ATTE", "ATET", Type)) %>%
   mutate(across(Treatment, factor, levels=c("Weekly - Monthly","Weekly - Never","Monthly - Never")))
 
 grades_boxplot_multi_all <- 
