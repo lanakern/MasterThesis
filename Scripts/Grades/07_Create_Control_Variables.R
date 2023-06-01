@@ -45,9 +45,13 @@ if (extra_act == "yes") {
 if (cohort_prep == "controls_same_outcome") {
   load_data <- paste0("Data/Grades/Prep_6/prep_6_sample_selection_", treatment_def, 
                       "_", treatment_repl, extra_act_save, ".rds")
-} else {
+} else if (cohort_prep == "controls_bef_outcome") {
   load_data <- paste0("Data/Grades/Prep_6/prep_6_sample_selection_", treatment_def, 
                       "_", treatment_repl, extra_act_save, "_robustcheck.rds")
+} else {
+  load_data <- paste0("Data/Grades/Prep_6/prep_6_sample_selection_", treatment_def, 
+                      "_", treatment_repl, extra_act_save, "_robustcheck_", 
+                      cohort_prep, ".rds")  
 }
 
 data_raw <- readRDS(load_data)
@@ -1873,10 +1877,14 @@ for (mice_result_sel in 1:mice_num_data_sets) {
   if (cohort_prep == "controls_same_outcome") {
     data_save <- paste0("Data/Grades/Prep_7/prep_7_control_vars_", treatment_def, "_", 
                         treatment_repl, extra_act_save, "_mice", mice_result_sel, ".rds")
-  } else {
+  } else if (cohort_prep == "controls_bef_outcome") {
     data_save <- paste0("Data/Grades/Prep_7/prep_7_control_vars_", treatment_def, "_", 
                         treatment_repl, extra_act_save, "_robustcheck", "_mice", 
                         mice_result_sel, ".rds")
+  } else {
+    data_save <- paste0("Data/Grades/Prep_7/prep_7_control_vars_", treatment_def, "_", 
+                        treatment_repl, extra_act_save, "_robustcheck_", 
+                        cohort_prep, "_mice", mice_result_sel, ".rds")   
   }
   
   saveRDS(data_final, data_save)

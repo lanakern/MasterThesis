@@ -49,11 +49,17 @@ if (cohort_prep == "controls_same_outcome") {
   data_cohort_profile <- readRDS("Data/Grades/Prep_2/prep_2_cohort_profile.rds") %>%
     filter(wave_2 == "CATI") %>%
     dplyr::select(ID_t, wave, interview_date)
-} else if (cohort_prep == "controls_bef_outcome") {
+} else if (cohort_prep %in% c("controls_bef_outcome", "controls_bef_all")) {
   data_cohort_profile <- readRDS("Data/Grades/Prep_2/prep_2_cohort_profile_robustcheck.rds") %>%
     filter(wave_2 == "CATI") %>%
     dplyr::select(ID_t, wave, interview_date)
+} else {
+  data_cohort_profile <- readRDS(paste0("Data/Grades/Prep_2/prep_2_cohort_profile_robustcheck_", cohort_prep, ".rds")) %>%
+    mutate(wave_2 = ifelse(grepl("CAWI", wave), "CAWI", "CATI")) %>%
+    filter(wave_2 == "CATI") %>%
+    dplyr::select(ID_t, wave, interview_date)
 }
+
 
 num_id_cohort <- length(unique(data_cohort_profile$ID_t))
 
@@ -243,6 +249,8 @@ if (cohort_prep == "controls_same_outcome") {
   data_comp_save <- "Data/Grades/Prep_3/prep_3_competencies.rds"
 } else if (cohort_prep == "controls_bef_outcome") {
   data_comp_save <- "Data/Grades/Prep_3/prep_3_competencies_robustcheck.rds"
+} else {
+  data_comp_save <- paste0("Data/Grades/Prep_3/prep_3_competencies_robustcheck_", cohort_prep, ".rds")
 }
 
 saveRDS(data_competencies_final, data_comp_save)

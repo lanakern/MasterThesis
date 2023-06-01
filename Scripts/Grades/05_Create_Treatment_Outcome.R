@@ -37,7 +37,10 @@ if (cohort_prep == "controls_same_outcome") {
                              treatment_repl, ".rds"))
 } else if (cohort_prep == "controls_bef_outcome") {
   data_raw <- readRDS(paste0("Data/Grades/Prep_4/prep_4_merge_all_treat", 
-                             treatment_repl, "_robustcheck.rds") )
+                             treatment_repl, "_robustcheck.rds"))
+} else {
+  data_raw <- readRDS(paste0("Data/Grades/Prep_4/prep_4_merge_all_treat", 
+                             treatment_repl, "_robustcheck_", cohort_prep, ".rds"))  
 }
 num_id <- length(unique(data_raw$ID_t))
 
@@ -114,13 +117,19 @@ data_1 <- data_1 %>%
       "never" = 1, "less frequently" = 2, "once a month" = 2, 
       "several times a month" = 3, "once a week" = 3, 
       "several times a week" = 4, "daily" = 5
-    ),
-    sport_leisure_freq = recode(
-      sport_leisure_freq, 
-      "never" = 1, "once a month or less" = 2, 
-      "several times a month or once a week" = 3,
-      "several times a week" = 4, "almost daily or daily" = 5
     ))
+
+if (any(!is.na(unique(data_1$sport_leisure_freq))) & any(length(unique(data_1$sport_leisure_freq)) > 1)) {
+  data_1 <- data_1 %>%
+    mutate(
+      sport_leisure_freq = recode(
+        sport_leisure_freq, 
+        "never" = 1, "once a month or less" = 2, 
+        "several times a month or once a week" = 3,
+        "several times a week" = 4, "almost daily or daily" = 5
+      ))
+}
+
 
 # recode lags (problems with NA. hence if)
 if (any(!is.na(unique(data_1$sport_uni_freq_lag)))) {
@@ -478,9 +487,12 @@ print(paste("Number of columns:", ncol(data_4)))
 if (cohort_prep == "controls_same_outcome") {
   data_save <- paste0("Data/Grades/Prep_5/prep_5_treatment_outcome_", treatment_def, 
                       "_", treatment_repl, ".rds")  
-} else {
+} else if (cohort_prep == "controls_bef_outcome") {
   data_save <- paste0("Data/Grades/Prep_5/prep_5_treatment_outcome_", treatment_def, 
                       "_", treatment_repl, "_robustcheck.rds")  
+} else {
+  data_save <- paste0("Data/Grades/Prep_5/prep_5_treatment_outcome_", treatment_def, 
+                      "_", treatment_repl, "_robustcheck_", cohort_prep, ".rds")  
 }
 
 

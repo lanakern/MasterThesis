@@ -17,9 +17,12 @@
 if (cohort_prep == "controls_same_outcome") {
   data_load <- paste0("Data/Grades/Prep_5/prep_5_treatment_outcome_", treatment_def, 
                       "_", treatment_repl, ".rds")  
-} else {
+} else if (cohort_prep == "controls_bef_outcome") {
   data_load <- paste0("Data/Grades/Prep_5/prep_5_treatment_outcome_", treatment_def, 
                       "_", treatment_repl, "_robustcheck.rds")  
+} else {
+  data_load <- paste0("Data/Grades/Prep_5/prep_5_treatment_outcome_", treatment_def, 
+                      "_", treatment_repl, "_robustcheck_", cohort_prep, ".rds")   
 }
 
 data_raw <- readRDS(data_load)
@@ -489,9 +492,13 @@ if (extra_act == "yes") {
 if (cohort_prep == "controls_same_outcome") {
   data_save <- paste0("Data/Grades/Prep_6/prep_6_sample_selection_", treatment_def, 
                       "_", treatment_repl, extra_act_save, ".rds")
-} else {
+} else if (cohort_prep == "controls_bef_outcome") {
   data_save <- paste0("Data/Grades/Prep_6/prep_6_sample_selection_", treatment_def, 
                       "_", treatment_repl, extra_act_save, "_robustcheck.rds")
+} else {
+  data_save <- paste0("Data/Grades/Prep_6/prep_6_sample_selection_", treatment_def, 
+                      "_", treatment_repl, extra_act_save, "_robustcheck_",
+                      cohort_prep, ".rds")  
 }
 
 saveRDS(data_sub_3, data_save)

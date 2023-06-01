@@ -40,8 +40,12 @@ eval(parse(text = keep_after_file_run))
 
 # Prepare treatment periods / cohort profile
 # 1.) CATI-CAWI combinations ("controls_same_outcome")
-# 2.) CAWI-CATI-CAWI combinations ("controls_bef_outcome")
-for (cohort_prep_sel in unique(na.omit(df_inputs$cohort_prep))) {
+# 2.) CAWI-CATI-CAWI combinations ("controls_bef_outcome") -> same for "controls_bef_all"
+# 3.) CATI-CAWI-CAWI-CAWI combinations ("controls_treatment_outcome")
+
+gen_treatment_periods <- c("controls_bef_outcome", "controls_same_outcome", "controls_treatment_outcome")
+
+for (cohort_prep_sel in gen_treatment_periods) {
   cohort_prep <- cohort_prep_sel
   print(cohort_prep)
   source("Scripts/Grades/02_b_Prep_Data_Interview_Participation.R")
@@ -189,7 +193,14 @@ df_inputs_indiv <- rbind(
     filter(cohort_prep == "controls_same_outcome" & extra_act == "no"),
   df_inputs %>%
     filter(cohort_prep == "controls_bef_outcome")
+) %>% rbind(
+  df_inputs %>%
+    filter(cohort_prep == "controls_bef_all" & treatment_def == "weekly")
+) %>% rbind(
+  df_inputs %>%
+    filter(cohort_prep == "controls_treatment_outcome" & treatment_def == "weekly")
 )
+  
 
 for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
   df_inputs_sel <- df_inputs_indiv[prep_sel_num, ]
@@ -225,9 +236,9 @@ for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
   extra_act <- df_inputs_sel$extra_act
   
   # Prepare control variables
+  source("Scripts/Grades/07_Create_Control_Variables.R")
   eval(parse(text = keep_after_file_run))
-  source("Scripts/Grades/07_Create_Control_Variables.R") 
-  
+   
   print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs_indiv)))
   gc()
 }
@@ -300,8 +311,6 @@ for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
 # Second create the final estimation samples. Here subsetting takes place.
 # For example, regarding extracuriccular activities or treatment replacement.
 # Also treatment group definition of "all" is considered.
-cov_balance <- "yes"
-interactions <- "no"
 # also add everything for treatment_def == "all"
 df_inputs <- rbind(df_inputs,
                    df_inputs %>% mutate(treatment_def = "all")) %>% distinct()
@@ -314,6 +323,9 @@ for (prep_sel_num in 1:nrow(df_inputs)) {
   treatment_repl <- df_inputs_sel$treatment_repl
   treatment_def <- df_inputs_sel$treatment_def
   extra_act <- df_inputs_sel$extra_act
+  
+  cov_balance <- "yes" # -> drops leisure sport participation
+  interactions <- "no"
   
   source("Scripts/Grades/10_b_Estimation_Sample.R") 
   

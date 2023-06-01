@@ -514,6 +514,9 @@ if (cohort_prep == "controls_same_outcome") {
   data_sibling_save <- "Data/Grades/Prep_3/prep_3_sibling.rds"
 } else if (cohort_prep == "controls_bef_outcome") {
   data_sibling_save <- "Data/Grades/Prep_3/prep_3_sibling_robustcheck.rds"
+} else {
+  data_sibling_save <- paste0("Data/Grades/Prep_3/prep_3_sibling_robustcheck_", cohort_prep, ".rds")
 }
+
 
 saveRDS(data_sibling_final_2, data_sibling_save)

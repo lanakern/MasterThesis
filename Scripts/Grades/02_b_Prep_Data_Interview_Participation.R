@@ -200,7 +200,7 @@ data_cohort_profile_prep_1 <- data_cohort_profile
 # Controls are taken before outcome: search for "cAWI CATI CAWI" combinations #
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 
-if (cohort_prep == "controls_bef_outcome") {
+if (cohort_prep %in% c("controls_bef_outcome", "controls_bef_all")) {
   
   # End of treatment period: treatment always ends with CAWI interview, but
   # a CATI and CAWI interview has to be taken place before
@@ -314,8 +314,99 @@ if (cohort_prep == "controls_bef_outcome") {
   # drop variables not needed anymore
   data_cohort_profile_prep_1 <- data_cohort_profile_prep_1 %>%
     dplyr::select(-c(wave_2_lag, wave_2_lead, CAWI_imp))
-  
 
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
+# Controls are taken before treatment and then outcome: search for "CAWI CATI CAWI CAWI" combinations #
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
+  
+} else if (cohort_prep == "controls_treatment_outcome") {
+  
+  # End of treatment period: treatment always ends with CAWI interview, but
+  # a CATI and CAWI interview has to be taken place before
+  data_cohort_profile_prep_1 <- data_cohort_profile_prep_1 %>%
+    as.data.frame() %>%
+    group_by(ID_t) %>%
+    mutate(
+      first_CATI = as.numeric(wave_2 == "CATI" & !duplicated(wave_2 == "CATI")),
+      first_CAWI = as.numeric(wave_2 == "CAWI" & !duplicated(wave_2 == "CAWI")),
+      first_CAWI_fill = ifelse(as.numeric(first_CAWI) == 0, NA, as.numeric(first_CAWI)),
+      wave_3 = ifelse(first_CAWI == 1 & wave_2 == "CAWI", "USED", wave_2)
+      )  %>%
+    fill(first_CAWI_fill, .direction = "down") %>%
+    mutate(
+      first_CAWI_fill = ifelse(first_CAWI == 1 & first_CAWI_fill == 1, NA, first_CAWI_fill), 
+      second_CAWI = as.numeric(wave_3 == "CAWI" & first_CAWI_fill == 1 & !duplicated(wave_3 == "CAWI")),
+      second_CAWI_fill = ifelse(as.numeric(second_CAWI) == 0, NA, as.numeric(second_CAWI)),
+      wave_4 = ifelse(second_CAWI == 1 & wave_3 == "CAWI", "USED", wave_3)
+    ) %>% 
+    fill(second_CAWI_fill, .direction = "down") %>%
+    mutate(
+      second_CAWI_fill = ifelse(second_CAWI == 1 & second_CAWI_fill == 1, NA, second_CAWI_fill), 
+      third_CAWI = as.numeric(wave_4 == "CAWI" & second_CAWI_fill == 1 & !duplicated(wave_4 == "CAWI")),
+    ) %>%
+    dplyr::select(ID_t, wave, wave_2, interview_date, competence_date, first_CATI, first_CAWI, second_CAWI, third_CAWI) %>%
+    mutate(
+      second_CAWI = ifelse(second_CAWI == 1, 2, second_CAWI), third_CAWI = ifelse(third_CAWI == 1, 3, third_CAWI),
+      drop_col = ifelse(first_CATI == 0 & first_CAWI == 0 & second_CAWI == 0 & third_CAWI == 0, 1, 0)
+    ) %>% 
+    filter(drop_col != 1)
+  
+  
+  data_cohort_profile_prep_1$first_CATI_help <- 
+    data_cohort_profile_prep_1 %>% ungroup() %>% dplyr::select(contains("_CAWI")) %>% rowSums() 
+  data_cohort_profile_prep_1[data_cohort_profile_prep_1$wave_2 == "CAWI","first_CATI_help"] <- data_cohort_profile_prep_1[data_cohort_profile_prep_1$wave_2 == "CAWI","first_CATI_help"] + 1
+  data_cohort_profile_prep_1[data_cohort_profile_prep_1$wave_2 == "CATI","first_CATI_help"] <- data_cohort_profile_prep_1[data_cohort_profile_prep_1$wave_2 == "CATI","first_CATI"]
+  
+  
+  data_cohort_profile_prep_1 <- data_cohort_profile_prep_1 %>%
+    mutate(
+      treatment_starts = ifelse(first_CATI_help %in% c(1,2,3), 1, NA),
+      treatment_ends = ifelse(first_CATI_help == 4, 1, NA)
+    )
+  
+  
+  # Drop individuals without any treatment period 
+  
+  # not for all individuals it is possible to generate treatment periods
+  # this is for instance if the individual only participated in one 
+  # or even non CAWI survey
+  # In this case, the treatment_starts and treatment_ends variables only contain
+  # missing values 
+  data_cohort_profile_prep_1 %>% subset(ID_t == 7007385)
+  
+  # identify individuals (7528 individuals)
+  id_drop <- 
+    data_cohort_profile_prep_1 %>%
+    group_by(ID_t) %>%
+    filter(all(is.na(treatment_ends))) %>%
+    pull(ID_t) %>% unique()
+  id_drop_num <- length(id_drop)
+  
+  # drop individuals
+  data_cohort_profile_prep_1 <- data_cohort_profile_prep_1 %>%
+    subset(!ID_t %in% id_drop)
+  
+  # Drop rows not belonging to a treatment period 
+  
+  # drop also rows for individuals who have treatment periods but missing values
+  # in both variables: treatment_starts and treatment_ends; those rows are not
+  # useful as they are not used.
+  data_cohort_profile_prep_1 <- data_cohort_profile_prep_1 %>%
+    filter_at(vars(treatment_starts, treatment_ends), any_vars(!is.na(.)))
+  
+  # new number of individuals
+  num_id_adj_2 <- length(unique(data_cohort_profile_prep_1$ID_t))
+  
+  # drop variables not needed anymore
+  data_cohort_profile_prep_1 <- data_cohort_profile_prep_1 %>%
+    mutate(
+      controls = ifelse(first_CATI_help %in% c(1,2), 1, 0),
+      treatment = ifelse(first_CATI_help == 3, 1, 0),
+      outcome = ifelse(first_CATI_help == 4, 1, 0)
+    ) %>%
+    dplyr::select(ID_t, wave, interview_date, competence_date, treatment_starts, treatment_ends,
+                  controls, treatment, outcome, first_CATI_help)
+  
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 # Controls are taken at same time then outcome: search for "CATI CAWI" combinations #
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
@@ -528,7 +619,43 @@ if (cohort_prep == "controls_bef_outcome") {
   # adjust number of respondents
   num_id_adj_3 <- length(unique(data_cohort_profile_prep_1$ID_t))
   id_drop_num_length <- num_id_adj_2 - num_id_adj_3
-  } else {
+} else if (cohort_prep == "controls_treatment_outcome") {
+
+  # extract start date of treatment period
+  df_check_length_start <- data_cohort_profile_prep_1 %>% 
+    filter(first_CATI_help == 1) %>% 
+    dplyr::select(ID_t, interview_date) %>% 
+    rename(interview_date_start = interview_date)
+  
+  # extract end date of treatment period
+  df_check_length_end <- data_cohort_profile_prep_1 %>% 
+    filter(first_CATI_help == 4) %>% 
+    dplyr::select(ID_t, interview_date) %>% 
+    rename(interview_date_end = interview_date)
+  
+  # join start and end date of treatment period and calculate length of treatment
+  # period in years
+  df_check_length <- inner_join(
+    df_check_length_start, df_check_length_end, by = c("ID_t")
+  ) %>%
+    mutate(treatment_length = as.numeric(interview_date_end - interview_date_start) / 365) 
+  
+  summary(df_check_length$treatment_length)
+  
+  # identify rows to keep and drop
+  id_drop <- df_check_length %>%
+    filter(treatment_length > 4) %>%
+    dplyr::select(ID_t) %>% pull() 
+  
+  # starts are dropped and ends are set NA
+  data_cohort_profile_prep_1 <- data_cohort_profile_prep_1 %>%
+    filter(!ID_t %in% id_drop)
+  
+  # adjust number of respondents
+  num_id_adj_3 <- length(unique(data_cohort_profile_prep_1$ID_t))
+  id_drop_num_length <- num_id_adj_2 - num_id_adj_3
+  
+} else {
     stop("Please select preparation method.")
 }
   
@@ -567,8 +694,10 @@ print(paste("Number of columns", ncol(data_cohort_profile_prep_1)))
   ## generate prefix for robustness check
 if (cohort_prep == "controls_same_outcome") {
   data_cohort_profile_save <- "Data/Grades/Prep_2/prep_2_cohort_profile.rds"
-} else {
+} else if (cohort_prep == "controls_bef_outcome") {
   data_cohort_profile_save <- "Data/Grades/Prep_2/prep_2_cohort_profile_robustcheck.rds"
+} else if (cohort_prep == "controls_treatment_outcome") {
+  data_cohort_profile_save <- paste0("Data/Grades/Prep_2/prep_2_cohort_profile_robustcheck_", cohort_prep, ".rds")
 }
 
 saveRDS(data_cohort_profile_prep_1, data_cohort_profile_save)

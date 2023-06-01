@@ -29,17 +29,29 @@ if (cohort_prep == "controls_same_outcome") {
                                        treatment_repl, ".rds")  )
 } else if (cohort_prep == "controls_bef_outcome") {
   data_cati_cawi_eps <- readRDS(paste0("Data/Grades/Prep_4/prep_4_merge_cati_cawi_eps_treat", 
-                                       treatment_repl, "_robustcheck.rds")  )
+                                       treatment_repl, "_robustcheck.rds"))
+} else {
+  data_cati_cawi_eps <- readRDS(paste0("Data/Grades/Prep_4/prep_4_merge_cati_cawi_eps_treat", 
+                                       treatment_repl, "_robustcheck_", cohort_prep, ".rds"))
 }
 
 # Sibling information (time-invariant)
-data_sibling <- readRDS("Data/Grades/Prep_3/prep_3_sibling.rds")
+if (cohort_prep == "controls_same_outcome") {
+  data_sibling <- readRDS("Data/Grades/Prep_3/prep_3_sibling.rds")
+} else if (cohort_prep == "controls_bef_outcome") {
+  data_sibling <- readRDS("Data/Grades/Prep_3/prep_3_sibling_robustcheck.rds")
+} else {
+  data_sibling <- readRDS(paste0("Data/Grades/Prep_3/prep_3_sibling_robustcheck_", cohort_prep, ".rds"))
+}
+
 
 # child data (time-variant)
 if (cohort_prep == "controls_same_outcome") {
   data_child <- readRDS("Data/Grades/Prep_3/prep_3_child.rds")
 } else if (cohort_prep == "controls_bef_outcome") {
   data_child <- readRDS("Data/Grades/Prep_3/prep_3_child_robustcheck.rds")
+} else {
+  data_child <- readRDS(paste0("Data/Grades/Prep_3/prep_3_child_robustcheck_", cohort_prep, ".rds"))
 }
 
 
@@ -48,6 +60,8 @@ if (cohort_prep == "controls_same_outcome") {
   data_partner <- readRDS("Data/Grades/Prep_3/prep_3_partner.rds")
 } else if (cohort_prep == "controls_bef_outcome") {
   data_partner <- readRDS("Data/Grades/Prep_3/prep_3_partner_robustcheck.rds")
+} else {
+  data_partner <- readRDS(paste0("Data/Grades/Prep_3/prep_3_partner_robustcheck_", cohort_prep, ".rds"))
 }
 
 
@@ -56,6 +70,9 @@ if (cohort_prep == "controls_same_outcome") {
   data_competencies <- readRDS("Data/Grades/Prep_3/prep_3_competencies.rds")
 } else if (cohort_prep == "controls_bef_outcome") {
   data_competencies <- readRDS("Data/Grades/Prep_3/prep_3_competencies_robustcheck.rds")
+} else {
+  data_competencies <- readRDS(paste0("Data/Grades/Prep_3/prep_3_competencies_robustcheck_", 
+                                      cohort_prep, ".rds"))
 }
 
 
@@ -187,16 +204,22 @@ id_child <- unique(data_child$ID_t)
 length(id_child)
 
 # number of respondents with children who have a match in merged data
-if (cohort_prep == "controls_bef_outcome") {
+if (cohort_prep %in% c("controls_bef_outcome", "controls_bef_all")) {
   id_cati_cawi_eps_child <- 
     inner_join(data_merge_1, data_child, 
                by = c("ID_t", "interview_date_CATI" = "interview_date")) %>%
     pull(ID_t) %>% unique() 
   num_id_child_adj_1 <- length(id_cati_cawi_eps_child)
-} else if (cohort_prep == "controls_same_outcome") {
+} else if (cohort_prep %in% c("controls_same_outcome")) {
   id_cati_cawi_eps_child <- 
     inner_join(data_merge_1, data_child, 
                by = c("ID_t", "interview_date_start" = "interview_date")) %>%
+    pull(ID_t) %>% unique() 
+  num_id_child_adj_1 <- length(id_cati_cawi_eps_child)
+} else if (cohort_prep == "controls_treatment_outcome") {
+  id_cati_cawi_eps_child <- 
+    inner_join(data_merge_1, data_child, 
+               by = c("ID_t", "interview_date")) %>%
     pull(ID_t) %>% unique() 
   num_id_child_adj_1 <- length(id_cati_cawi_eps_child)
 }
@@ -220,10 +243,10 @@ data_child <- data_child %>% subset(ID_t %in% id_cati_cawi_eps_child)
 length(unique(data_child$ID_t))
 
 # information about each respondent's children is appended.
-if (cohort_prep == "controls_bef_outcome") {
+if (cohort_prep %in% c("controls_bef_outcome", "controls_bef_all")) {
   data_merge_2 <- left_join(data_merge_1, data_child, 
                             by = c("ID_t", "interview_date_CATI" = "interview_date"))
-} else if (cohort_prep == "controls_same_outcome") {
+} else if (cohort_prep %in% c("controls_same_outcome", "controls_treatment_outcome")) {
   data_merge_2 <- left_join(data_merge_1, data_child, 
                             by = c("ID_t", "interview_date_start" = "interview_date"))
 }
@@ -256,16 +279,22 @@ id_partner <- unique(data_partner$ID_t)
 length(id_partner)
 
 # number of respondents with partner who have a match in merged data
-if (cohort_prep == "controls_bef_outcome") {
+if (cohort_prep %in% c("controls_bef_outcome", "controls_bef_all")) {
   id_cati_cawi_eps_child_partner <- 
     inner_join(data_merge_2, data_partner, 
                by = c("ID_t", "interview_date_CATI" = "interview_date")) %>%
     pull(ID_t) %>% unique() 
   num_id_partner_adj_1 <- length(id_cati_cawi_eps_child_partner)
-} else if (cohort_prep == "controls_same_outcome") {
+} else if (cohort_prep %in% c("controls_same_outcome")) {
   id_cati_cawi_eps_child_partner <- 
     inner_join(data_merge_2, data_partner, 
                by = c("ID_t", "interview_date_start" = "interview_date")) %>%
+    pull(ID_t) %>% unique() 
+  num_id_partner_adj_1 <- length(id_cati_cawi_eps_child_partner)
+} else if (cohort_prep == "controls_treatment_outcome") {
+  id_cati_cawi_eps_child_partner <- 
+    inner_join(data_merge_2, data_partner, 
+               by = c("ID_t", "interview_date")) %>%
     pull(ID_t) %>% unique() 
   num_id_partner_adj_1 <- length(id_cati_cawi_eps_child_partner)
 }
@@ -286,12 +315,15 @@ length(unique(data_partner$ID_t))
 
 
 # information about each respondent's relationship is appended.
-if (cohort_prep == "controls_bef_outcome") {
+if (cohort_prep %in% c("controls_bef_outcome", "controls_bef_all")) {
   data_merge_3 <- left_join(data_merge_2, data_partner, 
                             by = c("ID_t", "interview_date_CATI" = "interview_date"))
-} else if (cohort_prep == "controls_same_outcome") {
+} else if (cohort_prep %in% c("controls_same_outcome", "controls_treatment_outcome")) {
   data_merge_3 <- left_join(data_merge_2, data_partner, 
                             by = c("ID_t", "interview_date_start" = "interview_date"))
+} else if (cohort_prep == "controls_treatment_outcome") {
+  data_merge_3 <- left_join(data_merge_2, data_partner, 
+                            by = c("ID_t", "interview_date"))
 }
 
 # extract partner columns
@@ -328,16 +360,22 @@ id_comp <- unique(data_competencies$ID_t)
 length(id_comp)
 
 # number of respondents with partner who have a match in merged data
-if (cohort_prep == "controls_bef_outcome") {
+if (cohort_prep %in% c("controls_bef_outcome", "controls_bef_all")) {
   id_cati_cawi_eps_child_partner_comp <- 
     inner_join(data_merge_3, data_competencies, 
                by = c("ID_t", "interview_date_CATI" = "interview_date")) %>%
     pull(ID_t) %>% unique() 
   num_id_comp_adj_1 <- length(id_cati_cawi_eps_child_partner_comp)
-} else if (cohort_prep == "controls_same_outcome") {
+} else if (cohort_prep  == "controls_same_outcome") {
   id_cati_cawi_eps_child_partner_comp <- 
     inner_join(data_merge_3, data_competencies, 
                by = c("ID_t", "interview_date_start" = "interview_date")) %>%
+    pull(ID_t) %>% unique() 
+  num_id_comp_adj_1 <- length(id_cati_cawi_eps_child_partner_comp)
+} else if (cohort_prep == "controls_treatment_outcome") {
+  id_cati_cawi_eps_child_partner_comp <- 
+    inner_join(data_merge_3, data_competencies, 
+               by = c("ID_t", "interview_date")) %>%
     pull(ID_t) %>% unique() 
   num_id_comp_adj_1 <- length(id_cati_cawi_eps_child_partner_comp)
 }
@@ -356,12 +394,15 @@ data_competencies %>% subset(ID_t == 7010580)
 
 # information about each respondent's competencies is appended.
 # INNER JOIN TO KEEP ONLY RESPONDENTS WITH AT LEAST ONE COMPETENCE MEASURE?
-if (cohort_prep == "controls_bef_outcome") {
+if (cohort_prep %in% c("controls_bef_outcome", "controls_bef_all")) {
   data_merge_4 <- inner_join(data_merge_3, data_competencies, 
                             by = c("ID_t", "interview_date_CATI" = "interview_date"))
-} else if (cohort_prep == "controls_same_outcome") {
+} else if (cohort_prep %in% c("controls_same_outcome")) {
   data_merge_4 <- inner_join(data_merge_3, data_competencies, 
                             by = c("ID_t", "interview_date_start" = "interview_date"))
+} else {
+  data_merge_4 <- inner_join(data_merge_3, data_competencies, 
+                             by = c("ID_t", "interview_date"))
 }
 
 
@@ -405,8 +446,11 @@ print(paste("Number of columns:", ncol(data_merge_4)))
 # save
 if (cohort_prep == "controls_same_outcome") {
   data_merge_all_save <- paste0("Data/Grades/Prep_4/prep_4_merge_all_treat", treatment_repl, ".rds")  
-} else {
+} else if (cohort_prep == "controls_bef_outcome") {
   data_merge_all_save <- paste0("Data/Grades/Prep_4/prep_4_merge_all_treat", treatment_repl, "_robustcheck.rds") 
+} else {
+  data_merge_all_save <- paste0("Data/Grades/Prep_4/prep_4_merge_all_treat", treatment_repl, 
+                                "_robustcheck_", cohort_prep, ".rds") 
 }
 
 saveRDS(data_merge_4, data_merge_all_save)

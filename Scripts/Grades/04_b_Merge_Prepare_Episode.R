@@ -43,6 +43,9 @@ if (cohort_prep == "controls_same_outcome") {
 } else if (cohort_prep == "controls_bef_outcome") {
   data_cati_cawi <- readRDS(paste0("Data/Grades/Prep_4/prep_4_merge_cati_cawi_treat", 
                                    treatment_repl, "_robustcheck.rds"))
+} else {
+  data_cati_cawi <- readRDS(paste0("Data/Grades/Prep_4/prep_4_merge_cati_cawi_treat", 
+                                   treatment_repl, "_robustcheck_", cohort_prep, ".rds"))
 }
 
 # Episode data
@@ -125,14 +128,18 @@ id_drop_uni_spell <- num_id_adj_1 - num_id_adj_2
 
 # first, the date closest to the interview_end_date is identified
 # this date is used to calculate (or rather adjust) the spell length)
-  ## for "controls_bef_outcome" this is interview_date_CATI
+  ## for "controls_bef_outcome"  and "controls_bef_all" this is interview_date_CATI
   ## for "controls_same_outcome" this is interview_date_start
-if (cohort_prep == "controls_bef_outcome") {
+  ## for "controls_treatment_outcome" this is interview_date (-> CATI)
+if (cohort_prep %in% c("controls_bef_outcome", "controls_bef_all")) {
   data_cati_cawi_eps <- data_cati_cawi_eps %>%
     mutate(interview_date_spell = interview_date_CATI)
 } else if (cohort_prep == "controls_same_outcome") {
   data_cati_cawi_eps <- data_cati_cawi_eps %>%
     mutate(interview_date_spell = interview_date_start)
+} else {
+  data_cati_cawi_eps <- data_cati_cawi_eps %>%
+    mutate(interview_date_spell = interview_date)
 }
 
 
@@ -450,6 +457,9 @@ if (cohort_prep == "controls_same_outcome") {
 } else if (cohort_prep == "controls_bef_outcome") {
   data_cati_cawi_eps_save <- paste0("Data/Grades/Prep_4/prep_4_merge_cati_cawi_eps_treat", 
                                     treatment_repl, "_robustcheck.rds")  
+} else {
+  data_cati_cawi_eps_save <- paste0("Data/Grades/Prep_4/prep_4_merge_cati_cawi_eps_treat", 
+                                    treatment_repl, "_robustcheck_", cohort_prep, ".rds")   
 }
 saveRDS(data_cati_cawi_unispell_emp, data_cati_cawi_eps_save)
 

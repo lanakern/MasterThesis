@@ -63,9 +63,13 @@ for (mice_data_sel in 1:5) {
   if (cohort_prep == "controls_same_outcome") {
     data_load <- paste0("Data/Grades/Prep_9/prep_9_intpoly_weekly_down_", 
                         "mice", mice_data_sel,  ".rds")
-  } else {
+  } else if (cohort_prep == "controls_bef_outcome") {
     data_load <- paste0("Data/Grades/Prep_9/prep_9_intpoly_weekly_down", 
                         extra_act_save, "_robustcheck", "_mice", mice_data_sel,  ".rds")
+  } else {
+    data_load <- paste0("Data/Grades/Prep_8/prep_8_plausi_weekly_down", 
+                        extra_act_save, "_robustcheck_", cohort_prep,
+                        "_mice", mice_data_sel,  ".rds")
   }
   
   data_final_raw <- readRDS(data_load)
@@ -80,7 +84,7 @@ for (mice_data_sel in 1:5) {
   data_final <- data_final_raw %>% ungroup() %>% type.convert(as.is = TRUE)
   
   # change treatment group to all sport participation levels
-  if (treatment_def == "all" & cohort_prep == main_cohort_prep) {
+  if (treatment_def == "all") {#& cohort_prep == main_cohort_prep) {
     data_final <- data_final %>% 
       mutate(treatment_sport = ifelse(treatment_sport_freq != "never", 1, 0)) 
   } else {
@@ -96,7 +100,7 @@ for (mice_data_sel in 1:5) {
   }
   
   # drop students who do not take part in any extracurricular activity
-  if (extra_act == "yes" & cohort_prep == main_cohort_prep) {
+  if (extra_act == "yes"){# & cohort_prep == main_cohort_prep) {
     data_final <- data_final %>%
       filter(extracurricular_num > 0 | treatment_sport == 1)
   } else if (extra_act == "uni") {
@@ -115,6 +119,11 @@ for (mice_data_sel in 1:5) {
   if (cohort_prep == "controls_same_outcome" & cov_balance == "yes") {
     data_final <- data_final %>% filter(!interview_start_year_num %in% c(1,8)) %>%
       dplyr::select(-contains("interview_end_year_2018"), -contains("interview_start_year_2018"))
+  } else if (cov_balance == "yes" & cohort_prep != "controls_same_outcome") {
+    data_final <- data_final %>% 
+      filter(!interview_start_year_num %in% c(6)) %>% 
+      filter(!interview_end_year_num %in% c(8)) %>%
+      dplyr::select(-contains("interview_end_year_2018"), -contains("interview_start_year_2016"))
   } else {
     data_final <- data_final
   }
@@ -177,9 +186,13 @@ for (mice_data_sel in 1:5) {
   if (cohort_prep == "controls_same_outcome") {
     saveRDS(data_binary, paste0("Data/Grades/Prep_10/prep_10_dml_binary_all_", treatment_def, "_", 
                                 treatment_repl, extra_act_save, cov_balance_save, "_mice", mice_data_sel, ".rds"))
-  } else {
+  } else if (cohort_prep == "controls_bef_outcome") {
     saveRDS(data_binary, paste0("Data/Grades/Prep_10/prep_10_dml_binary_all_", treatment_def, "_", 
                                 treatment_repl, extra_act_save, cov_balance_save, "_robustcheck_mice", mice_data_sel, ".rds"))
+  } else {
+    saveRDS(data_binary, paste0("Data/Grades/Prep_10/prep_10_dml_binary_all_", treatment_def, "_", 
+                                treatment_repl, extra_act_save, cov_balance_save, "_robustcheck_",
+                                cohort_prep, "_mice", mice_data_sel, ".rds"))   
   }
   
   
@@ -253,10 +266,16 @@ for (mice_data_sel in 1:5) {
               paste0("Data/Grades/Prep_10/prep_10_dml_binary_allintpoly_", treatment_def, "_",
                      treatment_repl, extra_act_save, cov_balance_save, "_mice", mice_data_sel, ".rds")
       )
-    } else {
+    } else if (cohort_prep == "controls_bef_outcome") {
       saveRDS(data_all_plus, 
               paste0("Data/Grades/Prep_10/prep_10_dml_binary_allintpoly_", treatment_def, "_",
                      treatment_repl, extra_act_save, cov_balance_save, "_robustcheck_mice", mice_data_sel, ".rds")
+      )
+    } else {
+      saveRDS(data_all_plus, 
+              paste0("Data/Grades/Prep_10/prep_10_dml_binary_allintpoly_", treatment_def, "_",
+                     treatment_repl, extra_act_save, cov_balance_save, "_robustcheck_",
+                     cohort_prep, "_mice", mice_data_sel, ".rds")
       )
     }
     
@@ -332,10 +351,15 @@ for (mice_data_sel in 1:5) {
     saveRDS(data_multi_all, 
             paste0("Data/Grades/Prep_10/prep_10_dml_multi_all_", treatment_def, "_",
                    treatment_repl, extra_act_save, cov_balance_save, "_mice", mice_data_sel, ".rds"))
-  } else {
+  } else if (cohort_prep == "controls_bef_outcome") {
     saveRDS(data_multi_all, 
             paste0("Data/Grades/Prep_10/prep_10_dml_multi_all_", treatment_def, "_",
                    treatment_repl, extra_act_save, cov_balance_save, "_robustcheck_mice", mice_data_sel, ".rds"))
+  } else {
+    saveRDS(data_multi_all, 
+            paste0("Data/Grades/Prep_10/prep_10_dml_multi_all_", treatment_def, "_",
+                   treatment_repl, extra_act_save, cov_balance_save, "_robustcheck_",
+                   cohort_prep, "_mice", mice_data_sel, ".rds"))
   }
   
   
@@ -405,10 +429,16 @@ for (mice_data_sel in 1:5) {
               paste0("Data/Grades/Prep_10/prep_10_dml_multi_allintpoly_", treatment_def, "_",
                      treatment_repl, extra_act_save, cov_balance_save, "_mice", mice_data_sel, ".rds")
       )
-    } else {
+    } else if (cohort_prep == "controls_bef_outcome") {
       saveRDS(data_multi_all_plus, 
               paste0("Data/Grades/Prep_10/prep_10_dml_multi_allintpoly_", treatment_def, "_",
                      treatment_repl, extra_act_save, cov_balance_save, "_robustcheck_mice", mice_data_sel, ".rds")
+      )
+    } else {
+      saveRDS(data_multi_all_plus, 
+              paste0("Data/Grades/Prep_10/prep_10_dml_multi_allintpoly_", treatment_def, "_",
+                     treatment_repl, extra_act_save, cov_balance_save, "_robustcheck_",
+                     cohort_prep, "_mice", mice_data_sel, ".rds")
       )
     }
     

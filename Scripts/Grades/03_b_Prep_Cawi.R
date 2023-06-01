@@ -37,8 +37,10 @@ data_target_cawi <- readRDS("Data/Grades/Prep_1/prep_1_target_cawi.rds")
   ## cohort profile depends on data preparation
 if (cohort_prep == "controls_same_outcome") {
   data_cohort_profile <- readRDS("Data/Grades/Prep_2/prep_2_cohort_profile.rds")
-} else if (cohort_prep == "controls_bef_outcome") {
+} else if (cohort_prep %in% c("controls_bef_outcome", "controls_bef_all")) {
   data_cohort_profile <- readRDS("Data/Grades/Prep_2/prep_2_cohort_profile_robustcheck.rds")
+} else if (cohort_prep == "controls_treatment_outcome") {
+  data_cohort_profile <- readRDS(paste0("Data/Grades/Prep_2/prep_2_cohort_profile_robustcheck_", cohort_prep, ".rds"))
 } else {
   stop("specify which cohort data preparation should be used")
 }
@@ -205,14 +207,14 @@ if (cohort_prep == "controls_same_outcome") {
   
 } else if (cohort_prep == "controls_bef_outcome") {
   
-  #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-  #### Preparation 2: Outcome after Controls ####
-  #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+  #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+  #### Preparation 2: Outcome after Controls and Treatment ####
+  #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
   
   # because control variables are taken from an earlier interview than the
   # outcome and treatment variable, they need to be prepared separately
   
-  ## Outcome and Treatment ##
+  ## Outcome ##
   
   # select treatment and outcome variables
   data_outcome <- data_cawi %>%
@@ -225,7 +227,7 @@ if (cohort_prep == "controls_same_outcome") {
   
   
   
-  ## Control Variables ##
+  ## Control Variables and Treatment ##
   
   # keep only variables which are used for start of treatment period
   # drop outcome and treatment variables
@@ -268,6 +270,131 @@ if (cohort_prep == "controls_same_outcome") {
   length(unique(data_controls$ID_t))
   
   
+} else if (cohort_prep == "controls_bef_all") {
+  #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+  #### Preparation 3: Outcome and Treatment after Controls ####
+  #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+  
+  ## Outcome and Treatment ##
+  
+  # select treatment and outcome variables
+  data_outcome <- data_cawi %>%
+    dplyr::select(ID_t, interview_date, treatment_ends, grade_current, starts_with("sport")) %>%
+    subset(!is.na(treatment_ends)) %>% 
+    rename(treatment_period = treatment_ends, interview_date_end = interview_date)
+  
+  
+  length(unique(data_outcome$ID_t))
+  
+  
+  
+  ## Control Variables ##
+  
+  # keep only variables which are used for start of treatment period
+  # drop outcome and treatment variables
+  data_controls <- data_cawi %>%
+    dplyr::select(-c(grade_current, treatment_ends, wave, starts_with("sport"))) %>%
+    subset(!is.na(treatment_starts)) %>%
+    rename(treatment_period = treatment_starts, interview_date_start = interview_date)
+  
+  
+  length(unique(data_controls$ID_t))
+  
+  ## Merge ##
+  
+  # treatment-outcome and control variable data frames are merged via treatment_period
+  # data_outcome has less observations because data_controls contains
+  # treatment starts for which no treatment ends exists
+  data_cawi %>% subset(ID_t == 7036384) %>% dplyr::select(ID_t, wave, starts_with("treatment"))
+  data_cawi %>% subset(ID_t == 7002171) %>% dplyr::select(ID_t, wave, starts_with("treatment"))
+  
+  
+  data_cawi <- inner_join(
+    data_outcome, data_controls, by = c("ID_t", "treatment_period")
+  )
+  
+  # examples
+  data_outcome %>% subset(ID_t == 7036384) %>% dplyr::select(ID_t, starts_with("treatment"))
+  data_controls %>% subset(ID_t == 7036384) %>% dplyr::select(ID_t, starts_with("treatment"))
+  data_cawi %>% subset(ID_t == 7036384) %>% dplyr::select(ID_t, starts_with("treatment"))
+  
+  data_outcome %>% subset(ID_t == 7002171) %>% dplyr::select(ID_t, starts_with("treatment"))
+  data_controls %>% subset(ID_t == 7002171) %>% dplyr::select(ID_t, starts_with("treatment"))
+  data_cawi %>% subset(ID_t == 7002171) %>% dplyr::select(ID_t, starts_with("treatment"))
+  
+  
+  # order columns
+  data_cawi <- data_cawi %>% 
+    dplyr::select(ID_t, treatment_period, interview_date_start, interview_date_end, 
+                  starts_with("sport_"), grade_current, everything())
+  
+  length(unique(data_controls$ID_t))
+} else if (cohort_prep == "controls_treatment_outcome") {
+  #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+  #### Preparation 4: Controls - Treatment - Outcome ####
+  #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+  
+  ## Outcome ##
+  data_outcome <- data_cawi %>%
+    dplyr::select(ID_t, interview_date, treatment_ends, grade_current, outcome) %>%
+    filter(outcome == 1) %>% dplyr::select(-outcome) %>% 
+    rename(interview_date_end = interview_date) %>%
+    mutate(treatment_period = 1)
+  length(unique(data_outcome$ID_t))
+  
+  
+  ## Treatment ##
+  data_treatment <- data_cawi %>%
+    dplyr::select(ID_t, interview_date, starts_with("sport"), treatment) %>%
+    filter(treatment == 1) %>% dplyr::select(-treatment) %>% 
+    rename(interview_date_treatment = interview_date) %>%
+    mutate(treatment_period = 1)
+  length(unique(data_treatment$ID_t))
+  
+  ## Control Variables ##
+  
+  # keep only variables which are used for start of treatment period
+  # drop outcome and treatment variables
+  data_controls <- data_cawi %>%
+    dplyr::select(-c(grade_current, treatment_ends, wave, starts_with("sport"))) %>%
+    filter(controls == 1) %>% dplyr::select(-controls) %>% 
+    rename(interview_date_start = interview_date) %>%
+    mutate(treatment_period = 1)
+  
+  
+  length(unique(data_controls$ID_t))
+  
+  ## Merge ##
+  
+  # treatment-outcome and control variable data frames are merged via treatment_period
+  # data_outcome has less observations because data_controls contains
+  # treatment starts for which no treatment ends exists
+  data_cawi %>% subset(ID_t == 7036384) %>% dplyr::select(ID_t, wave, starts_with("treatment"))
+  data_cawi %>% subset(ID_t == 7002171) %>% dplyr::select(ID_t, wave, starts_with("treatment"))
+  
+  
+  data_cawi <- inner_join(
+    data_outcome, data_treatment, by = c("ID_t", "treatment_period")
+  ) %>% inner_join(
+    data_controls, by = c("ID_t", "treatment_period")
+  )
+  
+  # examples
+  data_outcome %>% subset(ID_t == 7036384) %>% dplyr::select(ID_t, starts_with("treatment"))
+  data_controls %>% subset(ID_t == 7036384) %>% dplyr::select(ID_t, starts_with("treatment"))
+  data_cawi %>% subset(ID_t == 7036384) %>% dplyr::select(ID_t, starts_with("treatment"))
+  
+  data_outcome %>% subset(ID_t == 7002171) %>% dplyr::select(ID_t, starts_with("treatment"))
+  data_controls %>% subset(ID_t == 7002171) %>% dplyr::select(ID_t, starts_with("treatment"))
+  data_cawi %>% subset(ID_t == 7002171) %>% dplyr::select(ID_t, starts_with("treatment"))
+  
+  
+  # order columns
+  data_cawi <- data_cawi %>% 
+    dplyr::select(ID_t, treatment_period, interview_date_start, interview_date_end, 
+                  starts_with("sport_"), grade_current, everything())
+  
+  length(unique(data_controls$ID_t))
 } else {
   stop("specify which cohort data preparation should be used")
 }
@@ -294,9 +421,13 @@ print(paste("Number of columns:", ncol(data_cawi)))
 if (cohort_prep == "controls_same_outcome") {
   data_cohort_profile_save <- paste0("Data/Grades/Prep_3/prep_3_cawi_treat", 
                                      treatment_repl, ".rds")
-} else {
+} else if (cohort_prep == "controls_bef_outcome") {
   data_cohort_profile_save <- paste0("Data/Grades/Prep_3/prep_3_cawi_treat", 
                                      treatment_repl, "_robustcheck.rds") 
+} else {
+  data_cohort_profile_save <- paste0("Data/Grades/Prep_3/prep_3_cawi_treat", 
+                                     treatment_repl, "_robustcheck_", cohort_prep, 
+                                     ".rds") 
 }
 
 saveRDS(data_cawi, data_cohort_profile_save)

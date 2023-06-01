@@ -28,6 +28,9 @@ if (cohort_prep == "controls_same_outcome") {
 } else if (cohort_prep == "controls_bef_outcome") {
   data_cati <- readRDS(paste0("Data/Grades/Prep_3/prep_3_cati_treat", treatment_repl, "_robustcheck.rds"))
   data_cawi <- readRDS(paste0("Data/Grades/Prep_3/prep_3_cawi_treat", treatment_repl, "_robustcheck.rds"))
+} else {
+  data_cati <- readRDS(paste0("Data/Grades/Prep_3/prep_3_cati_treat", treatment_repl, "_robustcheck_", cohort_prep, ".rds"))
+  data_cawi <- readRDS(paste0("Data/Grades/Prep_3/prep_3_cawi_treat", treatment_repl, "_robustcheck_", cohort_prep, ".rds"))
 }
 
 
@@ -71,7 +74,7 @@ if (cohort_prep == "controls_same_outcome") {
     pull(date_check) %>% unique() # should be 1
   
   ## controls_bef_outcome ##
-} else if (cohort_prep == "controls_bef_outcome") {
+} else if (cohort_prep %in% c("controls_bef_outcome", "controls_bef_all")) {
   # rename interview date of CATI
   data_cati <- data_cati %>% rename(interview_date_CATI = interview_date)
   
@@ -115,6 +118,22 @@ if (cohort_prep == "controls_same_outcome") {
     rowwise() %>%
     mutate(cati_date_check = ifelse(between(interview_date_CATI, interview_date_start, interview_date_end), 1, 0)) %>%
     pull(cati_date_check) %>% unique() # should be 1
+} else {
+  # merge via inner join and arrange columns
+  data_cati_cawi <- inner_join(
+    data_cati, data_cawi, by = c("ID_t", "treatment_period")
+  ) %>% 
+    dplyr::select(ID_t, treatment_period, interview_date_start, interview_date_end, 
+                  starts_with("sport"), starts_with("grade"), everything())
+  
+  # adjust number of respondents
+  num_id_cati_cawi <- length(unique(data_cati_cawi$ID_t))
+  
+  # adjust treatment_period enumerator
+  data_cati_cawi <- data_cati_cawi %>%
+    arrange(ID_t, treatment_period) %>%
+    group_by(ID_t) %>%
+    mutate(treatment_period = 1) 
 }
 
 
@@ -141,6 +160,9 @@ if (cohort_prep == "controls_same_outcome") {
 } else if (cohort_prep == "controls_bef_outcome") {
   data_cati_cawi_save <- paste0("Data/Grades/Prep_4/prep_4_merge_cati_cawi_treat", 
                                 treatment_repl, "_robustcheck.rds")
+} else {
+  data_cati_cawi_save <- paste0("Data/Grades/Prep_4/prep_4_merge_cati_cawi_treat", 
+                                treatment_repl, "_robustcheck_", cohort_prep, ".rds")
 }
 saveRDS(data_cati_cawi, data_cati_cawi_save)
 
