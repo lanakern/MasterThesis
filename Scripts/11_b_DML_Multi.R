@@ -76,11 +76,17 @@ for (mice_data_sel in 1:5) {
       treatment_def, "_", treatment_repl, extra_act_save, cov_balance_save, "_mice", 
       mice_data_sel, load_data_ending
       )
-  } else {
+  } else if (cohort_prep == "controls_same_outcome") {
     load_data <- paste0(
       load_data_folder, "Prep_10/prep_10_dml_multi_", model_type, "_", 
       treatment_def, "_", treatment_repl, extra_act_save, cov_balance_save,
       "_robustcheck_mice", mice_data_sel, load_data_ending
+    )
+  } else {
+    load_data <- paste0(
+      load_data_folder, "Prep_10/prep_10_dml_multi_", model_type, "_", 
+      treatment_def, "_", treatment_repl, extra_act_save, cov_balance_save,
+      "_robustcheck_", cohort_prep, "_mice", mice_data_sel, load_data_ending
     )
   }
 
@@ -96,6 +102,18 @@ for (mice_data_sel in 1:5) {
     }
   } else {
     data_dml <- data_dml
+  }
+  
+  if (cohort_prep == "controls_bef_all") {
+    data_main <- readRDS(paste0(
+      load_data_folder, "Prep_10/prep_10_dml_multi_", model_type, "_", 
+      treatment_def, "_", treatment_repl, extra_act_save, cov_balance_save, "_mice", 
+      mice_data_sel, load_data_ending
+    ))
+    
+    keep_cols <- intersect(colnames(data_main), colnames(data_dml))
+    
+    data_dml <- data_dml %>% dplyr::select(all_of(keep_cols))
   }
   
   print(paste("Number of predictors:", ncol(data_dml)))
