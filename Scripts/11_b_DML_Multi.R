@@ -306,7 +306,6 @@ dml_result_save <- dml_result_pooled %>%
     n_treats_before = round(mean(unlist(lapply(lapply(dml_result_all, "[[" , "trimming"), "[[", "n_treats_before")))), 
     n_treats_after = round(mean(unlist(lapply(lapply(dml_result_all, "[[" , "trimming"), "[[", "n_treats_after")))), 
     # type of model generation
-    Treatment_model_separate = probscore_separate, 
     Prob_norm = prob_norm, 
     # add date
     time_stamp = as.character(Sys.time()),
@@ -315,7 +314,7 @@ dml_result_save <- dml_result_pooled %>%
   cbind(dml_result_error) %>%
   # re-order columns
   dplyr::select(outcome, cohort_prep, treatment_repl, treatment_def, extra_act, starts_with("model"), 
-                n_treats_before, n_treats_after, Treatment_model_separate, Prob_norm, starts_with("num_pred"), 
+                n_treats_before, n_treats_after, Prob_norm, starts_with("num_pred"), 
                 Treatment, everything()) %>%
   relocate(time_elapsed, time_stamp, .after = last_col()) # time-stamp is ordered last
 
@@ -323,25 +322,48 @@ dml_result_save <- dml_result_pooled %>%
 # save estimation results
 dml_result_save <- as.data.frame(dml_result_save)
 
-if (file.exists("Output/DML/Treatment_Effects/DML_MULTI_ESTIMATION_RESULTS.xlsx")) {
-  ## replace same estimations
-  dml_result_save_all <- 
-    read.xlsx("Output/DML/Treatment_Effects/DML_MULTI_ESTIMATION_RESULTS.xlsx", sheetName = "Sheet1")
-  dml_result_save_all <- rbind(dml_result_save_all, dml_result_save)
-  cols_aggr <- dml_result_save_all %>%
-    dplyr::select(outcome, cohort_prep, treatment_repl, treatment_def, extra_act, starts_with("model")) %>%
-    colnames()
-  dml_result_save_all <- dml_result_save_all %>%
-    group_by(across(all_of(cols_aggr))) %>%
-    filter(time_stamp == max(time_stamp)) %>%
-    ungroup() %>% data.frame()
-  ## save
-  write.xlsx(dml_result_save_all, "Output/DML/Treatment_Effects/DML_MULTI_ESTIMATION_RESULTS.xlsx", 
-             sheetName = "Sheet1", row.names = FALSE, append = FALSE, showNA = FALSE)
+if (probscore_separate == TRUE) {
+  if (file.exists("Output/DML/Treatment_Effects/DML_MULTI_ESTIMATION_RESULTS.xlsx")) {
+    ## replace same estimations
+    dml_result_save_all <- 
+      read.xlsx("Output/DML/Treatment_Effects/DML_MULTI_ESTIMATION_RESULTS.xlsx", sheetName = "Sheet1")
+    dml_result_save_all <- rbind(dml_result_save_all, dml_result_save)
+    cols_aggr <- dml_result_save_all %>%
+      dplyr::select(outcome, cohort_prep, treatment_repl, treatment_def, extra_act, starts_with("model")) %>%
+      colnames()
+    dml_result_save_all <- dml_result_save_all %>%
+      group_by(across(all_of(cols_aggr))) %>%
+      filter(time_stamp == max(time_stamp)) %>%
+      ungroup() %>% data.frame()
+    ## save
+    write.xlsx(dml_result_save_all, "Output/DML/Treatment_Effects/DML_MULTI_ESTIMATION_RESULTS.xlsx", 
+               sheetName = "Sheet1", row.names = FALSE, append = FALSE, showNA = FALSE)
+  } else {
+    write.xlsx(dml_result_save, "Output/DML/Treatment_Effects/DML_MULTI_ESTIMATION_RESULTS.xlsx", 
+               row.names = FALSE)
+  }
 } else {
-  write.xlsx(dml_result_save, "Output/DML/Treatment_Effects/DML_MULTI_ESTIMATION_RESULTS.xlsx", 
-             row.names = FALSE)
-}
+  if (file.exists("Output/DML/Treatment_Effects/DML_MULTI_SEPARATE_ESTIMATION_RESULTS.xlsx")) {
+    ## replace same estimations
+    dml_result_save_all <- 
+      read.xlsx("Output/DML/Treatment_Effects/DML_MULTI_SEPARATE_ESTIMATION_RESULTS.xlsx", sheetName = "Sheet1")
+    dml_result_save_all <- rbind(dml_result_save_all, dml_result_save)
+    cols_aggr <- dml_result_save_all %>%
+      dplyr::select(outcome, cohort_prep, treatment_repl, treatment_def, extra_act, starts_with("model")) %>%
+      colnames()
+    dml_result_save_all <- dml_result_save_all %>%
+      group_by(across(all_of(cols_aggr))) %>%
+      filter(time_stamp == max(time_stamp)) %>%
+      ungroup() %>% data.frame()
+    ## save
+    write.xlsx(dml_result_save_all, "Output/DML/Treatment_Effects/DML_MULTI_SEPARATE_ESTIMATION_RESULTS.xlsx", 
+               sheetName = "Sheet1", row.names = FALSE, append = FALSE, showNA = FALSE)
+  } else {
+    write.xlsx(dml_result_save, "Output/DML/Treatment_Effects/DML_MULTI_SEPARATE_ESTIMATION_RESULTS.xlsx", 
+               row.names = FALSE)
+  }
+} 
+
 
 
 
