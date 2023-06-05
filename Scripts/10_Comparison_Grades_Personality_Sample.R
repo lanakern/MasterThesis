@@ -75,6 +75,16 @@ print("RC2 GRADES - no extra. act. required:")
 data_rc2_grades %>% group_by(treatment_sport_freq) %>% count() %>% adorn_totals("row")
 length(unique(data_rc2_grades$group))
 
+data_rc3_grades <- readRDS(paste0("Data/Grades/Prep_10/prep_10_dml_multi_all_all_down_extradrop", "_mice1.rds"))
+print("RC3 GRADES - general sport participants:")
+data_rc3_grades %>% group_by(treatment_sport_freq) %>% count() %>% adorn_totals("row")
+length(unique(data_rc3_grades$group))
+
+data_rc4_grades <- readRDS(paste0("Data/Grades/Prep_10/prep_10_dml_multi_all_all_down_extradrop", 
+                                  cov_bal, "_robustcheck_controls_bef_all_mice1.rds"))
+print("RC4 GRADES - controls before treatment and outcome:")
+data_rc4_grades %>% group_by(treatment_sport_freq) %>% count() %>% adorn_totals("row")
+
 data_rc5_grades <- readRDS(paste0("Data/Grades/Prep_10/prep_10_dml_multi_all_all_down_extradrop", cov_bal, "_robustcheck_mice1.rds"))
 print("RC5 GRADES - treatment and controls before outcome:")
 data_rc5_grades %>% group_by(treatment_sport_freq) %>% count() %>% adorn_totals("row")
