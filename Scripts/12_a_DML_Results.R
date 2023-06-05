@@ -17,6 +17,8 @@
 
 if (extra_act == "yes") {
   extra_act_save <- "_extradrop"
+} else if (extra_act == "uni") {
+  extra_act_save <- "_extrauni"
 } else {
   extra_act_save <- ""
 }
@@ -37,6 +39,8 @@ df_dml_main_binary <-
 df_dml_main_multi <- 
   read.xlsx("Output/DML/Treatment_Effects/DML_MULTI_ESTIMATION_RESULTS.xlsx", sheetName = "Sheet1")
 
+df_dml_sep_multi <- 
+  read.xlsx("Output/DML/Treatment_Effects/DML_MULTI_SEPARATE_ESTIMATION_RESULTS.xlsx", sheetName = "Sheet1")
 
 ## LASSO ##
 #+++++++++#
@@ -383,6 +387,7 @@ df_treatment_effects_main_multi <- df_dml_main_multi %>% filter(
   cohort_prep == main_cohort_prep, treatment_def == main_treatment_def,
   treatment_repl == main_treatment_repl, extra_act == main_extra_act,
   model_type == main_model_type, model_k == main_model_k, model_s_rep == main_model_s_rep,
+  model_k_tuning %in% c(1,2),
   model_trimming == main_model_trimming, model_controls_lag == main_model_controls_lag,
   model_controls_endog == main_model_controls_endog, model_hyperparam_sel == "best",
   model_covbal == "yes", Type %in% c("ATE", "ATTE")
@@ -2327,6 +2332,101 @@ df_error <- df_error_sub %>%
 
 df_error %>%
   dplyr::select(starts_with("AUC"), starts_with("ACC"), starts_with("BACC"), 
+                starts_with("RMSE"), starts_with("RRMSE"), starts_with("MAE")) %>%
+  as.data.frame()
+
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### RC: Active students within uni ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+# load data
+postlasso_grades_extrauni <- 
+  readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_", "postlasso", 
+                 "_all_controlssameoutcome_", treatment_def, "_down_extrauni_all_notreatmentoutcomelags_endogyes_trimming", 
+                 model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
+
+# number of predictors: 158.77
+df_dml_main_multi %>% filter(extra_act == "uni") %>% pull(num_predictors_m1) %>% unique()
+
+# percentage of dropped observations: 1.9090%
+df_dml_main_multi %>%
+  filter(extra_act == "uni") %>%
+  dplyr::select(outcome, model_algo, starts_with("n_treats")) %>% distinct() %>%
+  mutate(n_treats_diff = n_treats_before - n_treats_after, 
+         n_treats_diff_perf = ((n_treats_before - n_treats_after) / n_treats_before)*100)
+
+# error metrics
+df_error_extrauni <- data.frame()
+for (outcome_var_sel in c("grades")) {
+  for (model_algo_sel in c("postlasso")) {
+    load_pred_algo <- paste0(model_algo_sel, "_", outcome_var_sel, "_extrauni")
+    tryCatch({
+      print(load_pred_algo)
+      if (exists(load_pred_algo) == FALSE) stop("Does not exist")
+      
+      ml_grades_pred <- data.frame()
+      for (mice_sel in 1:length(get(load_pred_algo))) {
+        ml_grades_pred_sub <- left_join(get(load_pred_algo)[[mice_sel]]$pred, 
+                                        get(load_pred_algo)[[mice_sel]]$trimming, 
+                                        by = "Repetition") %>%
+          mutate(MICE = mice_sel)
+        ml_grades_pred <- rbind(ml_grades_pred, ml_grades_pred_sub)
+      }
+      
+      if (outcome_var_sel == "grades") {
+        df_sd_mean_multi <- data_stand_grades_multi
+        df_pred <- ml_grades_pred %>% 
+          mutate(
+            # standardized outcomes
+            outcome_stand = outcome, g1_stand = g1,  g2_stand = g2,  g3_stand = g3,
+            # original scale
+            outcome = outcome_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean,
+            g1 = g1_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean,
+            g2 = g2_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean,
+            g3 = g3_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean
+          )
+      } else {
+        df_sd_mean_multi <- data_stand_pers_multi %>%
+          dplyr::select(starts_with(outcome_var_sel)) 
+        colnames(df_sd_mean_multi) <- 
+          str_remove(colnames(df_sd_mean_multi), paste0(outcome_var_sel, "_"))
+        
+        df_pred <- ml_grades_pred %>% 
+          mutate(
+            # standardized outcomes
+            outcome_stand = outcome, g1_stand = g1,  g2_stand = g2,  g3_stand = g3,
+            # original scale
+            outcome = outcome_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean,
+            g1 = g1_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean,
+            g2 = g2_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean,
+            g3 = g3_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean
+          )
+      }
+      
+      df_error_sub <- func_ml_error_metrics("multi", df_pred, 1, 1, TRUE) %>%
+        dplyr::select(-c(Repetition, Fold)) %>%
+        mutate(outcome = outcome_var_sel, ml_algo = model_algo_sel) %>%
+        dplyr::select(outcome, ml_algo, everything())
+      
+      # calculate RRMSE
+      df_error_sub <- df_error_sub %>%
+        mutate(RRMSE_g1 = (RMSE_g1 / df_sd_mean_multi$mean_weekly)*100, 
+               RRMSE_g2 = (RMSE_g2 / df_sd_mean_multi$mean_monthly)*100,
+               RRMSE_g3 = (RMSE_g3 / df_sd_mean_multi$mean_never)*100) 
+      
+      # bind row
+      df_error_extrauni <- rbind(df_error_extrauni, df_error_sub)
+      
+      
+    }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")}) # close tryCatch()
+  } # close for loop model_algo_sel
+} # close for loop outcome_var_sel
+
+# calculate error metrics for paper
+df_error_extrauni %>%
+  dplyr::select(outcome, ml_algo, starts_with("AUC"), starts_with("ACC"), starts_with("BACC"), 
                 starts_with("RMSE"), starts_with("RRMSE"), starts_with("MAE")) %>%
   as.data.frame()
 
