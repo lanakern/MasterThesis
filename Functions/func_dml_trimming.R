@@ -159,6 +159,74 @@ func_dml_trimming <- function(treatment_setting, data_pred, data_test, trimming)
     data_pred <- data_pred[indices_keep, ] 
     data_test <- data_test[indices_keep, ] 
     
+  } else if (trimming == "min-max_001") {
+    # 1.) Trim extreme propensity scores
+    min_trimming <- 0.01
+    max_trimming <- 1 - min_trimming
+    
+    if (treatment_setting == "binary") {
+      indices_keep <- which(between(data_pred$m, min_trimming, max_trimming))
+    } else if (treatment_setting == "multi") {
+      indices_keep_1 <- which(between(data_pred$m1, min_trimming, max_trimming))
+      indices_keep_2 <- which(between(data_pred$m2, min_trimming, max_trimming))
+      indices_keep_3 <- which(between(data_pred$m3, min_trimming, max_trimming))
+      indices_keep <- intersect(indices_keep_1, indices_keep_2)
+      indices_keep <- intersect(indices_keep, indices_keep_3)
+    }
+    
+    data_pred <- data_pred[indices_keep, ]
+    data_test <- data_test[indices_keep, ]
+    
+    # 2.) Min-Max
+    if (treatment_setting == "binary") {
+      
+      df_select_trimming <- data_pred %>% group_by(treatment) %>% 
+        summarise(min_m = min(m), max_m = max(m))
+      
+      min_trimming <- max(df_select_trimming$min_m) 
+      max_trimming <- min(df_select_trimming$max_m) 
+      
+      indices_keep <- which(between(data_pred$m, min_trimming, max_trimming)) 
+      
+    } else if (treatment_setting == "multi") {
+      
+      df_select_trimming <- 
+        data_pred %>% 
+        mutate(treatment_1 = ifelse(treatment == 1, 1, 0)) %>%
+        group_by(treatment_1) %>% 
+        summarise(min_m = min(m1), max_m = max(m1)) %>%
+        summarise(min_trimming = max(min_m), max_trimming = min(max_m)) %>%
+        mutate(model = "m1") %>% rbind(
+          data_pred %>% 
+            mutate(treatment_2 = ifelse(treatment == 2, 1, 0)) %>%
+            group_by(treatment_2) %>% 
+            summarise(min_m = min(m2), max_m = max(m2)) %>%
+            summarise(min_trimming = max(min_m), max_trimming = min(max_m)) %>%
+            mutate(model = "m2")
+        ) %>% rbind(
+          data_pred %>% 
+            mutate(treatment_3 = ifelse(treatment == 3, 1, 0)) %>%
+            group_by(treatment_3) %>% 
+            summarise(min_m = min(m3), max_m = max(m3)) %>%
+            summarise(min_trimming = max(min_m), max_trimming = min(max_m)) %>%
+            mutate(model = "m3")
+        )
+      
+      min_trimming <- mean(df_select_trimming$min_trimming)
+      max_trimming <- mean(df_select_trimming$max_trimming)
+      
+      indices_keep_1 <- which(between(data_pred$m1, df_select_trimming %>% filter(model == "m1") %>% pull(min_trimming), 
+                                      df_select_trimming %>% filter(model == "m1") %>% pull(max_trimming)))
+      indices_keep_2 <- which(between(data_pred$m2, df_select_trimming %>% filter(model == "m2") %>% pull(min_trimming), 
+                                      df_select_trimming %>% filter(model == "m2") %>% pull(max_trimming)))
+      indices_keep_3 <- which(between(data_pred$m3, df_select_trimming %>% filter(model == "m3") %>% pull(min_trimming), 
+                                      df_select_trimming %>% filter(model == "m3") %>% pull(max_trimming)))
+      indices_keep <- intersect(indices_keep_1, indices_keep_2)
+      indices_keep <- intersect(indices_keep, indices_keep_3)
+    }
+    
+    data_pred <- data_pred[indices_keep, ] 
+    data_test <- data_test[indices_keep, ] 
   } else {
     stop("Please specify trimming threshold.")
   }
