@@ -192,13 +192,14 @@ main_cov_balance <- "yes"
 # generate all possible combinations of user inputs (to iterate over it below)
 df_inputs <- data.frame(
   # for interview data preparation
-  "cohort_prep" = c("controls_bef_outcome", rep("controls_same_outcome", 4)), 
+  "cohort_prep" = c("controls_bef_outcome", rep("controls_same_outcome", 4), "controls_bef_all", "controls_treatment_outcome",
+                    "controls_bef_all", "controls_treatment_outcome"), 
   # for treatment and outcome missing value replacement
-  "treatment_repl" = c("down", "down", "down", "down", "no"),
+  "treatment_repl" = c("down", "down", "down", "down", "no", "down", "down", "down", "down"),
   # for treatment generation
-  "treatment_def" = c("weekly", "all", "weekly", "weekly", "weekly"),
+  "treatment_def" = c("weekly", "all", "weekly", "weekly", "weekly", "all", "all", "weekly", "weekly"),
   # for sample selection: only keeping respondents with extracurricular activity
-  "extra_act" = c("yes", "yes", "no", "yes", "yes")
+  "extra_act" = c("yes", "yes", "no", "yes", "yes", "yes", "yes", "yes", "yes")
 )
 
 # aggregation of variables
@@ -467,6 +468,7 @@ probscore_separate <- TRUE
 hyperparam_sel <- "best"
 model_hyperparam_sel <- "best"
 cov_balance  <- main_cov_balance
+prob_norm <- "yes"
 
 # for lasso and xgboost higher K as they are computationally faster
 model_k <- 4 
@@ -533,6 +535,13 @@ extra_act <- main_extra_act
 
 ## controls_bef_outcome ##
 cohort_prep <- "controls_bef_outcome"
+source("Scripts/11_b_DML_Multi.R") 
+eval(parse(text = keep_after_file_run))
+gc()
+cohort_prep <- main_cohort_prep 
+
+## controls_bef_all ##
+cohort_prep <- "controls_bef_all"
 source("Scripts/11_b_DML_Multi.R") 
 eval(parse(text = keep_after_file_run))
 gc()
@@ -648,6 +657,15 @@ gc()
 model_hyperparam_sel <- model_hyperparam_sel
 hyperparam_sel <- model_hyperparam_sel
 
+## Not normalizing treatment probabilities ##
+prob_norm <- "no"
+source("Scripts/11_b_DML_Multi.R") 
+prob_norm <- "yes"
+
+## Multiclass classification ##
+probscore_separate <- "FALSE"
+source("Scripts/11_b_DML_Multi.R") 
+probscore_separate <- TRUE
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 #### Outome: Personality ####
