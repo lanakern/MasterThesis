@@ -285,7 +285,7 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
         ls_ml <- func_ml_lasso(
           treatment_setting = treatment_setting, data_train = data_train, data_test = data_test, 
           outcome = outcome, treatment = treatment, group = group, K = K_tuning, lambda_val = lambda_val,
-          hyperparam_sel = hyperparam_sel, post = post
+          hyperparam_sel = hyperparam_sel, post = post, prob_norm = prob_norm, probscore_separate = probscore_separate
           )
 
         
