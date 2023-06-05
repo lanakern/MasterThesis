@@ -42,8 +42,6 @@ for (mice_data_sel in 1:5) {
     ## extracurricular activity ending
   if (extra_act == "yes") {
     extra_act_save <- "_extradrop"
-  } else if (extra_act == "uni") {
-    extra_act_save <- "_extrauni"
   } else {
     extra_act_save <- ""
   }
@@ -249,12 +247,18 @@ if (probscore_separate == FALSE) {
   probscore_separate_save <- ""
 }
 
-# sensitivity with respect to hyperparameter
 if (model_hyperparam_sel != "best") {
   model_hyperparam_sel_save <- paste0("_", model_hyperparam_sel)
 } else {
   model_hyperparam_sel_save <- ""
 }
+
+if (prob_norm == "no") {
+  prob_norm_save <- "_nonorm"
+} else {
+  prob_norm_save <- ""
+}
+
 
 # save results
 if (str_detect(outcome_var_multi, "grade")) {
@@ -265,7 +269,7 @@ if (str_detect(outcome_var_multi, "grade")) {
            "_", model_type, "_", str_replace_all(model_controls_lag, "_", ""), "_endog",
            model_controls_endog, "_trimming", model_trimming, "_K", model_k, 
            "-", model_k_tuning, "_Rep", model_s_rep, probscore_separate_save,
-           model_hyperparam_sel_save, cov_balance_save, ".rds")
+           model_hyperparam_sel_save, cov_balance_save, prob_norm_save, ".rds")
 } else if (str_detect(outcome_var_multi, "bigfive")) {
   save_dml <- paste0("Output/DML/Estimation/Personality/multi_", 
                      str_remove(outcome_var_multi, "outcome_bigfive_"), "_", multi_model_algo, "_", 
@@ -274,7 +278,7 @@ if (str_detect(outcome_var_multi, "grade")) {
                      "_", model_type, "_", str_replace_all(model_controls_lag, "_", ""), "_endog",
                      model_controls_endog, "_trimming", model_trimming, "_K", model_k, 
                      "-", model_k_tuning, "_Rep", model_s_rep, probscore_separate_save,
-                     model_hyperparam_sel_save, cov_balance_save, ".rds")
+                     model_hyperparam_sel_save, cov_balance_save, prob_norm_save, ".rds")
 }
 
 saveRDS(dml_result_all, save_dml)
@@ -303,6 +307,7 @@ dml_result_save <- dml_result_pooled %>%
     n_treats_after = round(mean(unlist(lapply(lapply(dml_result_all, "[[" , "trimming"), "[[", "n_treats_after")))), 
     # type of model generation
     Treatment_model_separate = probscore_separate, 
+    Prob_norm = prob_norm, 
     # add date
     time_stamp = as.character(Sys.time()),
     # add computation time
@@ -310,54 +315,34 @@ dml_result_save <- dml_result_pooled %>%
   cbind(dml_result_error) %>%
   # re-order columns
   dplyr::select(outcome, cohort_prep, treatment_repl, treatment_def, extra_act, starts_with("model"), 
-                n_treats_before, n_treats_after, Treatment_model_separate, starts_with("num_pred"), 
+                n_treats_before, n_treats_after, Treatment_model_separate, Prob_norm, starts_with("num_pred"), 
                 Treatment, everything()) %>%
   relocate(time_elapsed, time_stamp, .after = last_col()) # time-stamp is ordered last
 
 
 # save estimation results
 dml_result_save <- as.data.frame(dml_result_save)
-if (probscore_separate == TRUE) {
-  if (file.exists("Output/DML/Treatment_Effects/DML_MULTI_ESTIMATION_RESULTS.xlsx")) {
-    ## replace same estimations
-    dml_result_save_all <- 
-      read.xlsx("Output/DML/Treatment_Effects/DML_MULTI_ESTIMATION_RESULTS.xlsx", sheetName = "Sheet1")
-    dml_result_save_all <- rbind(dml_result_save_all, dml_result_save)
-    cols_aggr <- dml_result_save_all %>%
-      dplyr::select(outcome, cohort_prep, treatment_repl, treatment_def, extra_act, starts_with("model")) %>%
-      colnames()
-    dml_result_save_all <- dml_result_save_all %>%
-      group_by(across(all_of(cols_aggr))) %>%
-      filter(time_stamp == max(time_stamp)) %>%
-      ungroup() %>% data.frame()
-    ## save
-    write.xlsx(dml_result_save_all, "Output/DML/Treatment_Effects/DML_MULTI_ESTIMATION_RESULTS.xlsx", 
-               sheetName = "Sheet1", row.names = FALSE, append = FALSE, showNA = FALSE)
-  } else {
-    write.xlsx(dml_result_save, "Output/DML/Treatment_Effects/DML_MULTI_ESTIMATION_RESULTS.xlsx", 
-               row.names = FALSE)
-  }
+
+if (file.exists("Output/DML/Treatment_Effects/DML_MULTI_ESTIMATION_RESULTS.xlsx")) {
+  ## replace same estimations
+  dml_result_save_all <- 
+    read.xlsx("Output/DML/Treatment_Effects/DML_MULTI_ESTIMATION_RESULTS.xlsx", sheetName = "Sheet1")
+  dml_result_save_all <- rbind(dml_result_save_all, dml_result_save)
+  cols_aggr <- dml_result_save_all %>%
+    dplyr::select(outcome, cohort_prep, treatment_repl, treatment_def, extra_act, starts_with("model")) %>%
+    colnames()
+  dml_result_save_all <- dml_result_save_all %>%
+    group_by(across(all_of(cols_aggr))) %>%
+    filter(time_stamp == max(time_stamp)) %>%
+    ungroup() %>% data.frame()
+  ## save
+  write.xlsx(dml_result_save_all, "Output/DML/Treatment_Effects/DML_MULTI_ESTIMATION_RESULTS.xlsx", 
+             sheetName = "Sheet1", row.names = FALSE, append = FALSE, showNA = FALSE)
 } else {
-  if (file.exists("Output/DML/Treatment_Effects/DML_MULTI_SEPARATE_ESTIMATION_RESULTS.xlsx")) {
-    ## replace same estimations
-    dml_result_save_all <- 
-      read.xlsx("Output/DML/Treatment_Effects/DML_MULTI_SEPARATE_ESTIMATION_RESULTS.xlsx", sheetName = "Sheet1")
-    dml_result_save_all <- rbind(dml_result_save_all, dml_result_save)
-    cols_aggr <- dml_result_save_all %>%
-      dplyr::select(cohort_prep, treatment_repl, treatment_def, starts_with("model")) %>%
-      colnames()
-    dml_result_save_all <- dml_result_save_all %>%
-      group_by(across(all_of(cols_aggr))) %>%
-      filter(time_stamp == max(time_stamp)) %>%
-      ungroup() %>% data.frame()
-    ## save
-    write.xlsx(dml_result_save_all, "Output/DML/Treatment_Effects/DML_MULTI_SEPARATE_ESTIMATION_RESULTS.xlsx", 
-               sheetName = "Sheet1", row.names = FALSE, append = FALSE, showNA = FALSE)
-  } else {
-    write.xlsx(dml_result_save, "Output/DML/Treatment_Effects/DML_MULTI_SEPARATE_ESTIMATION_RESULTS.xlsx", 
-               row.names = FALSE)
-  }
+  write.xlsx(dml_result_save, "Output/DML/Treatment_Effects/DML_MULTI_ESTIMATION_RESULTS.xlsx", 
+             row.names = FALSE)
 }
+
 
 
 
