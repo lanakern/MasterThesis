@@ -44,7 +44,7 @@ func_dml_trimming <- function(treatment_setting, data_pred, data_test, trimming)
   }
   
     ## trimming
-  if (!(is.numeric(trimming) | trimming %in% c("min-max", "no"))) {
+  if (!(is.numeric(trimming) | trimming %in% c("min-max", "no", "min-max_001"))) {
     stop("Please choose correct trimming threshold: numeric value between 0 and 1 or 'min-max' or 'no'.")
   }
   
