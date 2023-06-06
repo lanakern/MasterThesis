@@ -104,18 +104,6 @@ for (mice_data_sel in 1:5) {
     data_dml <- data_dml
   }
   
-  if (cohort_prep == "controls_bef_all") {
-    data_main <- readRDS(paste0(
-      load_data_folder, "Prep_10/prep_10_dml_multi_", model_type, "_", 
-      treatment_def, "_", treatment_repl, extra_act_save, cov_balance_save, "_mice", 
-      mice_data_sel, load_data_ending
-    ))
-    
-    keep_cols <- intersect(colnames(data_main), colnames(data_dml))
-    
-    data_dml <- data_dml %>% dplyr::select(all_of(keep_cols))
-  }
-  
   print(paste("Number of predictors:", ncol(data_dml)))
   
   # drop lags if desired by user
@@ -347,7 +335,7 @@ if (probscore_separate == TRUE) {
       read.xlsx("Output/DML/Treatment_Effects/DML_MULTI_ESTIMATION_RESULTS.xlsx", sheetName = "Sheet1")
     dml_result_save_all <- rbind(dml_result_save_all, dml_result_save)
     cols_aggr <- dml_result_save_all %>%
-      dplyr::select(outcome, cohort_prep, treatment_repl, treatment_def, extra_act, starts_with("model")) %>%
+      dplyr::select(outcome, cohort_prep, treatment_repl, treatment_def, extra_act, starts_with("model"), Prob_norm) %>%
       colnames()
     dml_result_save_all <- dml_result_save_all %>%
       group_by(across(all_of(cols_aggr))) %>%
