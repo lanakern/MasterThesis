@@ -605,6 +605,9 @@ eval(parse(text = keep_after_file_run))
 gc()
 model_trimming <- main_model_trimming
 
+model_trimming <- "min-max_001" 
+source("Scripts/11_b_DML_Multi.R") 
+
 ## Change K and S ##
 # combis: (4, 10, 5), (4,2,10), (5, 2, 5). (5, 10, 20)
 model_k <- 4 
@@ -659,6 +662,7 @@ hyperparam_sel <- model_hyperparam_sel
 
 ## Not normalizing treatment probabilities ##
 prob_norm <- "no"
+model_trimming <- "min-max_001" 
 source("Scripts/11_b_DML_Multi.R") 
 prob_norm <- "yes"
 
