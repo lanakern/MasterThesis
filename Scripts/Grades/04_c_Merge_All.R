@@ -6,7 +6,8 @@
 # by Lana Kern
 #++++
 # In this script, the remaining data sets, sibling, partner, child and competencies
-# are merged to the "espisode+cati+cawi" data set.
+# are merged to the "espisode+cati+cawi" data set. The procedure is identical
+# for all cohort prep preparations.
 #++++
 # 1.) Merge sibling via ID_t:
 #++++

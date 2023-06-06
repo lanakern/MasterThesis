@@ -43,53 +43,21 @@
 # one episode of each respondent.
 #++++
 
-
-#%%%%%%%%%#
-## SETUP ##
-#%%%%%%%%%#
-
-# clear workspace
-# rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", "treatment_def")))
-
-# # install packages; if needed, load packages
-# if (!require("dplyr")) install.packages("dplyr")
-# library(dplyr)  # to manipulate data
-# 
-# if (!require("readstata13")) install.packages("readstata13")
-# library(readstata13)  # to import stata (.dta) file into R (see data manual why this function is used)
-# 
-# if (!require("lubridate")) install.packages("lubridate")
-# library(lubridate)  # to transform time data and work with dates
-# 
-# if (!require("tidyr")) install.packages("tidyr")
-# library(tidyr)  # to work with missing values
-# 
-# if (!require("xlsx")) install.packages("xlsx")
-# library(xlsx)  # for saving and loading excel
-# 
-# 
-# # set language for dates and times to German, since the NEPS month names
-# # are written in German; otherwise date/time functions are not working
-# # for German language
-# Sys.setlocale("LC_TIME", "German")
-
-
-
 #%%%%%%%%%%%%%%%%%#
 #### Load data ####
 #%%%%%%%%%%%%%%%%%#
 
 # load already prepared data sets from file 01
-data_bio <- readRDS("Data/Prep_1/prep_1_biography_personality.rds")
-data_school <- readRDS("Data/Prep_1/prep_1_school_personality.rds")
-data_education <- readRDS("Data/Prep_1/prep_1_educ_personality.rds")
-data_highereduc_prep <- readRDS("Data/Prep_1/prep_1_vocprep_personality.rds")
-data_highereduc <- readRDS("Data/Prep_1/prep_1_voctrain_personality.rds")
-data_highereduc_break <- readRDS("Data/Prep_1/prep_1_vocbreak_personality.rds")
-data_military <- readRDS("Data/Prep_1/prep_1_military_personality.rds")
-data_internship <- readRDS("Data/Prep_1/prep_1_internship_personality.rds")
-data_gap <- readRDS("Data/Prep_1/prep_1_gap_personality.rds")
-data_emp <- readRDS("Data/Prep_1/prep_1_emp_personality.rds")
+data_bio <- readRDS("Data/Personality/Prep_1/prep_1_biography_personality.rds")
+data_school <- readRDS("Data/Personality/Prep_1/prep_1_school_personality.rds")
+data_education <- readRDS("Data/Personality/Prep_1/prep_1_educ_personality.rds")
+data_highereduc_prep <- readRDS("Data/Personality/Prep_1/prep_1_vocprep_personality.rds")
+data_highereduc <- readRDS("Data/Personality/Prep_1/prep_1_voctrain_personality.rds")
+data_highereduc_break <- readRDS("Data/Personality/Prep_1/prep_1_vocbreak_personality.rds")
+data_military <- readRDS("Data/Personality/Prep_1/prep_1_military_personality.rds")
+data_internship <- readRDS("Data/Personality/Prep_1/prep_1_internship_personality.rds")
+data_gap <- readRDS("Data/Personality/Prep_1/prep_1_gap_personality.rds")
+data_emp <- readRDS("Data/Personality/Prep_1/prep_1_emp_personality.rds")
 
 # extract number of respondents (to ensure that no respondents get lost
 # during data analysis)

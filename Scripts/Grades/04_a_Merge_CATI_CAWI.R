@@ -6,7 +6,7 @@
 # by Lana Kern
 #++++
 # In this file, the CATI & CAWI data is merged via the ID_t and the treatment_period.
-# The merge process is identical for both cohort profile preparation methods
+# The merge process is identical for all cohort profile preparation methods
 # except the naming of the interview dates (see below)
 #++++
 # -> Result is still panel data frame: One row for each treatment period & respondent

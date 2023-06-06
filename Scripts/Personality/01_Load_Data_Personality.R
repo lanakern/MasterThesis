@@ -45,35 +45,6 @@
 # which is used in further data preparation steps in the next scripts.
 
 
-#%%%%%%%%%#
-## SETUP ##
-#%%%%%%%%%#
-
-
-# clear workspace
-# rm(list = setdiff(ls(), c("cohort_prep", "treatment_repl", "treatment_def")))
-
-# install packages if needed, load packages
-# if (!require("readstata13")) install.packages("readstata13")
-# library(readstata13)  # to import stata (.dta) file into R (see data manual why this function is used)
-# 
-# if (!require("dplyr")) install.packages("dplyr")
-# library(dplyr)  # to manipulate data
-# 
-# if (!require("zoo")) install.packages("zoo")
-# library(zoo)  # to transform time data
-# 
-# if (!require("lubridate")) install.packages("lubridate")
-# library(lubridate)  # to create a date variable
-# 
-# if (!require("naniar")) install.packages("naniar")
-# library(naniar)  # to work with missing values
-# 
-# if (!require("stringr")) install.packages("stringr")
-# library(stringr)  # to work with strings
-
-
-
 #%%%%%%%%%%%%%%%%%%%#
 ## LOAD DATA FILES ##
 #%%%%%%%%%%%%%%%%%%%#

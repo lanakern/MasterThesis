@@ -7,7 +7,7 @@
 #++++
 # In this script, the episode data is appended to the CATI + CAWI data set.
 # In addition, further data preparations are conducted. Both steps are identical
-# for both cohort profile data preparation steps.
+# for all cohort profile data preparation steps.
 #++++
 # 1.) Subset episode data: Only respondents who are also in CATI&CAWI are kept
 #++++

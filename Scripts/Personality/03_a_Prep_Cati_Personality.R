@@ -13,8 +13,8 @@
 # -> Missing values are replaced according to selection.
 #++++
 # 2.) Generation of treatment period variables
-# -> 1.) Outcome at sime time than controls: CAWI CATI
-# -> 2.) Outcome after controls & treatment: CATI CAWI CATI
+# -> 1.) Outcome at same time than controls: CAWI CATI
+# -> 2.) Outcome after controls & treatment: CATI CAWI CATI (not applied)
 #++++
 # --> Resulting data frame is panel data frame.
 #++++

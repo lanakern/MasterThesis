@@ -21,11 +21,11 @@
 # 3.) Generate indices for treatment period start and end (depends on user
 # selection on how to do so). 
 # -> "controls_same_outcome" (main analysis): CAWI CATI
-# -> "controls_bef_outcome" (robustness check): CATI CAWI CATI
+# -> "controls_bef_outcome" (robustness check): CATI CAWI CATI (Not applied)
 #++++
 # 4.) Subset on length of treatment period
 # -> "controls_same_outcome": 12 months
-# -> "controls_bef_outcome" : 24 months
+# -> "controls_bef_outcome" : 24 months (not applied)
 #++++
 # --> Results in a panel data frame: one row for each respondent-wave
 # combination with information about start and end of treatment period 

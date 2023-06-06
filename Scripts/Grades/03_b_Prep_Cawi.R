@@ -10,8 +10,6 @@
 # replaced downwards.
 #++++
 # 1.) Load data and join with cohort profile
-# -> CAWI data set is loaded
-# -> Cohort Profile data set is loaded based on selection 
 # -> CAWI and Cohort Profile are merged so that only respondents who are in 
 # both data sets are kept.
 # -> Missing values are replaced downwards
@@ -19,9 +17,13 @@
 # 2.) Data Preparation (also depends on selected cohort profile step)
 # -> "controls_same_outcome": only treatment_starts variable is dropped as it
 # is always NA because treatment period starts with CATI and ends with CAWI
-# -> "controls_bef_outcome": treatment-outcome and control variables are
+# -> "controls_bef_outcome": outcome and treatment+control variables are
 # prepared separately as they are measured in different survey. Then, they
 # are merged via the treatment period indicator.
+# -> "controls_bef_all": same idea than for "controls_bef_outcome", but treatment
+# is measured in same interview than outcome.
+# -> "controls_treatment_outcome"; controls, treatment, and outcome are
+# measured in different surveys. 
 #++++
 # --> Resulting data frame is panel data frame
 #++++

@@ -9,15 +9,12 @@
 # are replaced downwards (Last Value Carried Forward Method).
 #++++
 # 1.) Load data and join with cohort profile
-# -> CATI data set is loaded
-# -> Cohort Profile data set is loaded based on selection 
 # -> CATI and Cohort Profile are merged so that only respondents who are in 
 # both data sets are kept.
 # -> Missing values are replaced downwards
 #++++
 # 2.) Final CATI data set is created which includes control variables and
 # treatment information.
-# -> Missing values in treatment variable are also upward replaced (if selected by user)
 #++++
 # --> Resulting data frame is panel data frame.
 #++++

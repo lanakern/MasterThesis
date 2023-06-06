@@ -14,9 +14,9 @@
 # define input parameters
 cohort_prep <- main_cohort_prep
 treatment_repl <- main_treatment_repl
-treatment_def <- main_treatment_def # "weekly" -> changed manually for other preparation (not used anymore)
+treatment_def <- main_treatment_def 
 extra_act <- main_extra_act
-cov_balance <- "yes"
+cov_balance <- main_cov_balance
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%#

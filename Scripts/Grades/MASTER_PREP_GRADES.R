@@ -122,7 +122,8 @@ for (cohort_prep_sel in unique(na.omit(df_inputs$cohort_prep))) {
 #### Merge ####
 #+++++++++++++#
 
-# Merge all 02_* and 03_* data sets. This differs between cohort_preps. 
+# Merge all 02_* and 03_* data sets. This differs between cohort_preps.
+# treatment_repl is used for saving (always "down")
 
 for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
   
@@ -185,7 +186,7 @@ for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
 #++++++++++++++++++++++++#
 
 # Conduct sample selection.
-# For "controls_bef_outcome" students who do not participate in sports nor
+# For "controls_bef_*" students who do not participate in sports nor
 # any other extracurricular activity are dropped here. 
 # For "controls_same_outcome" all are kept and dropped in file 11.
 df_inputs_indiv <- rbind(
@@ -199,7 +200,8 @@ df_inputs_indiv <- rbind(
 ) %>% rbind(
   df_inputs %>%
     filter(cohort_prep == "controls_treatment_outcome" & treatment_def == "weekly")
-)
+) %>%
+  filter(extra_act != "uni")
   
 
 for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
@@ -225,6 +227,10 @@ for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
 # now set language for dates and times to English
 Sys.setlocale("LC_TIME", "English")
 
+# because cohort_prep == "controls_treatment_outcome" does only contain 93
+# observations, the data preparation is stopped.
+df_inputs_indiv <- df_inputs_indiv %>% filter(cohort_prep != "controls_treatment_outcome")
+
 # create variables (differs for cohort_preps). Moreover, 5 different data sets
 # are created. 
 for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
@@ -243,16 +249,10 @@ for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
   gc()
 }
 
-
-# load file showing sample reduction
-df_excel_save_hist <- read.xlsx("Output/SAMPLE_REDUCTION_STEPS_GRADES.xlsx", sheetName = "Sheet1")
-df_excel_save_hist
-
-
 #### Plausibility analysis ####
 #+++++++++++++++++++++++++++++#
 
-# Plausibility analyses are conducted to ensure that valuesare plausible.
+# Plausibility analyses are conducted to ensure that values are plausible.
 # Again this differs across cohort_preps but also MICE data frames.
 
 for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
@@ -273,63 +273,60 @@ for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
 }
 
 
-#### Descriptive Statistics ####
-#++++++++++++++++++++++++++++++#
+#### Generate Interactions and Polynominals ####
+#++++++++++++++++++++++++++++++++++++++++++++++#
 
-
-# descriptive statistics are only made for main model
-cohort_prep <- main_cohort_prep
+# only generated for main model and cohort prep "controls_bef_outcome"
 treatment_repl <- main_treatment_repl
 treatment_def <- main_treatment_def
 extra_act <- main_extra_act
-source("Scripts/Grades/09_Descriptive_Statistics.R") 
-eval(parse(text = keep_after_file_run))
-gc()
+
+# Create interaction and polynominals (also only done for main model)
+# NOT USED ANYMORE DUE TO COMPUTATIONAL LIMITATIONS!!
+cohort_prep_sel <- c(main_cohort_prep, "controls_bef_outcome")
+for (cohort_prep_sel_loop in cohort_prep_sel) {
+  cohort_prep <- cohort_prep_sel_loop
+  source("Scripts/Grades/9_Create_Interactions_Polys.R") 
+  print(paste0("FINISHED COMBINATION: ", cohort_prep))
+  eval(parse(text = keep_after_file_run)) 
+}
+
 
 
 #### Final Estimation Samples ####
 #++++++++++++++++++++++++++++++++#
 
-# First create interaction and polynominals
-for (prep_sel_num in 1:nrow(df_inputs_indiv)) {
-  
-  print(paste0("START COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs_indiv)))
-  
-  df_inputs_sel <- df_inputs_indiv[prep_sel_num, ]
-  cohort_prep <- df_inputs_sel$cohort_prep
-  treatment_repl <- df_inputs_sel$treatment_repl
-  treatment_def <- df_inputs_sel$treatment_def
-  extra_act <- df_inputs_sel$extra_act
-  
-  source("Scripts/Grades/10_a_Create_Interactions_Polys.R") 
-  
-  print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs_indiv)))
-  eval(parse(text = keep_after_file_run))
-  gc()
-}
+# Create the final estimation samples. Here subsetting takes place.
+# For example, regarding extracuricular activities or treatment replacement.
+# I only consider treatment group definition of "all" 
+df_inputs_est <- df_inputs %>% 
+  mutate(treatment_def = "all") %>%
+  filter(cohort_prep != "controls_treatment_outcome") %>% 
+  distinct()
 
-# Second create the final estimation samples. Here subsetting takes place.
-# For example, regarding extracuriccular activities or treatment replacement.
-# Also treatment group definition of "all" is considered.
-# also add everything for treatment_def == "all"
-df_inputs <- rbind(df_inputs,
-                   df_inputs %>% mutate(treatment_def = "all")) %>% distinct()
-for (prep_sel_num in 1:nrow(df_inputs)) {
+for (prep_sel_num in 1:nrow(df_inputs_est)) {
   
-  print(paste0("START COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs)))
+  print(paste0("START COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs_est)))
   
-  df_inputs_sel <- df_inputs[prep_sel_num, ]
+  df_inputs_sel <- df_inputs_est[prep_sel_num, ]
   cohort_prep <- df_inputs_sel$cohort_prep
   treatment_repl <- df_inputs_sel$treatment_repl
   treatment_def <- df_inputs_sel$treatment_def
   extra_act <- df_inputs_sel$extra_act
   
-  cov_balance <- "yes" # -> drops leisure sport participation
-  interactions <- "no"
+  cov_balance <- cov_balance # -> drops leisure sport participation
   
-  source("Scripts/Grades/10_b_Estimation_Sample.R") 
+  if (cohort_prep == "controls_same_outcome" & treatment_repl == "down" &
+      treatment_def == "all" & extra_act == "yes") {
+    interactions <- "yes" # -> interactions only for main model
+  } else {
+    interactions <- "no" # -> no interactions
+  }
   
-  print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs)))
+  
+  source("Scripts/Grades/10_a_Estimation_Sample.R") 
+  
+  print(paste0("FINISHED COMBINATION ", prep_sel_num, " FROM ", nrow(df_inputs_est)))
   eval(parse(text = keep_after_file_run))
   gc()
 }
@@ -346,7 +343,8 @@ extra_act <- main_extra_act
 cov_balance <- main_cov_balance
 model_type <- main_model_type
 
-source("Scripts/Personality/10_c_Estimation_Sample_Descriptives.R") 
+source("Scripts/Personality/10_b_Estimation_Sample_Descriptives.R") 
+
 
 #### Show Sample Reduction ####
 #+++++++++++++++++++++++++++++#
