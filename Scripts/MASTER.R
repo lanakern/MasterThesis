@@ -193,13 +193,13 @@ main_cov_balance <- "yes"
 df_inputs <- data.frame(
   # for interview data preparation
   "cohort_prep" = c("controls_bef_outcome", rep("controls_same_outcome", 4), "controls_bef_all", "controls_treatment_outcome",
-                    "controls_bef_all", "controls_treatment_outcome"), 
+                    "controls_bef_all", "controls_treatment_outcome", "controls_same_outcome"), 
   # for treatment and outcome missing value replacement
-  "treatment_repl" = c("down", "down", "down", "down", "no", "down", "down", "down", "down"),
+  "treatment_repl" = c("down", "down", "down", "down", "no", "down", "down", "down", "down", "down"),
   # for treatment generation
-  "treatment_def" = c("weekly", "all", "weekly", "weekly", "weekly", "all", "all", "weekly", "weekly"),
+  "treatment_def" = c("weekly", "all", "weekly", "weekly", "weekly", "all", "all", "weekly", "weekly", "all"),
   # for sample selection: only keeping respondents with extracurricular activity
-  "extra_act" = c("yes", "yes", "no", "yes", "yes", "yes", "yes", "yes", "yes")
+  "extra_act" = c("yes", "yes", "no", "yes", "yes", "yes", "yes", "yes", "yes", "uni")
 )
 
 # aggregation of variables
@@ -667,7 +667,7 @@ source("Scripts/11_b_DML_Multi.R")
 prob_norm <- "yes"
 
 ## Multiclass classification ##
-probscore_separate <- "FALSE"
+probscore_separate <- FALSE
 source("Scripts/11_b_DML_Multi.R") 
 probscore_separate <- TRUE
 
