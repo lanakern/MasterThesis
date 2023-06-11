@@ -131,6 +131,16 @@ for (mice_data_sel in 1:5) {
       dplyr::select(starts_with("treatment_sport_freq"), starts_with("outcome"), 
                     group, contains("_lag")) %>% 
       as.data.frame()
+  } else if (model_controls_lag == "no_treatment_lag") {
+    if (str_detect(outcome_var_multi, "grade")) {
+      data_dml <- data_dml %>% 
+        dplyr::select(-c(starts_with("treatment_sport_freq") & contains("_lag"))) %>% 
+        as.data.frame()
+    } else {
+      data_dml <- data_dml %>% 
+        dplyr::select(-c(starts_with("treatment_sport_freq") & contains("_lag"))) %>% 
+        as.data.frame()
+    }
   } else {
     # keep all lags
     data_dml <- data_dml %>% as.data.frame()
