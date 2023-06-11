@@ -565,6 +565,11 @@ source("Scripts/11_b_DML_Multi.R")
 eval(parse(text = keep_after_file_run))
 gc()
 
+model_controls_lag <- "no_treatment_lag"
+source("Scripts/11_b_DML_Multi.R") 
+eval(parse(text = keep_after_file_run))
+gc()
+
 model_controls_lag <- ain_model_controls_lag
 
 ## Polys ##
