@@ -6,7 +6,7 @@
 # by Lana Kern
 #+++
 # In this files, the DML results are analyzed and prepared so that they can
-# be copied within the final paper. For instance, error metrics are displayed,
+# be copied within the final paper. For instance, error metrics are generated,
 # common support plots are created etc. 
 #+++
 
@@ -30,6 +30,22 @@ if (cov_balance == "yes") {
 }
 
 
+## Data Sets ##
+#+++++++++++++#
+
+data_grades_binary <- 
+  readRDS(paste0("Data/Grades/Prep_10/prep_10_dml_binary_all_", treatment_def, "_down_extradrop", cov_balance_save, "_mice1.rds"))
+
+data_personality_binary <- 
+  readRDS(paste0("Data/Personality/Prep_10/prep_10_dml_binary_all_", treatment_def, "_down_extradrop", cov_balance_save, "_mice1_personality.rds"))
+
+data_grades_multi <- 
+  readRDS(paste0("Data/Grades/Prep_10/prep_10_dml_multi_all_", treatment_def, "_down_extradrop", cov_balance_save, "_mice1.rds"))
+
+data_personality_multi <- 
+  readRDS(paste0("Data/Personality/Prep_10/prep_10_dml_multi_all_", treatment_def, "_down_extradrop", cov_balance_save, "_mice1_personality.rds"))
+
+
 ## SUMMARY OF RESULTS ##
 #++++++++++++++++++++++#
 
@@ -41,6 +57,7 @@ df_dml_main_multi <-
 
 df_dml_sep_multi <- 
   read.xlsx("Output/DML/Treatment_Effects/DML_MULTI_SEPARATE_ESTIMATION_RESULTS.xlsx", sheetName = "Sheet1")
+
 
 ## LASSO ##
 #+++++++++#
@@ -55,6 +72,33 @@ lasso_grades <-
 lasso_grades_multi <- 
   readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_lasso_all_controlssameoutcome_", treatment_def,
                  "_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming",
+                 model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
+
+
+# MULTI: PERSONALITY
+lasso_agree_multi <- 
+  readRDS(paste0("Output/DML/Estimation/Personality/multi_agreeableness_", "lasso", 
+                 "_all_controlssameoutcome_", treatment_def, "_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming", 
+                 model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
+
+lasso_consc_multi <- 
+  readRDS(paste0("Output/DML/Estimation/Personality/multi_conscientiousness_", "lasso", 
+                 "_all_controlssameoutcome_", treatment_def, "_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming", 
+                 model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
+
+lasso_extra_multi <- 
+  readRDS(paste0("Output/DML/Estimation/Personality/multi_extraversion_", "lasso", 
+                 "_all_controlssameoutcome_", treatment_def, "_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming", 
+                 model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
+
+lasso_open_multi <- 
+  readRDS(paste0("Output/DML/Estimation/Personality/multi_openness_", "lasso", 
+                 "_all_controlssameoutcome_", treatment_def, "_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming", 
+                 model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
+
+lasso_neuro_multi <- 
+  readRDS(paste0("Output/DML/Estimation/Personality/multi_neuroticism_", "lasso", 
+                 "_all_controlssameoutcome_", treatment_def, "_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming", 
                  model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
 
 
@@ -129,10 +173,10 @@ postlasso_neuro_multi <-
 
 
 # Robustnesschecks regarding samples
-postlasso_grades_rc1_lvcf <- 
+postlasso_grades_rc1_befall <- 
   readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_", "postlasso", 
-                 "_all_controlssameoutcome_", treatment_def, 
-                 "_no_extradrop_all_notreatmentoutcomelags_endogyes_trimming", 
+                 "_all_controlsbefall_", treatment_def, 
+                 "_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming", 
                  model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
 
 postlasso_grades_rc2_noextra <- 
@@ -145,6 +189,18 @@ postlasso_grades_rc3_endog <-
   readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_", "postlasso", 
                  "_all_controlssameoutcome_", treatment_def, 
                  "_down_extradrop_all_notreatmentoutcomelags_endogno_trimming", 
+                 model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
+
+postlasso_grades_rc4_lags <- 
+  readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_", "postlasso", 
+                 "_all_controlssameoutcome_", treatment_def, 
+                 "_down_extradrop_all_onlylags_endogyes_trimming", 
+                 model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
+
+postlasso_grades_rc5_polys <- 
+  readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_", "postlasso", 
+                 "_allpoly_controlssameoutcome_", treatment_def, 
+                 "_down_extradrop_allpoly_notreatmentoutcomelags_endogyes_trimming", 
                  model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
 
 postlasso_grades_rc5_nocovbal <- 
@@ -180,16 +236,6 @@ xgb_grades_multi <-
                  "_all_controlssameoutcome_", treatment_def, "_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming",
                  model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
 
-# PERSONALITY
-xgb_extra <- 
-  readRDS(paste0("Output/DML/Estimation/Personality/binary_extraversion_", "xgboost", 
-                 "_all_controlssameoutcome_", treatment_def, "_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming", 
-                 model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
-
-xgb_extra_multi <- 
-  readRDS(paste0("Output/DML/Estimation/Personality/multi_extraversion_", "xgboost", 
-                 "_all_controlssameoutcome_", treatment_def, "_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming", 
-                 model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
 
 
 ## Random Forests ##
@@ -551,6 +597,60 @@ print(postlasso_personality_boxplot_multi_all)
 dev.off()
 
 
+# LASSO
+postlasso_personality_boxplot_lasso_multi <- data.frame()
+for (personality_sel in c("agree", "extra", "consc", "neuro", "open")) {
+  postlasso_perso_sel <- paste0("lasso_", personality_sel, "_multi")
+  for (mice_sel in 1:5) {
+    postlasso_personality_boxplot_lasso_multi <- rbind(
+      postlasso_personality_boxplot_lasso_multi,
+      get(postlasso_perso_sel)[[mice_sel]]$detail %>%
+        mutate(Outcome = personality_sel) %>%
+        dplyr::select(Outcome,  Treatment, Type, Rep, Treatment_Effect) %>%
+        filter(Type %in% c("ATE", "ATTE")) %>%
+        mutate(MICE = mice_sel, Type = case_when(Type == "ATTE" ~ "ATET", TRUE ~ Type))
+    )
+  } # close iteration over mice_sel
+} # close iteration over personality
+
+postlasso_personality_boxplot_lasso_multi <- postlasso_personality_boxplot_lasso_multi %>%
+  mutate(
+    Outcome = case_when(
+      Outcome == "agree" ~ "Agreeableness", Outcome == "extra" ~ "Extroversion",
+      Outcome == "consc" ~ "Conscientiousness", Outcome == "open" ~ "Openness",
+      Outcome == "neuro" ~ "Neuroticism", TRUE ~ as.character(NA)
+    )
+  ) %>%
+  mutate(
+    Treatment = case_when(
+      Treatment == "monthly_weekly" ~ "Weekly - Monthly", 
+      Treatment == "no_weekly" ~ "Weekly - Never",
+      Treatment == "no_monthly" ~ "Monthly - Never", TRUE ~ as.character(NA))
+  ) %>%
+  mutate(across(Treatment, factor, levels=c("Weekly - Monthly","Weekly - Never","Monthly - Never")))
+
+postlasso_personality_boxplot_lasso_multi <- 
+  ggplot(postlasso_personality_boxplot_lasso_multi, aes(x = Outcome, y = Treatment_Effect)) +
+  geom_boxplot(fill = "grey", outlier.size = 5, linewidth = 0.8) +
+  stat_summary(fun.y=mean, geom = "point", shape = 15, size = 5, color = "darkblue",
+               position = position_dodge2(width = 0.75,   
+                                          preserve = "single")) +
+  #xlab("\nMachine Learning Algorithms\n") +
+  xlab("") + ylab("\nTreatment Effect Estimates\n") + 
+  ylim(-0.15, 0.25) +
+  facet_grid(rows = vars(Type), cols = vars(Treatment),
+             scales="free_y", switch = 'y') + 
+  theme_bw() +
+  theme(
+    panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.text = element_text(size = 36), # size of x-axis tick labels
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 36), # rotate x-axis ticks
+    axis.title = element_text(size = 36), #, face = "bold"), # size of x-axis labels
+    strip.text.x = element_text(size = 40), strip.text.y = element_text(size = 40) # size of facet text
+  ) 
+postlasso_personality_boxplot_lasso_multi
+
 #### Robustness Checks ####
 #+++++++++++++++++++++++++#
 
@@ -606,8 +706,8 @@ df_treatment_effects_rc_multi <- df_dml_main_multi %>%
   )) %>% 
   filter(Type %in% c("ATE", "ATTE"), sample == "rc", model_algo == "postlasso", 
          outcome == "grade") %>%
-  dplyr::select(cohort_prep, treatment_repl, extra_act, starts_with("model"), Treatment, 
-                Type, theta_median, se_median, pvalue_median, time_stamp) 
+  dplyr::select(cohort_prep, treatment_repl, extra_act, starts_with("model"), 
+                Prob_norm, Treatment, Type, theta_median, se_median, pvalue_median, time_stamp) 
 df_treatment_effects_rc_multi %>% 
   arrange(desc(time_stamp)) 
 
@@ -883,31 +983,27 @@ df_ape_multi <- left_join(df_ape_multi, df_multi_se_monthly_weekly, by = "variab
 
 # mean and standard deviation used for standardization (same across MICE data sets
 # as outcome vars are not replaced as they do not contain any missing values)
-data_stand_grades <- 
-  readRDS(paste0("Data/Grades/Prep_10/prep_10_dml_binary_all_", treatment_def, "_down_extradrop", cov_balance_save, "_mice1.rds"))
-data_stand_grades <- cbind(data_stand_grades %>%
+data_stand_grades <- cbind(data_grades_binary %>%
   summarize(mean = mean(outcome_grade), sd = sd(outcome_grade)),
-  data_stand_grades %>% 
+  data_grades_binary %>% 
     group_by(treatment_sport) %>% 
     summarize(mean = mean(outcome_grade)) %>% 
     spread(treatment_sport, mean) %>%
     rename(mean_no = `0`, mean_yes = `1`))
 
-data_stand_pers <- readRDS(paste0("Data/Personality/Prep_10/prep_10_dml_binary_all_", treatment_def, "_down_extradrop",
-                                  cov_balance_save, "_mice1_personality.rds"))
-data_stand_pers <- cbind(data_stand_pers %>%
+data_stand_pers <- cbind(data_personality_binary %>%
   summarize(agree_mean = mean(bigfive_agreeableness), agree_sd = sd(bigfive_agreeableness),
             consc_mean = mean(bigfive_conscientiousness), consc_sd = sd(bigfive_conscientiousness),
             extra_mean = mean(bigfive_extraversion), extra_sd = sd(bigfive_extraversion),
             open_mean = mean(bigfive_openness), open_sd = sd(bigfive_openness),
             neuro_mean = mean(bigfive_neuroticism), neuro_sd = sd(bigfive_neuroticism)), 
-  data_stand_pers %>% 
+  data_personality_binary %>% 
     filter(treatment_sport == 0) %>% 
     summarize(agree_mean_no = mean(bigfive_agreeableness), consc_mean_no = mean(bigfive_conscientiousness),
               extra_mean_no = mean(bigfive_extraversion), open_mean_no = mean(bigfive_openness),
               neuro_mean_no = mean(bigfive_neuroticism))) %>% 
   cbind(
-    data_stand_pers %>% 
+    data_personality_binary %>% 
       filter(treatment_sport == 1) %>% 
       summarize(agree_mean_yes = mean(bigfive_agreeableness), consc_mean_yes = mean(bigfive_conscientiousness),
                 extra_mean_yes = mean(bigfive_extraversion), open_mean_yes = mean(bigfive_openness),
@@ -1147,33 +1243,29 @@ saveRDS(df_error_main_binary_rc, "Output/DML/binary_rc_error_metrics.rds")
 #### MULTIVALUED TREATMENT SETTING ####
 #+++++++++++++++++++++++++++++++++++++#
 
-data_stand_grades_multi <- 
-  readRDS(paste0("Data/Grades/Prep_10/prep_10_dml_multi_all_", treatment_def, "_down_extradrop", cov_balance_save, "_mice1.rds"))
-data_stand_grades_multi <- cbind(data_stand_grades_multi %>% summarize(mean = mean(outcome_grade), sd = sd(outcome_grade)),
-                                 data_stand_grades_multi %>% 
+data_stand_grades_multi <- cbind(data_grades_multi %>% summarize(mean = mean(outcome_grade), sd = sd(outcome_grade)),
+                                 data_grades_multi %>% 
                                    group_by(treatment_sport_freq) %>% 
                                    summarize(mean = mean(outcome_grade)) %>% 
                                    spread(treatment_sport_freq, mean) %>%
                                    rename(mean_weekly = `1`, mean_monthly = `2`, mean_never = `3`))
 
-data_stand_pers_multi <- readRDS(paste0("Data/Personality/Prep_10/prep_10_dml_multi_all_", treatment_def, "_down_extradrop",
-                                        cov_balance_save, "_mice1_personality.rds"))
-data_stand_pers_multi <- cbind(data_stand_pers_multi %>%
+data_stand_pers_multi <- cbind(data_personality_multi %>%
                            summarize(agree_mean = mean(bigfive_agreeableness), agree_sd = sd(bigfive_agreeableness),
                                      consc_mean = mean(bigfive_conscientiousness), consc_sd = sd(bigfive_conscientiousness),
                                      extra_mean = mean(bigfive_extraversion), extra_sd = sd(bigfive_extraversion),
                                      open_mean = mean(bigfive_openness), open_sd = sd(bigfive_openness),
                                      neuro_mean = mean(bigfive_neuroticism), neuro_sd = sd(bigfive_neuroticism)), 
-                           data_stand_pers_multi %>% 
+                           data_personality_multi %>% 
                            filter(treatment_sport_freq == 1) %>% 
                            summarize(agree_mean_weekly = mean(bigfive_agreeableness), consc_mean_weekly = mean(bigfive_conscientiousness),
                                      extra_mean_weekly = mean(bigfive_extraversion), open_mean_weekly = mean(bigfive_openness),
                                      neuro_mean_weekly = mean(bigfive_neuroticism))) %>% 
-  cbind(data_stand_pers_multi %>% filter(treatment_sport_freq == 2) %>% 
+  cbind(data_personality_multi %>% filter(treatment_sport_freq == 2) %>% 
           summarize(agree_mean_monthly = mean(bigfive_agreeableness), consc_mean_monthly = mean(bigfive_conscientiousness),
                     extra_mean_monthly = mean(bigfive_extraversion), open_mean_monthly = mean(bigfive_openness),
                     neuro_mean_monthly = mean(bigfive_neuroticism))) %>%
-  cbind(data_stand_pers_multi %>% filter(treatment_sport_freq == 3) %>% 
+  cbind(data_personality_multi %>% filter(treatment_sport_freq == 3) %>% 
           summarize(agree_mean_never = mean(bigfive_agreeableness), consc_mean_never = mean(bigfive_conscientiousness),
                     extra_mean_never = mean(bigfive_extraversion), open_mean_never = mean(bigfive_openness),
                     neuro_mean_never = mean(bigfive_neuroticism))) 
@@ -2140,10 +2232,11 @@ for (model_algo_sel in c("lasso", "postlasso", "rf", "xgb")) {
 }
 
 
-#### Summary Statistics ####
-#++++++++++++++++++++++++++#
+#### Summary Statistics: Propensity Score Predictions ####
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 
-# Summary statistics are calculated before trimming
+# Summary statistics are calculated before trimming. Precisely, the minimum,
+# mean, and maximum of the predicted treatment probabilities is created.
 
 ## BINARY ##
 df_pred_bef_trimming <- c()
@@ -2206,6 +2299,23 @@ df_pred_bef_trimming_multi %>% group_by(model_algo, outcome) %>%
   as.data.frame()
 
 
+## Unconditional Treatment Probabilities ##
+data_grades_binary %>% group_by(treatment_sport) %>% count() %>%
+  mutate(n = n / data_grades_binary %>% group_by(treatment_sport) %>% count() %>% pull(n) %>% sum()*100) %>%
+  as.data.frame()
+
+data_personality_binary %>% group_by(treatment_sport) %>% count() %>%
+  mutate(n = n / data_personality_binary %>% group_by(treatment_sport) %>% count() %>% pull(n) %>% sum()*100) %>%
+  as.data.frame()
+
+
+data_grades_multi %>% group_by(treatment_sport_freq) %>% count() %>%
+  mutate(n = n / data_grades_multi %>% group_by(treatment_sport_freq) %>% count() %>% pull(n) %>% sum()*100) %>%
+  as.data.frame()
+
+data_personality_multi %>% group_by(treatment_sport_freq) %>% count() %>%
+  mutate(n = n / data_personality_multi %>% group_by(treatment_sport_freq) %>% count() %>% pull(n) %>% sum()*100) %>%
+  as.data.frame()
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%#
@@ -2274,7 +2384,7 @@ for (outcome_var_sel in c("grades", "agree", "extra", "consc", "open", "neuro"))
 #### RC: SENSITIVITY WRT EXTRACURRICULAR ACTIVITY ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-# error metrics and trimming (not reported in paper, only written)
+## include inactive students ##
 df_dml_main_multi %>% 
   mutate(sample = ifelse(
     cohort_prep == main_cohort_prep & treatment_def == main_treatment_def & 
@@ -2299,7 +2409,6 @@ df_dml_main_multi %>%
   as.data.frame()
 
 
-# error metrics with unstandardized outcome
 ml_grades_pred <- data.frame()
 for (mice_sel in 1:length(postlasso_grades_rc2_noextra )) {
   ml_grades_pred_sub <- left_join(postlasso_grades_rc2_noextra[[mice_sel]]$pred, 
@@ -2312,9 +2421,7 @@ for (mice_sel in 1:length(postlasso_grades_rc2_noextra )) {
 
 df_pred <- ml_grades_pred %>% 
   mutate(
-    # standardized outcomes
     outcome_stand = outcome, g1_stand = g1,  g2_stand = g2,  g3_stand = g3,
-    # original scale
     outcome = outcome_stand*data_stand_grades_multi$sd + data_stand_grades_multi$mean,
     g1 = g1_stand*data_stand_grades_multi$sd + data_stand_grades_multi$mean,
     g2 = g2_stand*data_stand_grades_multi$sd + data_stand_grades_multi$mean,
@@ -2336,28 +2443,21 @@ df_error %>%
   as.data.frame()
 
 
+## active within uni ##
 
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-#### RC: Active students within uni ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-
-# load data
 postlasso_grades_extrauni <- 
   readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_", "postlasso", 
                  "_all_controlssameoutcome_", treatment_def, "_down_extrauni_all_notreatmentoutcomelags_endogyes_trimming", 
                  model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
 
-# number of predictors: 158.77
-df_dml_main_multi %>% filter(extra_act == "uni") %>% pull(num_predictors_m1) %>% unique()
+df_dml_main_multi %>% filter(extra_act == "uni") %>% pull(num_predictors_m1) %>% unique() # number of predictors: 158.77
 
-# percentage of dropped observations: 1.9090%
-df_dml_main_multi %>%
+df_dml_main_multi %>% # percentage of dropped observations: 1.9090%
   filter(extra_act == "uni") %>%
   dplyr::select(outcome, model_algo, starts_with("n_treats")) %>% distinct() %>%
   mutate(n_treats_diff = n_treats_before - n_treats_after, 
          n_treats_diff_perf = ((n_treats_before - n_treats_after) / n_treats_before)*100)
 
-# error metrics
 df_error_extrauni <- data.frame()
 for (outcome_var_sel in c("grades")) {
   for (model_algo_sel in c("postlasso")) {
@@ -2424,18 +2524,128 @@ for (outcome_var_sel in c("grades")) {
   } # close for loop model_algo_sel
 } # close for loop outcome_var_sel
 
-# calculate error metrics for paper
 df_error_extrauni %>%
   dplyr::select(outcome, ml_algo, starts_with("AUC"), starts_with("ACC"), starts_with("BACC"), 
                 starts_with("RMSE"), starts_with("RRMSE"), starts_with("MAE")) %>%
   as.data.frame()
 
 
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-#### RC: SENSITIVITY WRT ENDOGENOUS VARIABLES ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### RC: TREATMENT GENERATION ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-# error metrics and trimming (not reported in paper, only written)
+
+df_dml_main_multi %>% filter(cohort_prep == "controls_bef_all") %>% pull(num_predictors_m1) %>% unique() # number of predictors: 154.81
+
+df_dml_main_multi %>% # percentage of dropped observations: 3.68%
+  filter(cohort_prep == "controls_bef_all") %>%
+  dplyr::select(outcome, model_algo, starts_with("n_treats")) %>% distinct() %>%
+  mutate(n_treats_diff = n_treats_before - n_treats_after, 
+         n_treats_diff_perf = ((n_treats_before - n_treats_after) / n_treats_before)*100)
+
+df_error_befall <- data.frame()
+for (outcome_var_sel in c("grades")) {
+  for (model_algo_sel in c("postlasso")) {
+    load_pred_algo <- paste0(model_algo_sel, "_", outcome_var_sel, "_rc1_befall")
+    tryCatch({
+      print(load_pred_algo)
+      if (exists(load_pred_algo) == FALSE) stop("Does not exist")
+      
+      ml_grades_pred <- data.frame()
+      for (mice_sel in 1:length(get(load_pred_algo))) {
+        ml_grades_pred_sub <- left_join(get(load_pred_algo)[[mice_sel]]$pred, 
+                                        get(load_pred_algo)[[mice_sel]]$trimming, 
+                                        by = "Repetition") %>%
+          mutate(MICE = mice_sel)
+        ml_grades_pred <- rbind(ml_grades_pred, ml_grades_pred_sub)
+      }
+      
+      if (outcome_var_sel == "grades") {
+        df_sd_mean_multi <- data_stand_grades_multi
+        df_pred <- ml_grades_pred %>% 
+          mutate(
+            # standardized outcomes
+            outcome_stand = outcome, g1_stand = g1,  g2_stand = g2,  g3_stand = g3,
+            # original scale
+            outcome = outcome_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean,
+            g1 = g1_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean,
+            g2 = g2_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean,
+            g3 = g3_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean
+          )
+      } else {
+        df_sd_mean_multi <- data_stand_pers_multi %>%
+          dplyr::select(starts_with(outcome_var_sel)) 
+        colnames(df_sd_mean_multi) <- 
+          str_remove(colnames(df_sd_mean_multi), paste0(outcome_var_sel, "_"))
+        
+        df_pred <- ml_grades_pred %>% 
+          mutate(
+            # standardized outcomes
+            outcome_stand = outcome, g1_stand = g1,  g2_stand = g2,  g3_stand = g3,
+            # original scale
+            outcome = outcome_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean,
+            g1 = g1_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean,
+            g2 = g2_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean,
+            g3 = g3_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean
+          )
+      }
+      
+      df_error_sub <- func_ml_error_metrics("multi", df_pred, 1, 1, TRUE) %>%
+        dplyr::select(-c(Repetition, Fold)) %>%
+        mutate(outcome = outcome_var_sel, ml_algo = model_algo_sel) %>%
+        dplyr::select(outcome, ml_algo, everything())
+      
+      # calculate RRMSE
+      df_error_sub <- df_error_sub %>%
+        mutate(RRMSE_g1 = (RMSE_g1 / df_sd_mean_multi$mean_weekly)*100, 
+               RRMSE_g2 = (RMSE_g2 / df_sd_mean_multi$mean_monthly)*100,
+               RRMSE_g3 = (RMSE_g3 / df_sd_mean_multi$mean_never)*100) 
+      
+      # bind row
+      df_error_befall <- rbind(df_error_befall, df_error_sub)
+      
+      
+    }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")}) # close tryCatch()
+  } # close for loop model_algo_sel
+} # close for loop outcome_var_sel
+
+df_error_befall %>%
+  dplyr::select(outcome, ml_algo, starts_with("AUC"), starts_with("ACC"), starts_with("BACC"), 
+                starts_with("RMSE"), starts_with("RRMSE"), starts_with("MAE")) %>%
+  as.data.frame()
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### RC: SENSITIVITY WRT CONTROL VARIABLES ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+## POLYS ##
+df_dml_main_multi %>% 
+  mutate(sample = ifelse(
+    cohort_prep == main_cohort_prep & treatment_def == main_treatment_def & 
+      treatment_repl == main_treatment_repl & extra_act == main_extra_act & 
+      model_type == main_model_type & model_k == main_model_k & model_s_rep == main_model_s_rep & 
+      model_trimming == main_model_trimming & model_controls_lag == main_model_controls_lag & 
+      model_controls_endog == main_model_controls_endog &  model_hyperparam_sel == "best" &
+      model_covbal == "yes", "main", "rc")) %>% 
+  filter(Type %in% c("ATE", "ATTE"), sample == "rc", model_algo == "postlasso", 
+         outcome == "grade", model_type == "allpoly") %>%
+  dplyr::select(model_hyperparam_sel, num_predictors_m1, starts_with("ACC"),  starts_with("BACC"), starts_with("AUC"),
+                starts_with("RMSE"), starts_with("MAPE"), starts_with("n_treats")) %>%
+  distinct() %>%
+  group_by(model_hyperparam_sel) %>%
+  mutate(ACC = mean(c(ACC_m1, ACC_m2, ACC_m3)), BACC = mean(c(BACC_m1, BACC_m2, BACC_m3)),
+         AUC = mean(c(AUC_m1, AUC_m2, AUC_m3)), RMSE = mean(c(RMSE_g1, RMSE_g2, RMSE_g3)), 
+         MAPE = mean(c(MAPE_g1, MAPE_g2, MAPE_g3))) %>%
+  mutate(n_treats_diff = n_treats_before - n_treats_after, 
+         n_treats_diff_perf = ((n_treats_before - n_treats_after) / n_treats_before)*100) %>% 
+  dplyr::select(model_hyperparam_sel, n_treats_diff_perf, num_predictors_m1, starts_with("ACC"), 
+                starts_with("BACC"), starts_with("AUC")) %>%
+  as.data.frame()
+
+postlasso_grades_rc5_polys[[1]]$coef %>% filter(estimate > 0) %>% filter(str_detect(term, "order"))
+
+## NO ENDOGENOUS CONTROLS ##
 df_dml_main_multi %>% 
   mutate(sample = ifelse(
     cohort_prep == main_cohort_prep & treatment_def == main_treatment_def & 
@@ -2455,12 +2665,10 @@ df_dml_main_multi %>%
          MAPE = mean(c(MAPE_g1, MAPE_g2, MAPE_g3))) %>%
   mutate(n_treats_diff = n_treats_before - n_treats_after, 
          n_treats_diff_perf = ((n_treats_before - n_treats_after) / n_treats_before)*100) %>% 
-  dplyr::select(model_hyperparam_sel, n_treats_diff_perf, num_predictors_m1, starts_with("ACC"), 
-                starts_with("BACC"), starts_with("AUC"), starts_with("RMSE")) %>%
+  dplyr::select(model_hyperparam_sel, n_treats_diff_perf, num_predictors_m1) %>%
   as.data.frame()
 
 
-# error metrics with unstandardized outcome
 ml_grades_pred <- data.frame()
 for (mice_sel in 1:length(postlasso_grades_rc3_endog)) {
   ml_grades_pred_sub <- left_join(postlasso_grades_rc3_endog[[mice_sel]]$pred, 
@@ -2486,7 +2694,66 @@ df_pred <- ml_grades_pred %>%
 df_error_sub <- func_ml_error_metrics("multi", df_pred, 1, 1, TRUE) %>%
   dplyr::select(-c(Repetition, Fold))
       
-# calculate RRMSE
+df_error <- df_error_sub %>%
+  mutate(RRMSE_g1 = (RMSE_g1 / data_stand_grades_multi$mean_weekly)*100, 
+         RRMSE_g2 = (RMSE_g2 / data_stand_grades_multi$mean_monthly)*100,
+         RRMSE_g3 = (RMSE_g3 / data_stand_grades_multi$mean_never)*100) 
+
+df_error %>%
+  dplyr::select(starts_with("AUC"), starts_with("ACC"), starts_with("BACC"), 
+                starts_with("RMSE"), starts_with("RRMSE"), starts_with("MAE")) %>%
+  as.data.frame()
+
+
+## NO LAGS ##
+df_dml_main_multi %>% 
+  mutate(sample = ifelse(
+    cohort_prep == main_cohort_prep & treatment_def == main_treatment_def & 
+      treatment_repl == main_treatment_repl & extra_act == main_extra_act & 
+      model_type == main_model_type & model_k == main_model_k & model_s_rep == main_model_s_rep & 
+      model_trimming == main_model_trimming & model_controls_lag == main_model_controls_lag & 
+      model_controls_endog == main_model_controls_endog &  model_hyperparam_sel == "best" &
+      model_covbal == "yes", "main", "rc")) %>% 
+  filter(Type %in% c("ATE", "ATTE"), sample == "rc", model_algo == "postlasso", 
+         outcome == "grade", model_controls_lag == "only_lags") %>%
+  dplyr::select(model_hyperparam_sel, num_predictors_m1, starts_with("ACC"),  starts_with("BACC"), starts_with("AUC"),
+                starts_with("RMSE"), starts_with("MAPE"), starts_with("n_treats")) %>%
+  distinct() %>%
+  group_by(model_hyperparam_sel) %>%
+  mutate(ACC = mean(c(ACC_m1, ACC_m2, ACC_m3)), BACC = mean(c(BACC_m1, BACC_m2, BACC_m3)),
+         AUC = mean(c(AUC_m1, AUC_m2, AUC_m3)), RMSE = mean(c(RMSE_g1, RMSE_g2, RMSE_g3)), 
+         MAPE = mean(c(MAPE_g1, MAPE_g2, MAPE_g3))) %>%
+  mutate(n_treats_diff = n_treats_before - n_treats_after, 
+         n_treats_diff_perf = ((n_treats_before - n_treats_after) / n_treats_before)*100) %>% 
+  dplyr::select(model_hyperparam_sel, n_treats_diff_perf, num_predictors_m1) %>%
+  as.data.frame()
+
+
+ml_grades_pred <- data.frame()
+for (mice_sel in 1:length(postlasso_grades_rc4_lags)) {
+  ml_grades_pred_sub <- left_join(postlasso_grades_rc4_lags[[mice_sel]]$pred, 
+                                  postlasso_grades_rc4_lags[[mice_sel]]$trimming, 
+                                  by = "Repetition") %>%
+    mutate(MICE = mice_sel)
+  ml_grades_pred <- rbind(ml_grades_pred, ml_grades_pred_sub)
+}
+
+
+df_pred <- ml_grades_pred %>% 
+  mutate(
+    # standardized outcomes
+    outcome_stand = outcome, g1_stand = g1,  g2_stand = g2,  g3_stand = g3,
+    # original scale
+    outcome = outcome_stand*data_stand_grades_multi$sd + data_stand_grades_multi$mean,
+    g1 = g1_stand*data_stand_grades_multi$sd + data_stand_grades_multi$mean,
+    g2 = g2_stand*data_stand_grades_multi$sd + data_stand_grades_multi$mean,
+    g3 = g3_stand*data_stand_grades_multi$sd + data_stand_grades_multi$mean
+  )
+
+
+df_error_sub <- func_ml_error_metrics("multi", df_pred, 1, 1, TRUE) %>%
+  dplyr::select(-c(Repetition, Fold))
+
 df_error <- df_error_sub %>%
   mutate(RRMSE_g1 = (RMSE_g1 / data_stand_grades_multi$mean_weekly)*100, 
          RRMSE_g2 = (RMSE_g2 / data_stand_grades_multi$mean_monthly)*100,
@@ -2531,6 +2798,20 @@ df_dml_main_multi %>%
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 #### RC: SENSITIVITY WRT TRIMMING THRESHOLDS ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+## FROM ANALYSIS DIRECTLY ##
+
+df_dml_main_multi %>%
+  filter(model_algo == "postlasso", outcome == "grade", extra_act == main_extra_act,
+         cohort_prep == main_cohort_prep, treatment_repl == main_treatment_repl,
+         treatment_def == main_treatment_def, model_type == main_model_type,
+         model_k == main_model_k, model_k_tuning == main_model_k_tuning,
+         model_s_rep == main_model_s_rep, model_controls_lag == main_model_controls_lag,
+         model_controls_endog == main_model_controls_endog, model_covbal == "yes", Prob_norm == "yes",
+         model_hyperparam_sel == "best", Type %in% c("ATE"), Treatment == "monthly_weekly") %>%
+  mutate(n_treats_diff = n_treats_before - n_treats_after, 
+         n_treats_diff_perf = ((n_treats_before - n_treats_after) / n_treats_before)*100) %>%
+  dplyr::select(model_trimming, n_treats_diff_perf)
 
 # enforce other trimming thresholds to assess the sensitivity of the treatment
 # effect estimates wrt to the trimming thresholds
@@ -2863,6 +3144,191 @@ df_effects_trimming_multi <- df_effects_trimming_multi %>%
 
 saveRDS(df_effects_trimming_multi, "Output/DML/Treatment_Effects/dml_multi_treatment_effects_rc_trimming.rds")
 
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### RC: Not Normalizing Treatment Probabilities ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+# load data
+postlasso_grades_nonnorm <- 
+  readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_", "postlasso", 
+                 "_all_controlssameoutcome_", treatment_def, "_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming", 
+                 model_trimming, "_K4-2_Rep5", cov_balance_save, "_nonorm.rds"))
+
+# number of predictors: 133.01
+df_dml_main_multi %>% filter(Prob_norm == "no", model_trimming == "min-max_001") %>% pull(num_predictors_m1) %>% unique()
+
+# percentage of dropped observations: 3.43%
+df_dml_main_multi %>% filter(Prob_norm == "no", model_trimming == "min-max_001") %>%
+  dplyr::select(outcome, model_algo, starts_with("n_treats")) %>% distinct() %>%
+  mutate(n_treats_diff = n_treats_before - n_treats_after, 
+         n_treats_diff_perf = ((n_treats_before - n_treats_after) / n_treats_before)*100)
+
+# error metrics
+df_error_nonnorm <- data.frame()
+for (outcome_var_sel in c("grades")) {
+  for (model_algo_sel in c("postlasso")) {
+    load_pred_algo <- paste0(model_algo_sel, "_", outcome_var_sel, "_nonsep")
+    tryCatch({
+      print(load_pred_algo)
+      if (exists(load_pred_algo) == FALSE) stop("Does not exist")
+      
+      ml_grades_pred <- data.frame()
+      for (mice_sel in 1:length(get(load_pred_algo))) {
+        ml_grades_pred_sub <- left_join(get(load_pred_algo)[[mice_sel]]$pred, 
+                                        get(load_pred_algo)[[mice_sel]]$trimming, 
+                                        by = "Repetition") %>%
+          mutate(MICE = mice_sel)
+        ml_grades_pred <- rbind(ml_grades_pred, ml_grades_pred_sub)
+      }
+      
+      if (outcome_var_sel == "grades") {
+        df_sd_mean_multi <- data_stand_grades_multi
+        df_pred <- ml_grades_pred %>% 
+          mutate(
+            # standardized outcomes
+            outcome_stand = outcome, g1_stand = g1,  g2_stand = g2,  g3_stand = g3,
+            # original scale
+            outcome = outcome_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean,
+            g1 = g1_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean,
+            g2 = g2_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean,
+            g3 = g3_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean
+          )
+      } else {
+        df_sd_mean_multi <- data_stand_pers_multi %>%
+          dplyr::select(starts_with(outcome_var_sel)) 
+        colnames(df_sd_mean_multi) <- 
+          str_remove(colnames(df_sd_mean_multi), paste0(outcome_var_sel, "_"))
+        
+        df_pred <- ml_grades_pred %>% 
+          mutate(
+            # standardized outcomes
+            outcome_stand = outcome, g1_stand = g1,  g2_stand = g2,  g3_stand = g3,
+            # original scale
+            outcome = outcome_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean,
+            g1 = g1_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean,
+            g2 = g2_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean,
+            g3 = g3_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean
+          )
+      }
+      
+      df_error_sub <- func_ml_error_metrics("multi", df_pred, 1, 1, TRUE) %>%
+        dplyr::select(-c(Repetition, Fold)) %>%
+        mutate(outcome = outcome_var_sel, ml_algo = model_algo_sel) %>%
+        dplyr::select(outcome, ml_algo, everything())
+      
+      # calculate RRMSE
+      df_error_sub <- df_error_sub %>%
+        mutate(RRMSE_g1 = (RMSE_g1 / df_sd_mean_multi$mean_weekly)*100, 
+               RRMSE_g2 = (RMSE_g2 / df_sd_mean_multi$mean_monthly)*100,
+               RRMSE_g3 = (RMSE_g3 / df_sd_mean_multi$mean_never)*100) 
+      
+      # bind row
+      df_error_nonnorm <- rbind(df_error_nonnorm, df_error_sub)
+      
+      
+    }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")}) # close tryCatch()
+  } # close for loop model_algo_sel
+} # close for loop outcome_var_sel
+
+# calculate error metrics for paper
+df_error_nonnorm %>%
+  dplyr::select(outcome, ml_algo, starts_with("AUC"), starts_with("ACC"), starts_with("BACC"), 
+                starts_with("RMSE"), starts_with("RRMSE"), starts_with("MAE")) %>%
+  as.data.frame()
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### RC: Multiclass Classification ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+# load data
+postlasso_grades_nonsep <- 
+  readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_", "postlasso", 
+                 "_all_controlssameoutcome_", treatment_def, "_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming", 
+                 model_trimming, "_K4-2_Rep5_nonseparate", cov_balance_save, ".rds"))
+
+# number of predictors: 124.12
+df_dml_sep_multi %>% pull(num_predictors_m) %>% unique()
+
+# percentage of dropped observations: 3.01%
+df_dml_sep_multi %>%
+  dplyr::select(outcome, model_algo, starts_with("n_treats")) %>% distinct() %>%
+  mutate(n_treats_diff = n_treats_before - n_treats_after, 
+         n_treats_diff_perf = ((n_treats_before - n_treats_after) / n_treats_before)*100)
+
+# error metrics
+df_error_nonsep <- data.frame()
+for (outcome_var_sel in c("grades")) {
+  for (model_algo_sel in c("postlasso")) {
+    load_pred_algo <- paste0(model_algo_sel, "_", outcome_var_sel, "_nonsep")
+    tryCatch({
+      print(load_pred_algo)
+      if (exists(load_pred_algo) == FALSE) stop("Does not exist")
+      
+      ml_grades_pred <- data.frame()
+      for (mice_sel in 1:length(get(load_pred_algo))) {
+        ml_grades_pred_sub <- left_join(get(load_pred_algo)[[mice_sel]]$pred, 
+                                        get(load_pred_algo)[[mice_sel]]$trimming, 
+                                        by = "Repetition") %>%
+          mutate(MICE = mice_sel)
+        ml_grades_pred <- rbind(ml_grades_pred, ml_grades_pred_sub)
+      }
+      
+      if (outcome_var_sel == "grades") {
+        df_sd_mean_multi <- data_stand_grades_multi
+        df_pred <- ml_grades_pred %>% 
+          mutate(
+            # standardized outcomes
+            outcome_stand = outcome, g1_stand = g1,  g2_stand = g2,  g3_stand = g3,
+            # original scale
+            outcome = outcome_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean,
+            g1 = g1_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean,
+            g2 = g2_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean,
+            g3 = g3_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean
+          )
+      } else {
+        df_sd_mean_multi <- data_stand_pers_multi %>%
+          dplyr::select(starts_with(outcome_var_sel)) 
+        colnames(df_sd_mean_multi) <- 
+          str_remove(colnames(df_sd_mean_multi), paste0(outcome_var_sel, "_"))
+        
+        df_pred <- ml_grades_pred %>% 
+          mutate(
+            # standardized outcomes
+            outcome_stand = outcome, g1_stand = g1,  g2_stand = g2,  g3_stand = g3,
+            # original scale
+            outcome = outcome_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean,
+            g1 = g1_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean,
+            g2 = g2_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean,
+            g3 = g3_stand*df_sd_mean_multi$sd + df_sd_mean_multi$mean
+          )
+      }
+      
+      df_error_sub <- func_ml_error_metrics("multi", df_pred, 1, 1, FALSE) %>%
+        dplyr::select(-c(Repetition, Fold)) %>%
+        mutate(outcome = outcome_var_sel, ml_algo = model_algo_sel) %>%
+        dplyr::select(outcome, ml_algo, everything())
+      
+      # calculate RRMSE
+      df_error_sub <- df_error_sub %>%
+        mutate(RRMSE_g1 = (RMSE_g1 / df_sd_mean_multi$mean_weekly)*100, 
+               RRMSE_g2 = (RMSE_g2 / df_sd_mean_multi$mean_monthly)*100,
+               RRMSE_g3 = (RMSE_g3 / df_sd_mean_multi$mean_never)*100) 
+      
+      # bind row
+      df_error_nonsep <- rbind(df_error_nonsep, df_error_sub)
+      
+      
+    }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")}) # close tryCatch()
+  } # close for loop model_algo_sel
+} # close for loop outcome_var_sel
+
+# calculate error metrics for paper
+df_error_nonsep %>%
+  dplyr::select(outcome, ml_algo, starts_with("AUC"), starts_with("ACC"), starts_with("BACC"), 
+                starts_with("RMSE"), starts_with("RRMSE"), starts_with("MAE")) %>%
+  as.data.frame()
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
