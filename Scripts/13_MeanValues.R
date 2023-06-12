@@ -69,136 +69,6 @@ data_all_mice_pers_multi_noextra <- data_all_mice_pers_multi_noextra %>%
 
 
 
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-#### Descriptives for Feature Importance Variables ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-
-# variables exist
-descr_vars <- descr_vars[descr_vars %in% colnames(data_all_mice_grades_multi_noextra)]
-descr_vars <- c(descr_vars, "extracurricular_music", "interest_art_works", "interest_music_classic",
-                "partner_educ_years", "partner_living_ger", "partner_current",
-                "bigfive_agreeableness", "bigfive_openness", "bigfive_conscientiousness",
-                "bigfive_neuroticism", "bigfive_extraversion", "interest_reading_num_books_more_than_500_books") %>% unique()
-
-
-df_descr_imp_all <- data_all_mice_grades_multi_noextra %>%
-  dplyr::select(treatment_sport_freq, all_of(descr_vars)) %>%
-  group_by(treatment_sport_freq) %>%
-  summarize_all(mean) %>%
-  gather(-treatment_sport_freq, key = "control_var", value = "mean") %>%
-  spread(key = treatment_sport_freq, value = mean) %>%
-  rename(mean_weekly = "1", mean_monthly = "2", mean_never = "3", mean_inactive = "4") %>%
-  mutate(control_var = case_when(
-    control_var == "friends_study_share_(almost)half" ~ "friends_study_share_.almost.half",
-    TRUE ~ control_var
-  )) %>% 
-  left_join(
-    data_all_mice_grades_multi_noextra %>%
-      dplyr::select(treatment_sport_freq, all_of(descr_vars)) %>%
-      filter(treatment_sport_freq %in% c(1, 2)) %>%
-      mutate(treatment_sport_freq = "any") %>%
-      group_by(treatment_sport_freq) %>%
-      summarize_all(mean) %>%
-      gather(-treatment_sport_freq, key = "control_var", value = "mean") %>%
-      spread(key = treatment_sport_freq, value = mean) %>%
-      rename("mean_any" = "any") %>%
-      mutate(control_var = case_when(
-        control_var == "friends_study_share_(almost)half" ~ "friends_study_share_.almost.half",
-        TRUE ~ control_var
-      )),
-    by = "control_var"
-  ) %>%
-  left_join(
-    data_all_mice_grades_multi_noextra %>%
-      dplyr::select(treatment_sport_freq, all_of(descr_vars)) %>%
-      filter(treatment_sport_freq %in% c(1, 2, 3)) %>%
-      mutate(treatment_sport_freq = "active") %>%
-      group_by(treatment_sport_freq) %>%
-      summarize_all(mean) %>%
-      gather(-treatment_sport_freq, key = "control_var", value = "mean") %>%
-      spread(key = treatment_sport_freq, value = mean) %>%
-      rename("mean_active" = "active") %>%
-      mutate(control_var = case_when(
-        control_var == "friends_study_share_(almost)half" ~ "friends_study_share_.almost.half",
-        TRUE ~ control_var
-      )),
-    by = "control_var"
-  )
-
-#df_descr_imp_all <- left_join(df_descr_imp, df_descr_imp_noextra, by = "control_var")
-
-# add ASDM before dml
-df_descr_imp_all <- left_join(df_descr_imp_all, data_asdm_all, by = "control_var") %>%
-  filter(control_var %in% descr_vars) %>%
-  dplyr::select(control_var, SD_before, starts_with("mean")) %>%
-  arrange(-SD_before) %>%
-  dplyr::select(control_var, SD_before, mean_inactive, mean_active, mean_never, mean_any, mean_monthly, mean_weekly) %>%
-  as.data.frame()
-
-# save
-saveRDS(df_descr_imp_all, "Output/Descriptives/feature_imp_descr.rds")
-
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-#### Descriptives for Main Drivers of Selection ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-
-# add descriptives for students who are not physically active
-cols_multi <- colnames(data_all_mice_grades_multi_noextra)[colnames(data_all_mice_grades_multi_noextra) %in% data_main_drivers$control_var]
-cols_multi <- c(cols_multi, "friends_study_share_(almost)half")
-
-df_descr_noextra <- data_all_mice_grades_multi_noextra %>% dplyr::select(treatment_sport_freq, all_of(cols_multi))
-
-df_descr_all <- left_join(
-  data_main_drivers, 
-  df_descr_noextra %>%
-    group_by(treatment_sport_freq) %>%
-    summarize_all(mean) %>%
-    gather(-treatment_sport_freq, key = "control_var", value = "mean") %>%
-    spread(key = treatment_sport_freq, value = mean) %>%
-    rename(mean_weekly = "1", mean_monthly = "2", mean_never = "3", mean_inactive = "4") %>%
-    mutate(control_var = case_when(
-      control_var == "friends_study_share_(almost)half" ~ "friends_study_share_.almost.half",
-      TRUE ~ control_var
-    )),
-  by = "control_var"
-) %>%
-  left_join(
-    df_descr_noextra %>%
-      filter(treatment_sport_freq %in% c(1,2)) %>%
-      mutate(treatment_sport_freq = "any") %>%
-      summarize_all(mean) %>%
-      gather(-treatment_sport_freq, key = "control_var", value = "mean") %>%
-      spread(key = treatment_sport_freq, value = mean) %>%
-      rename("mean_any" = "<NA>") %>%
-      mutate(control_var = case_when(
-        control_var == "friends_study_share_(almost)half" ~ "friends_study_share_.almost.half",
-        TRUE ~ control_var
-      )),
-    by = "control_var"
-  ) %>%
-  left_join(
-    df_descr_noextra %>%
-      filter(treatment_sport_freq %in% c(1,2,3)) %>%
-      mutate(treatment_sport_freq = "active") %>%
-      summarize_all(mean) %>%
-      gather(-treatment_sport_freq, key = "control_var", value = "mean") %>%
-      spread(key = treatment_sport_freq, value = mean) %>%
-      rename("mean_active" = "<NA>") %>%
-      mutate(control_var = case_when(
-        control_var == "friends_study_share_(almost)half" ~ "friends_study_share_.almost.half",
-        TRUE ~ control_var
-      )),
-    by = "control_var"
-  ) %>%
-  dplyr::select(control_var, SD_before, mean_inactive, mean_active, mean_never, 
-                mean_any, mean_monthly, mean_weekly) %>%
-  as.data.frame()
-
-# save
-saveRDS(df_descr_all, "Output/Descriptives/main_drivers_descr.rds")
-
-
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 #### Descriptives for Outcome Variables ####
@@ -301,7 +171,144 @@ df_descr_imp_pers <- left_join(
   dplyr::select(control_var, inactive, active, never, any, monthly, weekly)
 
 
-data_all_mice_pers_multi %>% filter(MICE == 1) %>% count(treatment_sport_freq)
 data_all_mice_pers_multi_noextra %>% filter(MICE == 1) %>% count(treatment_sport_freq)
 
+
+#### ASMD ####
+#++++++++++++#
+
+readRDS("Output/DML/Covariate_Balancing/covariate_balancing_asdm_multi.rds") %>% 
+  filter(control_var == "grade_current") %>% as.data.frame() %>%
+  pull(SD_before) %>% mean()
+data_asdm_all %>% filter(str_detect(control_var, "bigfive")) %>% as.data.frame()
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### Descriptives for Main Drivers of Selection ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+# add descriptives for students who are not physically active
+cols_multi <- colnames(data_all_mice_grades_multi_noextra)[colnames(data_all_mice_grades_multi_noextra) %in% data_main_drivers$control_var]
+cols_multi <- c(cols_multi, "friends_study_share_(almost)half")
+
+df_descr_noextra <- data_all_mice_grades_multi_noextra %>% dplyr::select(treatment_sport_freq, all_of(cols_multi))
+
+df_descr_all <- left_join(
+  data_main_drivers, 
+  df_descr_noextra %>%
+    group_by(treatment_sport_freq) %>%
+    summarize_all(mean) %>%
+    gather(-treatment_sport_freq, key = "control_var", value = "mean") %>%
+    spread(key = treatment_sport_freq, value = mean) %>%
+    rename(mean_weekly = "1", mean_monthly = "2", mean_never = "3", mean_inactive = "4") %>%
+    mutate(control_var = case_when(
+      control_var == "friends_study_share_(almost)half" ~ "friends_study_share_.almost.half",
+      TRUE ~ control_var
+    )),
+  by = "control_var"
+) %>%
+  left_join(
+    df_descr_noextra %>%
+      filter(treatment_sport_freq %in% c(1,2)) %>%
+      mutate(treatment_sport_freq = "any") %>%
+      summarize_all(mean) %>%
+      gather(-treatment_sport_freq, key = "control_var", value = "mean") %>%
+      spread(key = treatment_sport_freq, value = mean) %>%
+      rename("mean_any" = "<NA>") %>%
+      mutate(control_var = case_when(
+        control_var == "friends_study_share_(almost)half" ~ "friends_study_share_.almost.half",
+        TRUE ~ control_var
+      )),
+    by = "control_var"
+  ) %>%
+  left_join(
+    df_descr_noextra %>%
+      filter(treatment_sport_freq %in% c(1,2,3)) %>%
+      mutate(treatment_sport_freq = "active") %>%
+      summarize_all(mean) %>%
+      gather(-treatment_sport_freq, key = "control_var", value = "mean") %>%
+      spread(key = treatment_sport_freq, value = mean) %>%
+      rename("mean_active" = "<NA>") %>%
+      mutate(control_var = case_when(
+        control_var == "friends_study_share_(almost)half" ~ "friends_study_share_.almost.half",
+        TRUE ~ control_var
+      )),
+    by = "control_var"
+  ) %>%
+  dplyr::select(control_var, SD_before, mean_inactive, mean_active, mean_never, 
+                mean_any, mean_monthly, mean_weekly) %>%
+  as.data.frame()
+
+# save
+saveRDS(df_descr_all, "Output/Descriptives/main_drivers_descr.rds")
+
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+#### Descriptives for Feature Importance Variables ####
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+# variables exist
+descr_vars <- descr_vars[descr_vars %in% colnames(data_all_mice_grades_multi_noextra)]
+descr_vars <- c(descr_vars, "extracurricular_music", "interest_art_works", "interest_music_classic",
+                "partner_educ_years", "partner_living_ger", "partner_current",
+                "bigfive_agreeableness", "bigfive_openness", "bigfive_conscientiousness",
+                "bigfive_neuroticism", "bigfive_extraversion", "interest_reading_num_books_more_than_500_books") %>% unique()
+
+
+df_descr_imp_all <- data_all_mice_grades_multi_noextra %>%
+  dplyr::select(treatment_sport_freq, all_of(descr_vars)) %>%
+  group_by(treatment_sport_freq) %>%
+  summarize_all(mean) %>%
+  gather(-treatment_sport_freq, key = "control_var", value = "mean") %>%
+  spread(key = treatment_sport_freq, value = mean) %>%
+  rename(mean_weekly = "1", mean_monthly = "2", mean_never = "3", mean_inactive = "4") %>%
+  mutate(control_var = case_when(
+    control_var == "friends_study_share_(almost)half" ~ "friends_study_share_.almost.half",
+    TRUE ~ control_var
+  )) %>% 
+  left_join(
+    data_all_mice_grades_multi_noextra %>%
+      dplyr::select(treatment_sport_freq, all_of(descr_vars)) %>%
+      filter(treatment_sport_freq %in% c(1, 2)) %>%
+      mutate(treatment_sport_freq = "any") %>%
+      group_by(treatment_sport_freq) %>%
+      summarize_all(mean) %>%
+      gather(-treatment_sport_freq, key = "control_var", value = "mean") %>%
+      spread(key = treatment_sport_freq, value = mean) %>%
+      rename("mean_any" = "any") %>%
+      mutate(control_var = case_when(
+        control_var == "friends_study_share_(almost)half" ~ "friends_study_share_.almost.half",
+        TRUE ~ control_var
+      )),
+    by = "control_var"
+  ) %>%
+  left_join(
+    data_all_mice_grades_multi_noextra %>%
+      dplyr::select(treatment_sport_freq, all_of(descr_vars)) %>%
+      filter(treatment_sport_freq %in% c(1, 2, 3)) %>%
+      mutate(treatment_sport_freq = "active") %>%
+      group_by(treatment_sport_freq) %>%
+      summarize_all(mean) %>%
+      gather(-treatment_sport_freq, key = "control_var", value = "mean") %>%
+      spread(key = treatment_sport_freq, value = mean) %>%
+      rename("mean_active" = "active") %>%
+      mutate(control_var = case_when(
+        control_var == "friends_study_share_(almost)half" ~ "friends_study_share_.almost.half",
+        TRUE ~ control_var
+      )),
+    by = "control_var"
+  )
+
+
+# add ASDM before dml
+df_descr_imp_all <- left_join(df_descr_imp_all, data_asdm_all, by = "control_var") %>%
+  filter(control_var %in% descr_vars) %>%
+  dplyr::select(control_var, SD_before, starts_with("mean")) %>%
+  arrange(-SD_before) %>%
+  dplyr::select(control_var, SD_before, mean_inactive, mean_active, mean_never, mean_any, mean_monthly, mean_weekly) %>%
+  as.data.frame()
+
+# save
+saveRDS(df_descr_imp_all, "Output/Descriptives/feature_imp_descr.rds")
 
