@@ -5,6 +5,17 @@
 #+++
 # by Lana Kern
 #+++
+# In this file, two functions are coded. First, a function that compares mean
+# differences. Second a function that calculates standard errors for the mean
+# comparison.
+#+++
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+#### MEAN COMPARISON ####
+#+++++++++++++++++++++++#
+
 # This function calculates mean comparisons across treatment groups. Statistical
 # significance is determined using the t-test and wilcoxon rank sum test in the
 # binary treatment setting. In the multivalued treatment setting, the kruskal-wallis test 
@@ -20,8 +31,6 @@
 # OUTPUT
 # -> Data frame containing mean, se, p-value, t-value and number of observations.
 #+++
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 func_mean_comp <- function(df, y_variables, treatment_setting){
   
@@ -367,5 +376,36 @@ func_mean_comp <- function(df, y_variables, treatment_setting){
   } else {
     stop("treatment_setting can only take on the values binary and multi.")
   }
+  
+}
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+#### Standard Errors ####
+#+++++++++++++++++++++++#
+
+# This function calculates standard errors for the GPA in the multivalued
+# treatment setting.
+# The input is simply the data frame containing the GPA across the treatment
+# frequencies.
+
+func_mean_comp_se <- function(data) {
+  
+  data_se <- data.frame()
+  
+  data_sub <- data %>% filter(treatment_sport_freq != 3)
+  df_multi_se_monthly_weekly <- data.frame(variable = "outcome_grade", "se_daily_monthly" = t.test(formula = outcome_grade ~ treatment_sport_freq, data = data_sub)$stderr)
+  data_se <- rbind(data_se, df_multi_se_monthly_weekly)
+  
+  data_sub <- data %>% filter(treatment_sport_freq != 2)
+  df_multi_se_never_weekly <-data.frame(variable = "outcome_grade", "se_daily_never" = t.test(formula = outcome_grade ~ treatment_sport_freq, data = data_sub)$stderr)
+  data_se <- left_join(data_se, df_multi_se_never_weekly, by = "variable")
+  
+  data_sub <- data %>% filter(treatment_sport_freq != 1)
+  df_multi_se_never_monthly <- data.frame(variable = "outcome_grade", "se_monthly_never" = t.test(formula = outcome_grade ~ treatment_sport_freq, data = data_sub)$stderr)
+  data_se <- left_join(data_se, df_multi_se_never_monthly, by = "variable")
+  
+  return(data_se)
   
 }
