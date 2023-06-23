@@ -2663,9 +2663,6 @@ df_effects_trimming_binary <- df_effects_trimming_binary %>%
   dplyr::select(-Rep, MICE) %>%
   as.data.frame()
 
-saveRDS(df_effects_trimming_binary, "Output/DML/Treatment_Effects/dml_binary_treatment_effects_rc_trimming.rds")
-
-
 ## MULTI ##
 df_effects_trimming_multi <- data.frame()
 for (outcome_var_sel in c("grades", "agree", "consc", "extra", "neuro", "open")) {
@@ -2847,8 +2844,6 @@ df_effects_trimming_multi <- df_effects_trimming_multi %>%
   summarize_all(median) %>%
   dplyr::select(-MICE) %>%
   as.data.frame()
-
-saveRDS(df_effects_trimming_multi, "Output/DML/Treatment_Effects/dml_multi_treatment_effects_rc_trimming.rds")
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
