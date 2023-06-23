@@ -12,9 +12,10 @@
 # Inputs:
 # -> "list_estimation": estimation results in list format, as contained in the folder: DML/Estimation
 # -> "outcome": outcome variable (grades or bigfive_*)
+# -> "mice_num": number of mice iterations
 #+++
 
-func_cov_balance_summary <- function(list_estimation, outcome) {
+func_cov_balance_summary <- function(list_estimation, outcome, mice_num) {
   
   df_smd_sum_multi_rc <- data.frame()
   df_smd_all_multi_rc <- data.frame()
@@ -27,7 +28,7 @@ func_cov_balance_summary <- function(list_estimation, outcome) {
 
   df_smd_cov_func_all_multi_rc <- data.frame()
   df_smd_cov_func_all_detail_multi_rc <- data.frame()
-  for (mice_sel in 1:5) { # iterate over MICE data sets
+  for (mice_sel in 1:mice_num) { # iterate over MICE data sets
     print(paste("Data Set:", mice_sel))
     for (rep_sel in 1:5) { # iterate over repetitions
       df_iterate_sel <- df_iterate %>% filter(Rep == rep_sel)
