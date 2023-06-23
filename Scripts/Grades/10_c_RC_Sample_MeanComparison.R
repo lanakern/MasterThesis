@@ -51,6 +51,9 @@ df_rc_all <- left_join(
   data_outcome_descr_multi_stand, data_outcome_descr_multi_stand_2, by = c("variable", "treatment_sport_freq")
 ) %>% dplyr::select(variable, treatment_sport_freq, num_obs, min, max, median, mean, everything())
 
+df_rc_se <- func_mean_comp_se(data_descr_multi_stand) %>% mutate("RC" = "Inactive")
+
+
 ## Extra act. within uni ##
 data_rc_extrauni <- readRDS(paste0("Data/Grades/Prep_10/prep_10_dml_multi_all_all_down_extrauni_covbal_mice1.rds"))
 data_descr_multi_stand <- data_rc_extrauni %>%
@@ -73,6 +76,8 @@ data_outcome_descr_multi_stand_2 <- func_summary_stats(data_descr_multi_stand, "
 df_rc_all <- rbind(df_rc_all, left_join(
   data_outcome_descr_multi_stand, data_outcome_descr_multi_stand_2, by = c("variable", "treatment_sport_freq")
 ) %>% dplyr::select(variable, treatment_sport_freq, num_obs, min, max, median, mean, everything()))
+
+df_rc_se <- rbind(df_rc_se, func_mean_comp_se(data_descr_multi_stand) %>% mutate("RC" = "ExtraUni"))
 
 
 ## Controls before outcome ##
@@ -98,6 +103,8 @@ df_rc_all <- rbind(df_rc_all, left_join(
   data_outcome_descr_multi_stand, data_outcome_descr_multi_stand_2, by = c("variable", "treatment_sport_freq")
 ) %>% dplyr::select(variable, treatment_sport_freq, num_obs, min, max, median, mean, everything()))
 
+df_rc_se <- rbind(df_rc_se, func_mean_comp_se(data_descr_multi_stand) %>% mutate("RC" = "Controls_bef_Outcome"))
+
 ## Controls before all ##
 data_rc_controls_bef_all <- readRDS(paste0("Data/Grades/Prep_10/prep_10_dml_multi_all_all_down_extradrop_covbal_robustcheck_controls_bef_all_mice1.rds"))
 data_descr_multi_stand <- data_rc_controls_bef_all %>%
@@ -121,5 +128,8 @@ df_rc_all <- rbind(df_rc_all, left_join(
   data_outcome_descr_multi_stand, data_outcome_descr_multi_stand_2, by = c("variable", "treatment_sport_freq")
 ) %>% dplyr::select(variable, treatment_sport_freq, num_obs, min, max, median, mean, everything()))
 
+df_rc_se <- rbind(df_rc_se, func_mean_comp_se(data_descr_multi_stand) %>% mutate("RC" = "Controls_bef_all"))
+
 # save
 saveRDS(df_rc_all, "Output/Descriptives/MULTI_MEAN_COMPARISON_RC.rds")
+saveRDS(df_rc_se, "Output/Descriptives/MULTI_MEAN_COMPARISON_RC_SE.rds")

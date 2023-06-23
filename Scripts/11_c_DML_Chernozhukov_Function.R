@@ -5,11 +5,11 @@
 #+++ 
 # by Lana Kern
 #+++
-# In this file, the credibility of the hand-coded DML procedure is assessed
-# by comparing the ATE and ATTE estimates based on the nuisance parameter
-# predictions by LASSO with the results obtained by the DoubleML function of
-# Chernozhukov et al. 2017.
+# In this file, I assess the credibility of the hand-coded DML procedure 
+# by comparing the ATE and ATET estimates with the DoubleML function of
+# Chernozhukov et al. 2017. The nuisance parameter predictions are made by LASSO.
 # Note that they require at least 3-fold CV in the parameter tuning process.
+# Only results for the main GPA sample are confirmed. 
 #+++
 
 # set seed for reproducible results
@@ -50,7 +50,6 @@ for (mice_data_sel in 1:5) {
   } else {
     stop("Please specify correct outcome variable")
   }
-  
   ## cohort prep
   if (cohort_prep == "controls_same_outcome") {
     load_data <- 
@@ -112,11 +111,6 @@ for (mice_data_sel in 1:5) {
     # for personality selected outcome variable needs to be declared
     data_dml <- data_dml %>%
       rename_with(~ outcome_var, all_of(str_remove(outcome_var, "outcome_")))
-    # # lags for all other personality variables are dropped
-    # colnames_bigfive_lag_drop <- data_dml %>% 
-    #   dplyr::select(starts_with("bigfive") & ends_with("lag") & !matches(outcome_var_old)) %>% colnames()
-    # data_dml <- data_dml %>% 
-    #   dplyr::select(-all_of(colnames_bigfive_lag_drop))
   }
   
   # remove linearly dependent terms
@@ -224,7 +218,6 @@ for (mice_data_sel in 1:5) {
   )
   df_result_function_list <- append(df_result_function_list, list(df_result_function))
 }
-
 
 # pool results from MICE
 # calculate pooled estimate over multiple mice data sets

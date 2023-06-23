@@ -203,10 +203,6 @@ postlasso_grades_rc5_polys <-
                  "_down_extradrop_allpoly_notreatmentoutcomelags_endogyes_trimming", 
                  model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
 
-postlasso_grades_rc5_nocovbal <- 
-  readRDS(paste0("Output/DML/Estimation/Grades/binary_grades_", "postlasso", 
-                 "_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming", 
-                 model_trimming, "_K4-2_Rep5", ".rds"))
 
 
 # Robustness checks regarding hyperparameters
@@ -272,14 +268,16 @@ df_treatment_effects_main_binary <- df_dml_main_binary %>% filter(
   model_type == main_model_type, model_k == main_model_k, model_s_rep == main_model_s_rep,
   model_trimming == main_model_trimming, model_controls_lag == main_model_controls_lag,
   model_controls_endog == main_model_controls_endog, model_hyperparam_sel == "best",
-  model_covbal == "yes", Type %in% c("ATE", "ATET")
+  model_covbal == "yes", Type %in% c("ATE", "ATTE")
 ) %>% 
   mutate(model = "main") 
 
 df_treatment_effects_main_binary_save <- df_treatment_effects_main_binary %>%
   dplyr::select(model, outcome, model_algo, Type, theta_median, se_median, pvalue_median, time_stamp) 
+
+cat("Treatment Effects in the Binary Treatment Setting:")
 df_treatment_effects_main_binary_save
-saveRDS(df_treatment_effects_main_binary_save, "Output/DML/Treatment_Effects/binary_main_treatment_effects_paper.rds")
+
 
 
 ## PLOT ##
@@ -294,7 +292,7 @@ for (mice_sel in 1:5) {
     lasso_grades_boxplot,
     lasso_grades[[mice_sel]]$detail %>%
       dplyr::select(ML_algo, Type, Rep, Treatment_Effect) %>%
-      filter(Type %in% c("ATE", "ATET")) %>%
+      filter(Type %in% c("ATE", "ATET", "ATTE")) %>%
       mutate(MICE = mice_sel)
   )
   
@@ -302,7 +300,7 @@ for (mice_sel in 1:5) {
     postlasso_grades_boxplot,
     postlasso_grades[[mice_sel]]$detail %>%
       dplyr::select(ML_algo, Type, Rep, Treatment_Effect) %>%
-      filter(Type %in% c("ATE", "ATET")) %>%
+      filter(Type %in% c("ATE", "ATET", "ATTE")) %>%
       mutate(MICE = mice_sel)
   )
   
@@ -310,7 +308,7 @@ for (mice_sel in 1:5) {
     rf_grades_boxplot,
     rf_grades[[mice_sel]]$detail %>%
       dplyr::select(ML_algo, Type, Rep, Treatment_Effect) %>%
-      filter(Type %in% c("ATE", "ATET")) %>%
+      filter(Type %in% c("ATE", "ATET", "ATTE")) %>%
       mutate(MICE = mice_sel)
   )
   
@@ -320,7 +318,7 @@ xgb_grades_boxplot <- rbind(
   xgb_grades_boxplot,
   xgb_grades[[1]]$detail %>%
     dplyr::select(ML_algo, Type, Rep, Treatment_Effect) %>%
-    filter(Type %in% c("ATE", "ATET")) %>%
+    filter(Type %in% c("ATE", "ATET", "ATTE")) %>%
     mutate(MICE = mice_sel)
 )
 
@@ -344,7 +342,6 @@ dml_boxplot_binary <-
   stat_summary(fun.y=mean, geom = "point", shape = 15, size = 5, color = "darkblue",
                position = position_dodge2(width = 0.75,   
                                           preserve = "single")) +
-  #xlab("\nMachine Learning Algorithms\n") +
   xlab("") + ylab("\nTreatment Effect Estimates\n") + 
   ylim(-0.1, 0) +
   facet_wrap(~ Type) + 
@@ -358,10 +355,6 @@ dml_boxplot_binary <-
     strip.text.x = element_text(size = 45) # size of facet text
     ) 
 dml_boxplot_binary
-# ggsave("Output/DML/Treatment_Effects/plot_binary_main_grades_treatment_effects_variability.png",
-#        dml_boxplot_binary,
-#        width = 20, height = 15, dpi = 300, units = "in", device = 'png')
-
 
 pdf("Output/DML/Treatment_Effects/plot_binary_main_grades_treatment_effects_variability.pdf",
     width = 20, height = 15, pointsize = 25, family = "Helvetica")
@@ -414,10 +407,6 @@ dml_boxplot_binary_personality <-
     strip.text.x = element_text(size = 45) # size of facet text
   ) 
 dml_boxplot_binary_personality
-# ggsave("Output/DML/Treatment_Effects/plot_binary_main_personality_treatment_effects_variability.png",
-#        dml_boxplot_binary_personality,
-#        width = 20, height = 15, dpi = 300, units = "in", device = 'png')
-
 
 pdf("Output/DML/Treatment_Effects/plot_binary_main_personality_treatment_effects_variability.pdf",
     width = 20, height = 15, pointsize = 25, family = "Helvetica")
@@ -436,13 +425,14 @@ df_treatment_effects_main_multi <- df_dml_main_multi %>% filter(
   model_k_tuning %in% c(1,2),
   model_trimming == main_model_trimming, model_controls_lag == main_model_controls_lag,
   model_controls_endog == main_model_controls_endog, model_hyperparam_sel == "best",
-  model_covbal == "yes", Type %in% c("ATE", "ATTE")
+  model_covbal == "yes", Type %in% c("ATE", "ATTE"), Prob_norm == "yes"
 ) %>% mutate(model = "main") 
 
 df_treatment_effects_main_multi_save <- df_treatment_effects_main_multi %>%
   dplyr::select(model, outcome, model_algo, Type, Treatment, theta_median, se_median, pvalue_median) 
+
+cat("Treatment Effects in the Multivalued Treatment Setting:")
 df_treatment_effects_main_multi_save
-saveRDS(df_treatment_effects_main_multi_save, "Output/DML/Treatment_Effects/multi_main_treatment_effects_paper.rds")
 
 
 # plot to show how variable estimates are across MICE data sets and repetitions
@@ -500,7 +490,8 @@ df_multi_boxplot <- df_multi_boxplot %>%
       Treatment == "no_monthly" ~ "Monthly - Never", TRUE ~ as.character(NA))
   ) %>%
   mutate(Type = ifelse(Type == "ATTE", "ATET", Type)) %>%
-  mutate(across(Treatment, factor, levels=c("Weekly - Monthly","Weekly - Never","Monthly - Never")))
+  mutate(across(Treatment, factor, 
+                levels = c("Weekly - Monthly","Weekly - Never","Monthly - Never")))
 
 grades_boxplot_multi_all <- 
   ggplot(df_multi_boxplot, aes(x = ML_algo, y = Treatment_Effect)) +
@@ -508,7 +499,6 @@ grades_boxplot_multi_all <-
   stat_summary(fun.y=mean, geom = "point", shape = 15, size = 5, color = "darkblue",
                position = position_dodge2(width = 0.75,   
                                           preserve = "single")) +
-  #xlab("\nMachine Learning Algorithms\n") +
   xlab("") + ylab("\nTreatment Effect Estimates\n") + 
   ylim(-0.15, 0.25) +
   facet_grid(rows = vars(Type), cols = vars(Treatment),
@@ -523,9 +513,6 @@ grades_boxplot_multi_all <-
     strip.text.x = element_text(size = 40), strip.text.y = element_text(size = 40) # size of facet text
   ) 
 grades_boxplot_multi_all
-# ggsave("Output/DML/Treatment_Effects/plot_multi_main_grades_treatment_effects_variability_all.png",
-#        grades_boxplot_multi_all,
-#        width = 20, height = 15, dpi = 300, units = "in", device = 'png')
 
 pdf("Output/DML/Treatment_Effects/plot_multi_main_grades_treatment_effects_variability_all.pdf",
     width = 20, height = 15, pointsize = 25, family = "Helvetica")
@@ -586,10 +573,6 @@ postlasso_personality_boxplot_multi_all <-
     strip.text.x = element_text(size = 40), strip.text.y = element_text(size = 40) # size of facet text
   ) 
 postlasso_personality_boxplot_multi_all
-# ggsave("Output/DML/Treatment_Effects/plot_multi_main_personality_treatment_effects_variability_all.png",
-#        postlasso_personality_boxplot_multi_all,
-#        width = 20, height = 15, dpi = 300, units = "in", device = 'png')
-
 
 pdf("Output/DML/Treatment_Effects/plot_multi_main_personality_treatment_effects_variability_all.pdf",
     width = 20, height = 15, pointsize = 25, family = "Helvetica")
@@ -651,50 +634,11 @@ postlasso_personality_boxplot_lasso_multi <-
   ) 
 postlasso_personality_boxplot_lasso_multi
 
+
 #### Robustness Checks ####
 #+++++++++++++++++++++++++#
 
-## BINARY ##
-
-# robustness checks regarding sample sizes
-df_treatment_effects_rc_binary <- df_dml_main_binary %>% 
-  mutate(sample = ifelse(
-    cohort_prep == main_cohort_prep & treatment_def == main_treatment_def & 
-      treatment_repl == main_treatment_repl & extra_act == main_extra_act & 
-      model_type == main_model_type & model_k == main_model_k & model_s_rep == main_model_s_rep & 
-      model_trimming == main_model_trimming & model_controls_lag == main_model_controls_lag & 
-      model_controls_endog == main_model_controls_endog & model_hyperparam_sel == "best" & 
-      model_covbal == "yes", "main", "rc"
-  )) %>% 
-  filter(Type %in% c("ATE", "ATTE"), sample == "rc", model_algo == "postlasso", 
-         outcome == "grade", model_trimming == "min-max") %>%
-  dplyr::select(outcome, model_algo, cohort_prep, treatment_def, treatment_repl, extra_act,
-                model_type, model_controls_lag, model_controls_endog, model_covbal, model_trimming,
-                model_hyperparam_sel, Type, theta_median, se_median, pvalue_median, time_stamp) 
-df_treatment_effects_rc_binary
-saveRDS(df_treatment_effects_rc_binary, "Output/DML/Treatment_Effects/binary_rc_treatment_effects_paper.rds")
-
-# robustness checks regarding trimming
-df_treatment_effects_rc_trimming_binary <- df_dml_main_binary %>% 
-  mutate(sample = ifelse(
-    cohort_prep == main_cohort_prep & treatment_def == main_treatment_def & 
-      treatment_repl == main_treatment_repl & extra_act == main_extra_act & 
-      model_type == main_model_type & model_k == main_model_k & model_s_rep == main_model_s_rep & 
-      model_trimming == main_model_trimming & model_controls_lag == main_model_controls_lag & 
-      model_controls_endog == main_model_controls_endog & model_hyperparam_sel == "best" & 
-      model_covbal == "yes", "main", "rc"
-  )) %>% 
-  filter(Type %in% c("ATE", "ATTE"), sample == "rc", model_algo == "postlasso", 
-         outcome == "grade", model_trimming != "min-max") %>%
-  dplyr::select(outcome, model_algo, cohort_prep, treatment_def, treatment_repl, extra_act,
-                model_type, model_controls_lag, model_controls_endog, model_covbal, model_trimming,
-                Type, theta_median, se_median, pvalue_median, time_stamp) 
-df_treatment_effects_rc_trimming_binary
-saveRDS(df_treatment_effects_rc_trimming_binary, "Output/DML/Treatment_Effects/binary_rc_trimming_treatment_effects_paper.rds")
-
-
 ## MULTI ##
-
 df_treatment_effects_rc_multi <- df_dml_main_multi %>% 
   mutate(sample = ifelse(
     cohort_prep == main_cohort_prep & treatment_def == main_treatment_def & 
@@ -707,13 +651,11 @@ df_treatment_effects_rc_multi <- df_dml_main_multi %>%
   filter(Type %in% c("ATE", "ATTE"), sample == "rc", model_algo == "postlasso", 
          outcome == "grade") %>%
   dplyr::select(cohort_prep, treatment_repl, extra_act, starts_with("model"), 
-                Prob_norm, Treatment, Type, theta_median, se_median, pvalue_median, time_stamp) 
-df_treatment_effects_rc_multi %>% 
+                Prob_norm, Treatment, Type, theta_median, se_median, pvalue_median, time_stamp) %>% 
   arrange(desc(time_stamp)) 
 
 
 
-## XGBoost: EXtroversion ##
 
 
 #### Variability Around Zero ####
@@ -809,8 +751,6 @@ for (outcome_var_sel in c("agree", "neuro", "consc", "extra", "open")) {
 # calculated APE is not for standardized outcome variable
 lasso_grades[[1]]$ape # binary
 
-## for standardized outcome variable ##
-
 # APE
 df_ape_binary <- readRDS("Output/Descriptives/BINARY_MEAN_COMPARISON.rds")
 df_ape_binary <- df_ape_binary %>%
@@ -838,6 +778,7 @@ data_descr_stand_pers <- data_descr_pers %>%
   bake(new_data = NULL) %>%
   as.data.frame() %>%
   dplyr::select(treatment_sport, all_of(data_descr_pers %>% dplyr::select(starts_with("bigfive")) %>% colnames()))
+
 # ALL
 df_ape_binary <- left_join(df_ape_binary,
                            rbind(
@@ -854,17 +795,13 @@ df_ape_binary <- left_join(df_ape_binary,
                            ),
                            by = "variable")
 
+cat("APE in binary treatment setting:")
+df_ape_binary
 
 
 
 ## Multivalued Treatment Setting ##
 #+++++++++++++++++++++++++++++++++#
-
-# the APE is identical across the MICE data sets and algorithms
-# calculated APE is not for standardized outcome variable
-lasso_grades[[1]]$ape # binary
-
-## for standardized outcome variable ##
 
 # APE
 df_ape_multi <- readRDS("Output/Descriptives/MULTI_MEAN_COMPARISON.rds")
@@ -970,6 +907,51 @@ df_ape_multi <- left_join(df_ape_multi, df_multi_se_monthly_weekly, by = "variab
   left_join(df_multi_se_never_weekly, by = "variable") %>%
   left_join(df_multi_se_never_monthly, by = "variable") %>%
   dplyr::select(variable, starts_with("ape"), starts_with("p_value"), starts_with("se"))
+
+
+cat("APE in multivalued treatment setting:")
+df_ape_multi
+
+
+## RCs ##
+#+++++++#
+
+# APE
+df_ape_multi_rc <- readRDS("Output/Descriptives/MULTI_MEAN_COMPARISON_RC.rds")
+
+# mean
+df_mean_multi_rc <- df_ape_multi_rc %>%
+  filter(treatment_sport_freq != "all") %>%
+  dplyr::select(RC, treatment_sport_freq, mean) %>%
+  spread(treatment_sport_freq, mean) %>%
+  group_by(RC) %>%
+  fill(all_of(c("monthly_less", "never", "weekly_atleast")), .direction = 'downup') %>%
+  mutate(ape_weekly_monthly = `weekly_atleast` - `monthly_less`,
+         ape_weekly_never = `weekly_atleast` - `never`,
+         ape_monthly_never = `monthly_less` - `never`)
+
+# p-value
+df_p_multi_rc <- 
+  df_ape_multi_rc %>% 
+  filter(!treatment_sport_freq %in% c("weekly_atleast", "all")) %>%   
+  dplyr::select(RC, treatment_sport_freq, p_value_daily, p_value_monthly) %>% 
+  pivot_wider(
+    names_from = treatment_sport_freq,
+    values_from = c(p_value_daily, p_value_monthly)
+  ) %>% 
+  dplyr::select(-p_value_monthly_monthly_less)
+
+df_ape_multi_rc <- left_join(df_mean_multi_rc, df_p_multi_rc, by = "RC")
+
+# SE
+df_ape_multi_se <- readRDS("Output/Descriptives/MULTI_MEAN_COMPARISON_RC_SE.rds")
+
+
+df_ape_multi_rc <- left_join(df_ape_multi_rc, df_ape_multi_se, by = "RC") %>%
+  dplyr::select(RC, starts_with("ape"), starts_with("p_value"), starts_with("se"))
+
+cat("APE for robustness checks:")
+df_ape_multi_rc
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -1085,8 +1067,8 @@ for (outcome_var_sel in c("grades", "agree", "consc", "extra", "neuro", "open"))
 df_error_main_binary <- df_error_main_binary %>%
   dplyr::select(outcome, ml_algo, AUC_m, ACC_m, BACC_m, RMSE_g0, RRMSE_g0, MAE_g0, RMSE_g1, RRMSE_g1, MAE_g1)
 
-saveRDS(df_error_main_binary, "Output/DML/binary_main_error_metrics.rds")
-
+cat("Error Metrics in the Binary Treatment Setting after Trimming:")
+df_error_main_binary
 
 ## ERROR METRICS BEFORE TRIMMING ##
 df_error_main_binary_bef_trimming <- data.frame()
@@ -1142,9 +1124,16 @@ for (outcome_var_sel in c("grades", "agree", "consc", "extra", "neuro", "open"))
       
       
       # calculate RRMSE
-      df_error_sub <- df_error_sub %>%
-        mutate(RRMSE_g0 = (RMSE_g0 / df_sd_mean$mean_no)*100, 
-               RRMSE_g1 = (RMSE_g1 / df_sd_mean$mean_yes)*100) 
+      if (outcome_var_sel == "grades") {
+        df_error_sub <- df_error_sub %>%
+          mutate(RRMSE_g0 = (RMSE_g0 / df_sd_mean$mean_no)*100, 
+                 RRMSE_g1 = (RMSE_g1 / df_sd_mean$mean_yes)*100) 
+      } else {
+        df_error_sub <- df_error_sub %>%
+          mutate(RRMSE_g0 = (RMSE_g0 / df_sd_mean$no)*100, 
+                 RRMSE_g1 = (RMSE_g1 / df_sd_mean$yes)*100) 
+      }
+
       
       # bind row
       df_error_main_binary_bef_trimming <- rbind(df_error_main_binary_bef_trimming, df_error_sub)
@@ -1157,86 +1146,9 @@ for (outcome_var_sel in c("grades", "agree", "consc", "extra", "neuro", "open"))
 
 df_error_main_binary_bef_trimming <- df_error_main_binary_bef_trimming %>%
   dplyr::select(outcome, ml_algo, AUC_m, ACC_m, BACC_m, RMSE_g0, RRMSE_g0, MAE_g0, RMSE_g1, RRMSE_g1, MAE_g1)
-saveRDS(df_error_main_binary_bef_trimming, "Output/DML/binary_main_error_metrics_bef_trimming.rds")
 
-
-## ERROR METRICS FOR ROBUSTNESS CHECKS ##
-df_error_main_binary_rc <- data.frame()
-for (outcome_var_sel in c("grades_rc1_all", "grades_rc4_endog")) {
-  
-  # load standardization
-  if (outcome_var_sel == "grades_rc1_all") {
-    data_stand_grades_rc <- 
-      readRDS(paste0("Data/Grades/Prep_10/prep_10_dml_binary_all_all_down_extradrop", cov_balance_save, "_mice1.rds"))
-    data_stand_grades_rc <- data_stand_grades_rc %>%
-      summarize(mean = mean(outcome_grade), sd = sd(outcome_grade)) 
-  } else {
-    data_stand_grades_rc <- data_stand_grades
-  }
-  
-  
-  for (model_algo_sel in c("postlasso")) {
-    load_pred_algo <- paste0(model_algo_sel, "_", outcome_var_sel)
-    tryCatch({
-      print(load_pred_algo)
-      if (exists(load_pred_algo) == FALSE) stop("Does not exist")
-      
-      ml_grades_pred <- data.frame()
-      for (mice_sel in 1:5) {
-        ml_grades_pred_sub <- left_join(get(load_pred_algo)[[mice_sel]]$pred, 
-                                        get(load_pred_algo)[[mice_sel]]$trimming, 
-                                        by = "Repetition") %>%
-          mutate(MICE = mice_sel)
-        ml_grades_pred <- rbind(ml_grades_pred, ml_grades_pred_sub)
-      }
-      
-      if (str_detect(outcome_var_sel, "grades")) {
-        df_pred <- ml_grades_pred %>% 
-          mutate(
-            # standardized outcomes
-            outcome_stand = outcome, g0_stand = g0, g1_stand = g1,
-            # original scale
-            outcome = outcome_stand*data_stand_grades_rc$sd + data_stand_grades_rc$mean,
-            g0 = g0_stand*data_stand_grades_rc$sd + data_stand_grades_rc$mean,
-            g1 = g1_stand*data_stand_grades_rc$sd + data_stand_grades_rc$mean
-          )
-      } else {
-        # extract sd and mean
-        df_sd_mean <- data_stand_pers %>% 
-          dplyr::select(starts_with(outcome_var_sel)) 
-        colnames(df_sd_mean) <- sub(".*_", "", colnames(df_sd_mean))
-        
-        # convert
-        df_pred <- ml_grades_pred %>% 
-          mutate(
-            # standardized outcomes
-            outcome_stand = outcome, g0_stand = g0, g1_stand = g1,
-            # original scale
-            outcome = outcome_stand*df_sd_mean$sd + df_sd_mean$mean,
-            g0 = g0_stand*df_sd_mean$sd + df_sd_mean$mean,
-            g1 = g1_stand*df_sd_mean$sd + df_sd_mean$mean
-          )
-      }
-      
-      df_error_sub <- func_ml_error_metrics("binary", df_pred, 1, 1, TRUE) %>%
-        dplyr::select(-c(Repetition, Fold)) %>%
-        mutate(outcome = outcome_var_sel, ml_algo = model_algo_sel) %>%
-        dplyr::select(outcome, ml_algo, everything())
-      df_error_main_binary_rc <- rbind(df_error_main_binary_rc, df_error_sub)
-      
-      
-    }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")}) # close tryCatch()
-  } # close for loop model_algo_sel
-} # close for loop outcome_var_sel
-
-
-df_error_main_binary_rc <- df_error_main_binary_rc %>%
-  rowwise() %>%
-  mutate(RMSE_g = mean(c(RMSE_g0, RMSE_g1)), MAPE_g = mean(c(MAPE_g0, MAPE_g1))) %>%
-  dplyr::select(outcome, ml_algo, AUC_m, ACC_m, BACC_m, RMSE_g, MAPE_g)
-
-saveRDS(df_error_main_binary_rc, "Output/DML/binary_rc_error_metrics.rds")
-
+cat("Error Metrics in the Binary Treatment Setting before Trimming:")
+df_error_main_binary_bef_trimming
 
 
 
@@ -1340,16 +1252,10 @@ for (outcome_var_sel in c("grades", "agree", "consc", "extra", "neuro", "open"))
 df_error_main_multi <- df_error_main_multi %>%
   dplyr::select(outcome, ml_algo, starts_with("AUC"), starts_with("ACC"), starts_with("BACC"), 
                 starts_with("RMSE"), starts_with("RRMSE"), starts_with("MAE")) %>%
-  # rowwise() %>%
-  # mutate(
-  #   AUC_m = mean(c(AUC_m1, AUC_m2, AUC_m3)), ACC_m = mean(c(ACC_m1, ACC_m2, ACC_m3)), BACC_m = mean(c(BACC_m1, BACC_m2, BACC_m3)),
-  #   RMSE_g = mean(c(RMSE_g1, RMSE_g2, RMSE_g3)), MAPE_g = mean(c(MAPE_g1, MAPE_g2, MAPE_g3))
-  #   ) %>%
-  # dplyr::select(-matches("g[0-9]$"), -matches("m[0-9]$")) %>%
   as.data.frame()
 
-saveRDS(df_error_main_multi, "Output/DML/multi_main_error_metrics.rds")
-
+cat("Error Metrics in the Multivalued Treatment Setting after Trimming:")
+df_error_main_multi
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -1394,8 +1300,6 @@ df_predictors_all_binary <- rbind(
     mutate(outcome = "personality", ml_algo = "postlasso")
 )
                                   
-df_predictors_all_binary %>%
-  dplyr::select(outcome, ml_algo, ends_with("_m"), ends_with("_g0"), ends_with("_g1"))
 
 df_treatment_effects_main_binary %>% filter(str_detect(model_algo, "lasso")) %>% 
   dplyr::select(outcome, model_algo, starts_with("num_pred")) %>% distinct()
@@ -1436,8 +1340,6 @@ df_predictors_pers_lasso_binary <- rbind(
 )
 
 df_predictors_all_binary <- rbind(df_predictors_all_binary, df_predictors_pers_lasso_binary)
-
-saveRDS(df_predictors_all_binary, "Output/DML/binary_main_num_predictors.rds")
 
 
 ## Multivalued Treatment Setting ##
@@ -1527,14 +1429,6 @@ df_predictors_pers_lasso_multi <- rbind(
 
 df_predictors_all_multi <- rbind(df_predictors_all_multi, df_predictors_pers_lasso_multi)
 
-saveRDS(df_predictors_all_multi, "Output/DML/multi_msin_num_predictors.rds")
-
-## Sensitvity wrt Hyperparameters ##
-df_dml_main_multi %>% 
-  group_by(model_algo, model_hyperparam_sel) %>% 
-  filter(time_stamp == max(time_stamp), model_algo == "postlasso", Type %in% c("ATE", "ATTE")) %>%
-  dplyr::select(model_hyperparam_sel, starts_with("num_p")) %>% distinct()
-
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%#
 #### ++COMMON SUPPORT++ ####
@@ -1560,83 +1454,6 @@ df_trimming_drop_main_binary <- df_dml_main_binary %>%
   mutate(n_treats_diff = n_treats_before - n_treats_after, 
          n_treats_diff_perf = ((n_treats_before - n_treats_after) / n_treats_before)*100)
 df_trimming_drop_main_binary
-#saveRDS(df_trimming_drop_main_binary, "Output/DML/binary_main_trimming_obs.rds")
-
-# enforce other trimming thresholds
-df_trimming_drop_thresholds_binary <- data.frame()
-for (outcome_var_sel in c("grades", "agree", "consc", "extra", "neuro", "open")) {
-  for (model_algo_sel in c("lasso", "postlasso", "rf", "xgb")) {
-    load_pred_algo <- paste0(model_algo_sel, "_", outcome_var_sel)
-    tryCatch({
-      print(load_pred_algo)
-      if (exists(load_pred_algo) == FALSE) stop("Does not exist")
-      
-      # extract predictions
-      for (mice_sel in 1:length(get(load_pred_algo))) { # iterate over MICE
-        ml_grades_pred_sub <- get(load_pred_algo)[[mice_sel]]$pred_bef_trimming %>% 
-          dplyr::select(Repetition, Fold, treatment, m)
-        
-        # apply trimming thresholds: min-max and 0.01 and 0.1
-        for (rep_sel in 1:max(ml_grades_pred_sub$Repetition)) { # iterate over repetition
-          for (fold_sel in 1:max(ml_grades_pred_sub$Fold)) { # iterate over folds
-            # subset on repetition and fold
-            ml_grades_pred_sub_fold <- ml_grades_pred_sub %>% filter(Repetition == rep_sel, Fold == fold_sel)
-            # 0.01 trimming
-            indices_keep_001 <- which(between(ml_grades_pred_sub_fold$m, 0.01, 0.99))
-            # 0.1 trimming
-            indices_keep_01 <- which(between(ml_grades_pred_sub_fold$m, 0.1, 0.9))
-            # min-max trimming
-            df_minmax_trimming <- ml_grades_pred_sub_fold %>% group_by(treatment) %>% 
-              summarise(min_m = min(m), max_m = max(m))
-            indices_kepp_minmax <- which(
-              between(ml_grades_pred_sub_fold$m, max(df_minmax_trimming$min_m), min(df_minmax_trimming$max_m))
-              )
-            # enforce common support
-            ml_grades_pred_001 <- ml_grades_pred_sub_fold[indices_keep_001, ]
-            ml_grades_pred_01 <- ml_grades_pred_sub_fold[indices_keep_01, ]
-            ml_grades_pred_minmax <- ml_grades_pred_sub_fold[indices_kepp_minmax, ]
-            # calculate percentage of obs dropped
-            n_treats_diff_perf_001 <- ((nrow(ml_grades_pred_sub_fold) - nrow(ml_grades_pred_001)) / 
-                                         nrow(ml_grades_pred_sub_fold))*100
-            n_treats_diff_perf_01 <- ((nrow(ml_grades_pred_sub_fold) - nrow(ml_grades_pred_01)) / 
-                                        nrow(ml_grades_pred_sub_fold))*100
-            n_treats_diff_perf_minmax <- ((nrow(ml_grades_pred_sub_fold) - nrow(ml_grades_pred_minmax)) / 
-                                            nrow(ml_grades_pred_sub_fold))*100
-            
-            df_trimming_drop_thresholds_binary <- rbind(
-              df_trimming_drop_thresholds_binary,
-              data.frame("outcome" = outcome_var_sel, "model" = model_algo_sel,
-                         "MICE" = mice_sel, "Fold" = fold_sel, "Repetition" = rep_sel,
-                         "trimming_minmax_perc" = n_treats_diff_perf_minmax,
-                         "trimming_001_perc" = n_treats_diff_perf_001,
-                         "trimming_01_perc" = n_treats_diff_perf_01)
-            )
-          }
-        } # close iteration over rep_sel
-      } # close iteration over mice_sel
-    }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")}) # close tryCatch()
-  } # close for loop model_algo_sel
-} # close for loop outcome_var_sel
-df_trimming_drop_thresholds_binary <- df_trimming_drop_thresholds_binary %>%
-  group_by(outcome, model) %>% summarize_all(mean)
-
-saveRDS(df_trimming_drop_thresholds_binary, "Output/DML/Common_Support/binary_main_trimming_obs.rds")
-
-
-# rc wrt trimming
-df_dml_main_binary %>%
-  filter(
-    cohort_prep == main_cohort_prep, treatment_def == main_treatment_def,
-    treatment_repl == main_treatment_repl, extra_act == main_extra_act,
-    model_type == main_model_type, model_k == main_model_k, model_s_rep == main_model_s_rep,
-    model_trimming != main_model_trimming, model_controls_lag == main_model_controls_lag,
-    model_controls_endog == main_model_controls_endog, model_hyperparam_sel == "best",
-    model_covbal == "yes"
-  ) %>%
-  dplyr::select(outcome, model_algo, model_trimming, starts_with("n_treats")) %>% distinct() %>%
-  mutate(n_treats_diff = n_treats_before - n_treats_after, model_trimming,
-         n_treats_diff_perf = ((n_treats_before - n_treats_after) / n_treats_before)*100)
-
 
 
 ## Multivalued Treatment Setting ##
@@ -1649,109 +1466,12 @@ df_trimming_drop_main_multi <- df_dml_main_multi %>%
     model_type == main_model_type, model_k == main_model_k, model_s_rep == main_model_s_rep,
     model_trimming == main_model_trimming, model_controls_lag == main_model_controls_lag,
     model_controls_endog == main_model_controls_endog, 
-    model_covbal == "yes"
+    model_covbal == "yes", model_hyperparam_sel == "best", Prob_norm == "yes",
+    model_k_tuning %in% c(1, 2)
   ) %>%
   dplyr::select(outcome, model_algo, starts_with("n_treats")) %>% distinct() %>%
   mutate(n_treats_diff = n_treats_before - n_treats_after, 
          n_treats_diff_perf = ((n_treats_before - n_treats_after) / n_treats_before)*100)
-
-
-# enforce other trimming thresholds
-df_trimming_drop_thresholds_multi <- data.frame()
-for (outcome_var_sel in c("grades", "agree", "consc", "extra", "neuro", "open")) {
-  for (model_algo_sel in c("lasso", "postlasso", "rf", "xgb")) {
-    load_pred_algo <- paste0(model_algo_sel, "_", outcome_var_sel, "_multi")
-    tryCatch({
-      print(load_pred_algo)
-      if (exists(load_pred_algo) == FALSE) stop("Does not exist")
-      
-      # extract predictions
-      for (mice_sel in 1:length(get(load_pred_algo))) { # iterate over MICE
-        ml_grades_pred_sub <- get(load_pred_algo)[[mice_sel]]$pred_bef_trimming %>% 
-          dplyr::select(Repetition, Fold, treatment, m1, m2, m3)
-        
-        # apply trimming thresholds: min-max and 0.01 and 0.1
-        for (rep_sel in 1:max(ml_grades_pred_sub$Repetition)) { # iterate over repetition
-          for (fold_sel in 1:max(ml_grades_pred_sub$Fold)) { # iterate over folds
-            # subset on repetition and fold
-            ml_grades_pred_sub_fold <- ml_grades_pred_sub %>% filter(Repetition == rep_sel, Fold == fold_sel)
-            # 0.01 trimming
-            indices_keep_1 <- which(between(ml_grades_pred_sub_fold$m1, 0.01, 0.99))
-            indices_keep_2 <- which(between(ml_grades_pred_sub_fold$m2, 0.01, 0.99))
-            indices_keep_3 <- which(between(ml_grades_pred_sub_fold$m3, 0.01, 0.99))
-            indices_keep_001 <- intersect(indices_keep_1, indices_keep_2)
-            indices_keep_001 <- intersect(indices_keep_001, indices_keep_3)
-            # 0.1 trimming
-            indices_keep_1 <- which(between(ml_grades_pred_sub_fold$m1, 0.1, 0.9))
-            indices_keep_2 <- which(between(ml_grades_pred_sub_fold$m2, 0.1, 0.9))
-            indices_keep_3 <- which(between(ml_grades_pred_sub_fold$m3, 0.1, 0.9))
-            indices_keep_01 <- intersect(indices_keep_1, indices_keep_2)
-            indices_keep_01 <- intersect(indices_keep_01, indices_keep_3)
-            # min-max trimming
-            df_select_trimming <- 
-              # m1
-              ml_grades_pred_sub_fold %>% 
-              mutate(treatment_1 = ifelse(treatment == 1, 1, 0)) %>%
-              group_by(treatment_1) %>% 
-              summarise(min_m = min(m1), max_m = max(m1)) %>%
-              summarise(min_trimming = max(min_m), max_trimming = min(max_m)) %>%
-              mutate(model = "m1") %>% rbind(
-                # m2
-                ml_grades_pred_sub_fold %>% 
-                  mutate(treatment_2 = ifelse(treatment == 2, 1, 0)) %>%
-                  group_by(treatment_2) %>% 
-                  summarise(min_m = min(m2), max_m = max(m2)) %>%
-                  summarise(min_trimming = max(min_m), max_trimming = min(max_m)) %>%
-                  mutate(model = "m2")
-              ) %>% rbind(
-                # m3
-                ml_grades_pred_sub_fold %>% 
-                  mutate(treatment_3 = ifelse(treatment == 3, 1, 0)) %>%
-                  group_by(treatment_3) %>% 
-                  summarise(min_m = min(m3), max_m = max(m3)) %>%
-                  summarise(min_trimming = max(min_m), max_trimming = min(max_m)) %>%
-                  mutate(model = "m3")
-              )
-            
-            indices_keep_1 <- which(between(ml_grades_pred_sub_fold$m1, df_select_trimming %>% filter(model == "m1") %>% pull(min_trimming), 
-                                            df_select_trimming %>% filter(model == "m1") %>% pull(max_trimming)))
-            indices_keep_2 <- which(between(ml_grades_pred_sub_fold$m2, df_select_trimming %>% filter(model == "m2") %>% pull(min_trimming), 
-                                            df_select_trimming %>% filter(model == "m2") %>% pull(max_trimming)))
-            indices_keep_3 <- which(between(ml_grades_pred_sub_fold$m3, df_select_trimming %>% filter(model == "m3") %>% pull(min_trimming), 
-                                            df_select_trimming %>% filter(model == "m3") %>% pull(max_trimming)))
-            indices_keep_minmax <- intersect(indices_keep_1, indices_keep_2)
-            indices_keep_minmax <- intersect(indices_keep_minmax, indices_keep_3)
-            
-            # enforce common support
-            ml_grades_pred_001 <- ml_grades_pred_sub_fold[indices_keep_001, ]
-            ml_grades_pred_01 <- ml_grades_pred_sub_fold[indices_keep_01, ]
-            ml_grades_pred_minmax <- ml_grades_pred_sub_fold[indices_keep_minmax, ]
-            
-            # calculate percentage of obs dropped
-            n_treats_diff_perf_001 <- ((nrow(ml_grades_pred_sub_fold) - nrow(ml_grades_pred_001)) / 
-                                         nrow(ml_grades_pred_sub_fold))*100
-            n_treats_diff_perf_01 <- ((nrow(ml_grades_pred_sub_fold) - nrow(ml_grades_pred_01)) / 
-                                        nrow(ml_grades_pred_sub_fold))*100
-            n_treats_diff_perf_minmax <- ((nrow(ml_grades_pred_sub_fold) - nrow(ml_grades_pred_minmax)) / 
-                                            nrow(ml_grades_pred_sub_fold))*100
-            
-            df_trimming_drop_thresholds_multi <- rbind(
-              df_trimming_drop_thresholds_multi,
-              data.frame("outcome" = outcome_var_sel, "model" = model_algo_sel,
-                         "MICE" = mice_sel, "Fold" = fold_sel, "Repetition" = rep_sel,
-                         "trimming_minmax_perc" = n_treats_diff_perf_minmax,
-                         "trimming_001_perc" = n_treats_diff_perf_001,
-                         "trimming_01_perc" = n_treats_diff_perf_01)
-            )
-          }
-        } # close iteration over rep_sel
-      } # close iteration over mice_sel
-    }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")}) # close tryCatch()
-  } # close for loop model_algo_sel
-} # close for loop outcome_var_sel
-df_trimming_drop_thresholds_multi <- df_trimming_drop_thresholds_multi %>%
-  group_by(outcome, model) %>% summarize_all(mean)
-
 
 
 #++++++++++++++++++++#
@@ -1862,9 +1582,7 @@ binary_plot_common_support <- ggarrange(
           legend.text = element_text(size = 38), legend.title = element_text(size = 38)),
   nrow = 1, ncol = 4, common.legend = T, legend = "bottom"
 ) 
-# ggsave("Output/DML/Common_Support/dml_plot_common_support_binary_grades_allalgos_all.png", 
-#        binary_plot_common_support,
-#        width = 30, height = 8, dpi = 500, units = "in", device = 'png')
+
 pdf("Output/DML/Common_Support/dml_plot_common_support_binary_grades_allalgos_all.pdf",
     width = 30, height = 8, pointsize = 25, family = "Helvetica")
 print(binary_plot_common_support)
@@ -1918,9 +1636,7 @@ binary_plot_common_support_personality <- ggarrange(
     ggtitle("Openness"),
   nrow = 1, ncol = 5, common.legend = T, legend = "bottom"
 ) 
-# ggsave(paste0("Output/DML/Common_Support/dml_plot_common_support_binary_personality_postlasso_all.png"), 
-#        binary_plot_common_support_personality,
-#        width = 30, height = 8, dpi = 300, units = "in", device = 'png')
+
 pdf("Output/DML/Common_Support/dml_plot_common_support_binary_personality_postlasso_all.pdf",
     width = 30, height = 8, pointsize = 25, family = "Helvetica")
 print(binary_plot_common_support_personality)
@@ -2004,10 +1720,6 @@ binary_plot_common_support_fold <- ggarrange(
   nrow = 2, ncol = 2, common.legend = T, legend = "bottom"
 ) 
 
-# ggsave(paste0("Output/DML/Common_Support/dml_plot_common_support_binary_grades_allalgos_fold.png"), 
-#        binary_plot_common_support_fold,
-#        width = 25, height = 15, dpi = 500, units = "in", device = 'png')
-
 pdf("Output/DML/Common_Support/dml_plot_common_support_binary_grades_allalgos_fold.pdf",
     width = 25, height = 12, pointsize = 25, family = "Helvetica")
 print(binary_plot_common_support_fold)
@@ -2031,15 +1743,12 @@ binary_plot_common_support_fold_pers <- ggarrange(
   nrow = 2, ncol = 3, common.legend = T, legend = "bottom"
 ) 
 
-# ggsave(paste0("Output/DML/Common_Support/dml_plot_common_support_binary_personality_postlasso_fold.png"), 
-#        binary_plot_common_support_fold_pers,
-#        width = 25, height = 15, dpi = 500, units = "in", device = 'png')
-
-
 pdf("Output/DML/Common_Support/dml_plot_common_support_binary_personality_postlasso_fold.pdf",
     width = 25, height = 12, pointsize = 25, family = "Helvetica")
 print(binary_plot_common_support_fold_pers)
 dev.off()
+
+
 
 ## Multivalued Treatment Setting ##
 #+++++++++++++++++++++++++++++++++#
@@ -2129,15 +1838,11 @@ multi_plot <- ggarrange(
   nrow = 1, common.legend = TRUE, legend = "bottom"
 )
 
-# ggsave(paste0("Output/DML/Common_Support/dml_plot_common_support_multi_grades_postlasso_all.png"), 
-#        multi_plot,
-#        width = 20, height = 10, dpi = 500, units = "in", device = 'png')
-
-
 pdf("Output/DML/Common_Support/dml_plot_common_support_multi_grades_postlasso_all.pdf",
     width = 20, height = 10, pointsize = 5, family = "Helvetica")
 print(multi_plot)
 dev.off()
+
 
 #### Check Means ####
 #+++++++++++++++++++#
@@ -2316,6 +2021,7 @@ data_grades_multi %>% group_by(treatment_sport_freq) %>% count() %>%
 data_personality_multi %>% group_by(treatment_sport_freq) %>% count() %>%
   mutate(n = n / data_personality_multi %>% group_by(treatment_sport_freq) %>% count() %>% pull(n) %>% sum()*100) %>%
   as.data.frame()
+
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%#
@@ -3329,200 +3035,3 @@ df_error_nonsep %>%
   dplyr::select(outcome, ml_algo, starts_with("AUC"), starts_with("ACC"), starts_with("BACC"), 
                 starts_with("RMSE"), starts_with("RRMSE"), starts_with("MAE")) %>%
   as.data.frame()
-
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-#### DETAILED LASSO ANALYSIS FOR GPA SAMPLE ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-
-## MAIN RESULTS ##
-#++++++++++++++++#
-
-df_dml_main_binary %>% filter(model_algo == "lasso")
-
-
-## RESULT ACROSS REPETITIONS ##
-#+++++++++++++++++++++++++++++#
-
-## S = 5 ##
-
-lasso_theta_detail <- rbind(
-  lasso_grades[[1]]$detail %>% filter(Type == "ATE") %>% mutate(MICE = 1),
-  lasso_grades[[2]]$detail %>% filter(Type == "ATE") %>% mutate(MICE = 2)) %>%
-  rbind(lasso_grades[[3]]$detail %>% filter(Type == "ATE") %>% mutate(MICE = 3)) %>%
-  rbind(lasso_grades[[4]]$detail %>% filter(Type == "ATE") %>% mutate(MICE = 4)) %>%
-  rbind(lasso_grades[[5]]$detail %>% filter(Type == "ATE") %>% mutate(MICE = 5)) 
-
-# replicate overall treatment effect
-lasso_theta_detail %>%
-  group_by(MICE) %>%
-  summarize(theta_median = median(Treatment_Effect)) %>%
-  ungroup() %>% pull(theta_median) %>% median()
-
-lasso_theta_detail %>%
-  group_by(MICE) %>%
-  summarize(theta_mean = mean(Treatment_Effect)) %>%
-  ungroup() %>% pull(theta_mean) %>% mean()
-
-
-# for paper: intermediate results
-lasso_theta_detail %>%
-  group_by(Rep) %>%
-  summarize(theta_median = median(Treatment_Effect)) 
-
-
-
-## S = 10 ##
-lasso_grades_10 <- 
-  readRDS("Output/DML/Estimation/Grades/binary_grades_lasso_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming0.01_K4-4_Rep10.rds")
-
-lasso_theta_detail_10 <- rbind(
-  lasso_grades_10[[1]]$detail %>% filter(Type == "ATE") %>% mutate(MICE = 1),
-  lasso_grades_10[[2]]$detail %>% filter(Type == "ATE") %>% mutate(MICE = 2)) %>%
-  rbind(lasso_grades_10[[3]]$detail %>% filter(Type == "ATE") %>% mutate(MICE = 3)) %>%
-  rbind(lasso_grades_10[[4]]$detail %>% filter(Type == "ATE") %>% mutate(MICE = 4)) %>%
-  rbind(lasso_grades_10[[5]]$detail %>% filter(Type == "ATE") %>% mutate(MICE = 5)) 
-
-lasso_theta_detail_10 %>%
-  group_by(Rep) %>%
-  summarize(theta_median = median(Treatment_Effect)) 
-
-
-
-## COMMON SUPPORT ##
-#++++++++++++++++++#
-
-# MAIN MODEL: No treatment and outcome lags #
-lasso_grades_pred <- data.frame()
-for (mice_sel in 1:5) {
-  lasso_grades_pred_sub <- left_join(lasso_grades[[mice_sel]]$pred, lasso_grades[[mice_sel]]$trimming, by = "Repetition") %>%
-    mutate(MICE = mice_sel)
-  lasso_grades_pred <- rbind(lasso_grades_pred, lasso_grades_pred_sub)
-}
-
-lasso_grades_plot_common_support <- func_dml_common_support(
-  "binary", lasso_grades_pred, unique(lasso_grades_pred$min_trimming), 
-  unique(lasso_grades_pred$max_trimming), "lasso")
-
-lasso_grades_plot_common_support <- lasso_grades_plot_common_support + 
-  ggtitle(bquote(paste(atop(bold(.("LASSO")), "Propensity Score Overlap without Treatment and Outcome Lags")))) +
-  theme(plot.title = element_text(hjust = 0.5, size = 10))
-
-
-# RC: Treatment and outcome lags #
-lasso_rc_treatoutlags <- 
-  readRDS("Output/DML/Estimation/Grades/binary_grades_lasso_all_controlssameoutcome_weekly_down_extradrop_all_all_endogyes_trimming0.01_K4-2_Rep5.rds")
-
-
-lasso_rc_treatoutlags_pred <- data.frame()
-for (mice_sel in 1:5) {
-  lasso_lasso_rc_treatoutlags_pred_sub <- left_join(lasso_rc_treatoutlags[[mice_sel]]$pred, lasso_rc_treatoutlags[[mice_sel]]$trimming, by = "Repetition") %>%
-    mutate(MICE = mice_sel)
-  lasso_rc_treatoutlags_pred <- rbind(lasso_rc_treatoutlags_pred, lasso_lasso_rc_treatoutlags_pred_sub)
-}
-
-lasso_rc_treatoutlags_plot_common_support <- func_dml_common_support(
-  "binary", lasso_rc_treatoutlags_pred, unique(lasso_rc_treatoutlags_pred$min_trimming), 
-  unique(lasso_rc_treatoutlags_pred$max_trimming), "lasso")
-
-
-lasso_rc_treatoutlags_plot_common_support <- lasso_rc_treatoutlags_plot_common_support + 
-  ggtitle("Propensity Score Overlap with Treatment and Outcome Lags") +
-  theme(plot.title = element_text(hjust = 0.5, size = 10))
-
-
-# RC: No Lags at all #
-lasso_rc_nolags <- 
-  readRDS("Output/DML/Estimation/Grades/binary_grades_lasso_all_controlssameoutcome_weekly_down_extradrop_all_nolags_endogyes_trimming0.01_K4-2_Rep5.rds")
-
-lasso_rc_nolags_pred <- data.frame()
-for (mice_sel in 1:5) {
-  lasso_lasso_rc_nolags_pred_sub <- left_join(lasso_rc_nolags[[mice_sel]]$pred, lasso_rc_nolags[[mice_sel]]$trimming, by = "Repetition") %>%
-    mutate(MICE = mice_sel)
-  lasso_rc_nolags_pred <- rbind(lasso_rc_nolags_pred, lasso_lasso_rc_nolags_pred_sub)
-}
-
-lasso_rc_nolags_plot_common_support <- func_dml_common_support(
-  "binary", lasso_rc_nolags_pred, unique(lasso_rc_nolags_pred$min_trimming), 
-  unique(lasso_rc_nolags_pred$max_trimming), "lasso")
-
-
-lasso_rc_nolags_plot_common_support <- lasso_rc_nolags_plot_common_support + 
-  ggtitle("Propensity Score Overlap without any Lags") +
-  theme(plot.title = element_text(hjust = 0.5, size = 10))
-
-ggarrange(lasso_grades_plot_common_support, lasso_rc_nolags_plot_common_support,
-          lasso_rc_treatoutlags_plot_common_support,
-          nrow = 3)
-
-
-# MAIN BUT DIFFERENT TRIMMING #
-lasso_grades_01 <- 
-  readRDS("Output/DML/Estimation/Grades/binary_grades_lasso_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming0.1_K4-2_Rep5.rds")
-
-lasso_grades_pred_01 <- data.frame()
-for (mice_sel in 1:5) {
-  lasso_grades_pred_01_sub <- left_join(lasso_grades_01[[mice_sel]]$pred, lasso_grades_01[[mice_sel]]$trimming, by = "Repetition") %>%
-    mutate(MICE = mice_sel)
-  lasso_grades_pred_01 <- rbind(lasso_grades_pred_01, lasso_grades_pred_01_sub)
-}
-
-lasso_grades_01_plot_common_support <- func_dml_common_support(
-  "binary", lasso_grades_pred_01, unique(lasso_grades_pred_01$min_trimming), 
-  unique(lasso_grades_pred_01$max_trimming), "lasso")
-
-lasso_grades_01_plot_common_support <- lasso_grades_01_plot_common_support + 
-  ggtitle("Propensity Score Overlap with Trimming Threshold of 0.1") +
-  theme(plot.title = element_text(hjust = 0.5, size = 10))
-
-
-
-lasso_grades_minmax <- 
-  readRDS("Output/DML/Estimation/Grades/binary_grades_lasso_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimmingmin-max_K4-2_Rep5.rds")
-
-lasso_grades_pred_minmax <- data.frame()
-for (mice_sel in 1:5) {
-  lasso_grades_pred_minmax_sub <- left_join(lasso_grades_minmax[[mice_sel]]$pred, lasso_grades_minmax[[mice_sel]]$trimming, by = "Repetition") %>%
-    mutate(MICE = mice_sel)
-  lasso_grades_pred_minmax <- rbind(lasso_grades_pred_minmax, lasso_grades_pred_minmax_sub)
-}
-
-lasso_grades_minmax_plot_common_support <- func_dml_common_support(
-  "binary", lasso_grades_pred_minmax, unique(lasso_grades_pred_minmax$min_trimming), 
-  unique(lasso_grades_pred_minmax$max_trimming), "lasso")
-
-lasso_grades_minmax_plot_common_support <- lasso_grades_minmax_plot_common_support + 
-  ggtitle("Propensity Score Overlap with Min-Max Trimming") +
-  theme(plot.title = element_text(hjust = 0.5, size = 10))
-
-
-# subplot
-ggarrange(lasso_grades_plot_common_support + rremove("xlab") +
-            ggtitle(bquote(paste(atop(bold(.("LASSO")), "Propensity Score Overlap with Trimming Threshold of 0.01")))) +
-            theme(plot.title = element_text(hjust = 0.5, size = 10)),
-          lasso_grades_01_plot_common_support + rremove("xlab"),
-          lasso_grades_minmax_plot_common_support, 
-          nrow = 3, common.legend = TRUE, legend = "bottom")
-
-
-lasso_grades_pred %>% dplyr::select(starts_with("n_treats")) %>% distinct()
-lasso_grades_pred_01 %>% dplyr::select(starts_with("n_treats")) %>% distinct() %>% arrange(n_treats_after)
-lasso_grades_pred_minmax %>% dplyr::select(starts_with("n_treats")) %>% distinct() %>% arrange(n_treats_after)
-
-
-ggarrange(lasso_grades_plot_common_support + rremove("xlab"),
-          lasso_rc_treatoutlags_plot_common_support, 
-          nrow = 2, common.legend = TRUE, legend = "bottom")
-
-lasso_grades_pred %>% dplyr::select(starts_with("n_treats")) %>% distinct()
-lasso_rc_treatoutlags_pred %>% dplyr::select(starts_with("n_treats")) %>% distinct() %>% arrange(n_treats_after)
-
-
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-#### DETAILED XGBoost ANALYSIS ####
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-
-
-
-

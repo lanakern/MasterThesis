@@ -5,11 +5,13 @@
 #++++
 # by Lana Kern
 #++++
-# In this file the ATE and ATTE is estimated using DML in the binary
-# treatment setting, that is sport participation vs. non participation. 
-# As outcome both grades and the big five personality traits can be specified.
+# In this file the ATE and ATET is estimated using DML in the binary
+# treatment setting, that is sports participation versus non-participation. 
+# As outcomes the GPA and the big five personality traits can be specified.
 #++++
-# The estimation results are stored in an Excel file.
+# -> The aggregated estimation results are stored in an Excel file: "DML_BINARY_ESTIMATION_RESULTS.xlsx" 
+# -> Detailed estimation results across the MICE data frames are stored in a list
+# and saved as R data frame.
 #++++
 
 
@@ -53,7 +55,6 @@ for (mice_data_sel in 1:5) {
   } else {
     stop("Please specify correct outcome variable")
   }
-  
     ## cohort prep
   if (cohort_prep == "controls_same_outcome") {
     load_data <- 
@@ -115,11 +116,6 @@ for (mice_data_sel in 1:5) {
     # for personality selected outcome variable needs to be declared
     data_dml <- data_dml %>%
       rename_with(~ outcome_var, all_of(str_remove(outcome_var, "outcome_")))
-    # # lags for all other personality variables are dropped
-    # colnames_bigfive_lag_drop <- data_dml %>% 
-    #   dplyr::select(starts_with("bigfive") & ends_with("lag") & !matches(outcome_var_old)) %>% colnames()
-    # data_dml <- data_dml %>% 
-    #   dplyr::select(-all_of(colnames_bigfive_lag_drop))
   }
   
   # remove linearly dependent terms
@@ -157,27 +153,15 @@ for (mice_data_sel in 1:5) {
   # individuals in an entirely randomized way.
   # APE is a naive estimate of the ATE and biased since it does not account for 
   # endogeneity of participation.
+  # NOT USED ANYMORE AS IT IS CALCULATED ON UNSTANDARDIZED DATA!!
   ape <- data_dml %>% filter(treatment_sport == 1) %>% pull(outcome_var) %>% mean() -
       data_dml %>% filter(treatment_sport == 0) %>% pull(outcome_var) %>% mean()
   
-  # same across mice data sets as no missing values are replaced
-  # df_ape <- data.frame("MICE" = mice_data_sel, "APE" = ape)
-  # df_ape_all <- rbind(df_ape_all, df_ape)
 
 
   #%%%%%%%%%%%%%%%%%%#
   #### ATE & ATET ####
   #%%%%%%%%%%%%%%%%%%#
-  
-  # only save common support plot for main model
-  # if (cohort_prep == main_cohort_prep & treatment_def == main_treatment_def  &
-  #     treatment_repl == main_treatment_repl & extra_act == main_extra_act & 
-  #     model_type == main_model_type & model_controls_lag == main_model_controls_lag &
-  #     model_controls_endog == main_model_controls_endog) {
-  #   save_trimming_sel <- TRUE
-  # } else {
-  #   save_trimming_sel <- FALSE
-  # }
   
   # run DML
   dml_result <- func_dml(
@@ -196,14 +180,14 @@ for (mice_data_sel in 1:5) {
   
 }
 
-# sensitivity with respect to hyperparameter
+# sensitivity with respect to hyperparameter ending
 if (model_hyperparam_sel != "best") {
   model_hyperparam_sel_save <- paste0("_", model_hyperparam_sel)
 } else {
   model_hyperparam_sel_save <- ""
 }
 
-# save results
+# save detailed results in list
 if (str_detect(outcome_var, "grade")) {
   save_dml <- 
     paste0("Output/DML/Estimation/Grades/binary_grades_", model_algo, "_", 
@@ -261,7 +245,7 @@ dml_result_save <- dml_result_pooled %>%
   relocate(time_elapsed, time_stamp, .after = last_col()) # time-stamp is ordered last
 
 
-# save estimation results
+# save aggregated estimation results as Excel file
 dml_result_save <- as.data.frame(dml_result_save)
 if (file.exists("Output/DML/Treatment_Effects/DML_BINARY_ESTIMATION_RESULTS.xlsx")) {
   ## replace same estimations

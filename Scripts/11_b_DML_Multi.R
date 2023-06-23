@@ -5,19 +5,24 @@
 #++++
 # by Lana Kern
 #++++
-# In this file the ATE and ATTE is estimated using DML in the multivalued
-# treatment setting. As outcome both grades and the big five personality
+# In this file the ATE and ATET is estimated using DML in the multivalued
+# treatment setting. As outcomes the GPA and the big five personality
 # traits can be specified.
 # As in the binary treatment setting, the outcomes are predicted separately
 # for each treatment level t. 
 # For the treatment the user can specify if the classification problem is
-# transferred in t binary classification (probscore_separate = TRUE) problems 
-# or one multinominal (probscore_separate = FALSE)
+# transferred in t binary classifications (probscore_separate = TRUE) problems 
+# or one multinominal classifciation (probscore_separate = FALSE)
 #++++
 # Categories in the multivalued treatment setting are:
 # -> 1: at least weekly
 # -> 2: monthly or less frequently
 # -> 3: never
+#++++
+# Output
+# -> The aggregated estimation results are stored in Excel files.
+# For probscore_separate = TRUE: "DML_MULTI_ESTIMATION_RESULTS.xlsx"
+# For probscore_separate = FALSE: "DML_MULTI_SEPARATE_ESTIMATION_RESULTS.xlsx"
 #++++
 # The estimation results are stored in an Excel file.
 #++++
@@ -30,7 +35,6 @@ set.seed(1234)
 
 # empty data frames and lists to store results
 dml_result_all <- list()
-
 
 # iterate over mice data sets
 for (mice_data_sel in 1:5) {
@@ -61,22 +65,21 @@ for (mice_data_sel in 1:5) {
   } else {
     stop("Please specify correct outcome variable")
   }
-  
+    ## polynominals or not
   if (model_type == "allpoly") {
     model_type_2 <- model_type
     model_type <- "allintpoly"
   } else {
     model_type_2 <- model_type
   }
-  
-  ## cohort prep
+    ## cohort prep
   if (cohort_prep == "controls_same_outcome") {
     load_data <- paste0(
       load_data_folder, "Prep_10/prep_10_dml_multi_", model_type, "_", 
       treatment_def, "_", treatment_repl, extra_act_save, cov_balance_save, "_mice", 
       mice_data_sel, load_data_ending
       )
-  } else if (cohort_prep == "controls_same_outcome") {
+  } else if (cohort_prep == "controls_bef_outcome") {
     load_data <- paste0(
       load_data_folder, "Prep_10/prep_10_dml_multi_", model_type, "_", 
       treatment_def, "_", treatment_repl, extra_act_save, cov_balance_save,
@@ -93,7 +96,7 @@ for (mice_data_sel in 1:5) {
   load_data <- str_replace(load_data, "_level", "") # drop level
   data_dml <- readRDS(load_data) # load data
   
-  # keep only polynominals if selected by user
+  # keep only polynominals but no interactions, if selected by user
   if (model_type == "allintpoly") {
     if (model_type_2 == "allpoly") {
       data_dml <- data_dml %>% dplyr::select(-contains(":")) # drop interactions
@@ -208,6 +211,7 @@ for (mice_data_sel in 1:5) {
   #### APE ####
   #%%%%%%%%%%%#
   
+  # NOT USED ANYMORE BECAUSE THIS CALCULATION IS BASED ON UNSTANDARIZED DATA!!
   df_ape <- data.frame(
     "weekly_no" = data_dml %>% filter(treatment_sport_freq == 1) %>% pull(outcome_var_multi) %>% mean() -
       data_dml %>% filter(treatment_sport_freq == 3) %>% pull(outcome_var_multi) %>% mean(),
@@ -222,15 +226,6 @@ for (mice_data_sel in 1:5) {
   #### ATE & ATET ####
   #%%%%%%%%%%%%%%%%%%#
   
-  # only save common support plot for main model
-  # if (cohort_prep == main_cohort_prep & treatment_def == main_treatment_def  &
-  #     treatment_repl == main_treatment_repl & extra_act == main_extra_act & 
-  #     model_type == main_model_type & model_controls_lag == main_model_controls_lag &
-  #     model_controls_endog == main_model_controls_endog) {
-  #   save_trimming_sel <- TRUE
-  # } else {
-  #   save_trimming_sel <- FALSE
-  # }
 
   # run DML
   dml_result <- func_dml(
@@ -256,7 +251,7 @@ for (mice_data_sel in 1:5) {
 }
 
 
-# save results
+# save detailed results
 if (probscore_separate == FALSE) {
   probscore_separate_save <- "_nonseparate"
 } else {
@@ -276,7 +271,6 @@ if (prob_norm == "no") {
 }
 
 
-# save results
 if (str_detect(outcome_var_multi, "grade")) {
   save_dml <- 
     paste0("Output/DML/Estimation/Grades/multi_grades_", multi_model_algo, "_", 
@@ -335,7 +329,7 @@ dml_result_save <- dml_result_pooled %>%
   relocate(time_elapsed, time_stamp, .after = last_col()) # time-stamp is ordered last
 
 
-# save estimation results
+# save aggregated estimation results
 dml_result_save <- as.data.frame(dml_result_save)
 
 if (probscore_separate == TRUE) {

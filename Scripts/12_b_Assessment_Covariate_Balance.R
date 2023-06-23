@@ -580,67 +580,127 @@ saveRDS(df_main_drivers %>% as.data.frame(), "Output/DML/Covariate_Balancing/mai
 #### ROBUSTNESS CHECKS ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%#
 
+df_covval_summary_rc <- data.frame()
+
 # no extracurricular activity (keeping inactive students)
 postlasso_grades_noextra <- 
   readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_", "postlasso", 
                  "_all_controlssameoutcome_", treatment_def, "_down_all_notreatmentoutcomelags_endogyes_trimming", 
                  model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
-df_covbal_summary_noextra  <- func_cov_balance_summary(postlasso_grades_noextra, "grades")
-saveRDS(df_covbal_summary_noextra, "Output/DML/Covariate_Balancing/covariate_balancing_summary_multi_noextra.rds")
+df_covbal_summary_noextra  <- func_cov_balance_summary(postlasso_grades_noextra, "grades", 5) %>% 
+  filter(adjustment == "after") %>% mutate(rc = "inactive")
+df_covval_summary_rc <- rbind(df_covval_summary_rc, df_covbal_summary_noextra)
 
 # extracurricular activity within uni
 postlasso_grades_extrauni <- 
   readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_", "postlasso", 
                  "_all_controlssameoutcome_", treatment_def, "_down_extrauni_all_notreatmentoutcomelags_endogyes_trimming", 
                  model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
-df_covbal_summary_extrauni  <- func_cov_balance_summary(postlasso_grades_extrauni, "grades")
-saveRDS(df_covbal_summary_extrauni, "Output/DML/Covariate_Balancing/covariate_balancing_summary_multi_extrauni.rds")
+df_covbal_summary_extrauni  <- func_cov_balance_summary(postlasso_grades_extrauni, "grades", 5) %>% mutate(rc = "extrauni")
+df_covval_summary_rc <- rbind(df_covval_summary_rc, df_covbal_summary_extrauni)
 
+
+# control variables before treatment and outcome
+postlasso_grades_controls_bef_all <- 
+  readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_", "postlasso", 
+                 "_all_controlsbefall_", treatment_def, "_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming", 
+                 model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
+df_covbal_summary_befall  <- func_cov_balance_summary(postlasso_grades_controls_bef_all, "grades", 5) %>% mutate(rc = "controls_bef_all")
+df_covval_summary_rc <- rbind(df_covval_summary_rc, df_covbal_summary_befall)
 
 # no endogeneous variables
 postlasso_grades_noendog <- 
   readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_", "postlasso", 
                  "_all_controlssameoutcome_", treatment_def, "_down_extradrop_all_notreatmentoutcomelags_endogno_trimming", 
                  model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
-df_covbal_summary_noendog  <- func_cov_balance_summary(postlasso_grades_noendog, "grades")
-saveRDS(df_covbal_summary_noendog, "Output/DML/Covariate_Balancing/covariate_balancing_summary_multi_noendog.rds")
+df_covbal_summary_noendog  <- func_cov_balance_summary(postlasso_grades_noendog, "grades", 5) %>% 
+  filter(adjustment == "after") %>% mutate(rc = "noendog")
+df_covval_summary_rc <- rbind(df_covval_summary_rc, df_covbal_summary_noendog)
+
+# only lags
+postlasso_grades_onlylags <- 
+  readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_", "postlasso", 
+                 "_all_controlssameoutcome_", treatment_def, 
+                 "_down_extradrop_all_onlylags_endogyes_trimming", 
+                 model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
+df_covbal_summary_onlylags  <- func_cov_balance_summary(postlasso_grades_onlylags, "grades", 5) %>% 
+  filter(adjustment == "after") %>% mutate(rc = "onlylag")
+df_covval_summary_rc <- rbind(df_covval_summary_rc, df_covbal_summary_onlylags)
+
+# polys
+postlasso_grades_polys <- 
+  readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_", "postlasso", 
+                 "_allpoly_controlssameoutcome_", treatment_def, 
+                 "_down_extradrop_allpoly_notreatmentoutcomelags_endogyes_trimming", 
+                 model_trimming, "_K4-2_Rep5", cov_balance_save, ".rds"))
+df_covbal_summary_polys  <- func_cov_balance_summary(postlasso_grades_polys, "grades", 4) %>% 
+  filter(adjustment == "after") %>% mutate(rc = "poly")
+df_covval_summary_rc <- rbind(df_covval_summary_rc, df_covbal_summary_polys)
+
 
 # trimming
 postlasso_grades_trimming001 <- 
   readRDS(paste0("Output/DML/Estimation/Grades/multi_", "grades", 
-                 "_postlasso_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming",
+                 "_postlasso_all_controlssameoutcome_all_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming",
                  "0.01", "_K4-2_Rep5_", "covbal.rds"))
-df_covbal_summary_trimming001  <- func_cov_balance_summary(postlasso_grades_trimming001, "grades")
-saveRDS(df_covbal_summary_trimming001, "Output/DML/Covariate_Balancing/covariate_balancing_summary_multi_trimming001.rds")
+df_covbal_summary_trimming001  <- func_cov_balance_summary(postlasso_grades_trimming001, "grades", 5) %>% 
+  filter(adjustment == "after") %>% mutate(rc = "trimming_001")
+df_covval_summary_rc <- rbind(df_covval_summary_rc, df_covbal_summary_trimming001)
+
 
 postlasso_grades_trimming01 <- 
   readRDS(paste0("Output/DML/Estimation/Grades/multi_", "grades", 
-                 "_postlasso_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming",
+                 "_postlasso_all_controlssameoutcome_all_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming",
                  "0.1", "_K4-2_Rep5_", "covbal.rds"))
-df_covbal_summary_trimming01  <- func_cov_balance_summary(postlasso_grades_trimming01, "grades")
-saveRDS(df_covbal_summary_trimming01, "Output/DML/Covariate_Balancing/covariate_balancing_summary_multi_trimming01.rds")
+df_covbal_summary_trimming01  <- func_cov_balance_summary(postlasso_grades_trimming01, "grades", 5) %>% 
+  filter(adjustment == "after") %>% mutate(rc = "trimming_01")
+df_covval_summary_rc <- rbind(df_covval_summary_rc, df_covbal_summary_trimming01)
 
 
 postlasso_grades_trimmingno <- 
   readRDS(paste0("Output/DML/Estimation/Grades/multi_", "grades", 
-                 "_postlasso_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming",
+                 "_postlasso_all_controlssameoutcome_all_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming",
                  "no", "_K4-2_Rep5_", "covbal.rds"))
-df_covbal_summary_trimmingno  <- func_cov_balance_summary(postlasso_grades_trimmingno, "grades")
-saveRDS(df_covbal_summary_trimmingno, "Output/DML/Covariate_Balancing/covariate_balancing_summary_multi_trimmingvno.rds")
+df_covbal_summary_trimmingno  <- func_cov_balance_summary(postlasso_grades_trimmingno, "grades", 5) %>% 
+  filter(adjustment == "after") %>% mutate(rc = "trimming_no")
+df_covval_summary_rc <- rbind(df_covval_summary_rc, df_covbal_summary_trimmingno)
 
 # penalty choice
 df_covbal_summary_hyper1SE <- 
   readRDS(paste0("Output/DML/Estimation/Grades/multi_", "grades", 
-                 "_postlasso_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming",
+                 "_postlasso_all_controlssameoutcome_all_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming",
                  model_trimming, "_K4-2_Rep5_", "1SE", "_covbal.rds"))
-df_covbal_summary_1SE  <- func_cov_balance_summary(df_covbal_summary_1SE, "grades")
-saveRDS(df_covbal_summary_1SE, "Output/DML/Covariate_Balancing/covariate_balancing_summary_multi_1SE.rds")
-
+df_covbal_summary_1SE  <- func_cov_balance_summary(df_covbal_summary_hyper1SE, "grades", 5) %>% 
+  filter(adjustment == "after") %>% mutate(rc = "hyper_1SE")
+df_covval_summary_rc <- rbind(df_covval_summary_rc, df_covbal_summary_1SE)
 
 df_covbal_summary_hyper1SEplus <- 
   readRDS(paste0("Output/DML/Estimation/Grades/multi_", "grades", 
-                 "_postlasso_all_controlssameoutcome_weekly_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming",
+                 "_postlasso_all_controlssameoutcome_all_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming",
                  model_trimming, "_K4-2_Rep5_", "1SE_plus", "_covbal.rds"))
-df_covbal_summary_1SEplus  <- func_cov_balance_summary(df_covbal_summary_hyper1SEplus, "grades")
-saveRDS(df_covbal_summary_1SEplus, "Output/DML/Covariate_Balancing/covariate_balancing_summary_multi_1SEplus.rds")
+df_covbal_summary_1SEplus  <- func_cov_balance_summary(df_covbal_summary_hyper1SEplus, "grades", 5) %>% 
+  filter(adjustment == "after") %>% mutate(rc = "hyper_1SEplus")
+df_covval_summary_rc <- rbind(df_covval_summary_rc, df_covbal_summary_1SEplus)
+ 
+# multiclass classification
+postlasso_grades_nonsep <- 
+  readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_", "postlasso", 
+                 "_all_controlssameoutcome_", treatment_def, "_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming", 
+                 model_trimming, "_K4-2_Rep5_nonseparate", cov_balance_save, ".rds"))
+df_covbal_summary_nonsep  <- func_cov_balance_summary(postlasso_grades_nonsep, "grades", 5) %>% 
+  filter(adjustment == "after") %>% mutate(rc = "multiclass")
+df_covval_summary_rc <- rbind(df_covval_summary_rc, df_covbal_summary_nonsep)
 
+
+# not normalizing treatment probs
+postlasso_grades_nonnorm <- 
+  readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_", "postlasso", 
+                 "_all_controlssameoutcome_", treatment_def, "_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming", 
+                 model_trimming, "_K4-2_Rep5", cov_balance_save, "_nonorm.rds"))
+df_covbal_summary_nonorm  <- func_cov_balance_summary(postlasso_grades_nonnorm, "grades", 5) %>% 
+  filter(adjustment == "after") %>% mutate(rc = "nonorm")
+df_covval_summary_rc <- rbind(df_covval_summary_rc, df_covbal_summary_nonorm)
+
+
+saveRDS(df_covval_summary_rc %>% dplyr::select(rc, outcome, treatment_setting, adjustment, everything()), 
+        "Output/DML/Covariate_Balancing/covariate_balancing_summary_rc.rds")

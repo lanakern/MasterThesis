@@ -6,15 +6,18 @@
 # by Lana Kern
 #+++
 # In this file, the data preparation for both grades and the big five personality
-# traits as outcome are conducted. Moreover, DML in both the binary and multivalued
+# traits as outcomes are conducted. Moreover, DML in both the binary and multivalued
 # treatment setting is performed.
 # This file ensures the above mentioned steps are conducted in the correct order.
 #+++
 # The user can specify the following parameters (not needed as done automatically):
 # -> "cohort_prep" determines the treatment period generation method:
 # "controls_same_outcome" (CAWI-CATI combinations for grades, CATI-CAWI combinations for personality) 
-# or "controls_bef_outcome" (CAWI-CATI-CAWI combinations for grades, CATI-CAWI-CATI 
-# combinations for grades).
+# or "controls_bef_outcome" (CAWI-CATI-CAWI combinations for grades whereby in the first CAWI
+# interview the treatment and in the last the outcome is measured) or 
+# "controls_bef_all" (CAWI-CATI-CAWI combinations for grades whereby in the last CAWI
+# interview the treatment and outcome is measured)
+# Note that for the personality sample only controls_same_outcome is applied.
 # -> "treatment_repl" for missing value replacement of treatment and outcome variable.
 # "down" means that the last value carried forward method is applied.
 # "no" means that missing values are not replaced. This results in the smallest sample
@@ -25,12 +28,14 @@
 # are considered as sport participants. 
 # -> "extra_act" determines if the sample only included students who participate
 # in sport and/or any other extracurricular activity. If "yes" this is done;
-# if "no" this sample reduction step is skipped.
+# if "no" this sample reduction step is skipped. For "uni" only students who
+# participate in an extra. act. within the university are considered.
 # -> "treatment_setting" defines the "binary" and "multi"valued treatment setting.
 # -> "outcome_var" defines the outcome variable in the binary treatment setting.
 # -> "outcome_var_multi" defines the outcome variable in the multivalued treatment setting.
-# -> "model_type" defines tne control variables: "all" or "allintpoly". The control
-# variables can then further be selected by "model_controls_lag" and "model_controls_endog".
+# -> "model_type" defines tne control variables: "all", "allpoly" (all + polynominals) 
+# or "allintpoly" (all + polynominals + interactions). The control variables can then
+# further be selected by "model_controls_lag" and "model_controls_endog".
 # -> "model_controls_lag" indicates if lagged variables are included and if yes which.
 # "no_lags" means that no lagged variables are included at all, "no_treatment_outcome_lags"
 # means that only lags for outcome and treatment are dropped, "all" means that all
@@ -38,12 +43,12 @@
 # -> "model_controls_endog" indicates if also possibly endogeneous variables are
 # included ("yes") or ("no"); "no" should only be used for model_type == "all".
 # -> "model_trimming" determines the trimming threshold for enforcing common
-# support. It can take on numeric values (lowest range) or "min-max".
+# support. It can take on numeric values (lowest range) or "min-max" or "no".
 # -> "model_k" determines the number of partitions in K-fold cross-fitting.
 # -> "model_k_tuning" determines the number of folds in K-fold CV for parameter tuning.
-# -> "model_s_rep" determines the number of repetitions.
+# -> "model_s_rep" determines the number of repetitions of the DML procedure.
 # -> "model_algo" denotes the ML algorithm used to make the nuisance parameter
-# predictions. "lasso", "postlasso", "randomforests" or "xgboost": 
+# predictions: "lasso", "postlasso", "randomforests" or "xgboost".
 #+++
 # ATTENTION: THIS FILE HAS VERY LONG RUN TIMES OF SEVERAL WEEKS. Thus, it is
 # recommended to perform the operations step by step.
@@ -318,39 +323,6 @@ eval(parse(text = keep_after_file_run))
 gc()
 model_k_tuning <- 2 # parameter tuning
 
-
-
-#### ROBUSTNESS CHECKS ####
-#+++++++++++++++++++++++++#
-
-cohort_prep <- main_cohort_prep 
-treatment_repl <- main_treatment_repl 
-treatment_def <- main_treatment_def 
-extra_act <- main_extra_act
-model_type <- main_model_type 
-model_controls_lag <- main_model_controls_lag 
-model_controls_endog <- main_model_controls_endog 
-model_trimming <- main_model_trimming
-model_hyperparam_sel <- "best"
-cov_balance <- main_cov_balance
-model_k <- 4 
-model_k_tuning <- 2
-model_s_rep <- 5 
-model_algo <- "postlasso"
-model_post_sel <- TRUE 
-
-## No endogeneous variables ##
-model_controls_endog <- "no"
-source("Scripts/11_a_DML_Binary.R")
-eval(parse(text = keep_after_file_run))
-gc()
-model_controls_endog <- main_model_controls_endog
-
-## only lags ##
-model_controls_lag <- "only_lags"
-source("Scripts/11_a_DML_Binary.R")
-eval(parse(text = keep_after_file_run))
-gc()
 
 #%%%%%%%%%%%%%%%%%%%%%%#####%#
 #### Outcome: Personality ####
@@ -676,6 +648,7 @@ probscore_separate <- FALSE
 source("Scripts/11_b_DML_Multi.R") 
 probscore_separate <- TRUE
 
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 #### Outome: Personality ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -709,6 +682,13 @@ source("Scripts/11_b_DML_Multi.R")
 gc()
 eval(parse(text = keep_after_file_run))
 
+multi_model_algo <- "lasso"
+model_post_sel <- FALSE
+source("Scripts/11_b_DML_Multi.R") 
+gc()
+eval(parse(text = keep_after_file_run))
+
+
 #### Conscientiousness ####
 outcome_var_multi <- "outcome_bigfive_conscientiousness"
 multi_model_algo <- "postlasso"
@@ -716,6 +696,13 @@ model_post_sel <- TRUE
 source("Scripts/11_b_DML_Multi.R") 
 gc()
 eval(parse(text = keep_after_file_run))
+
+multi_model_algo <- "lasso"
+model_post_sel <- FALSE
+source("Scripts/11_b_DML_Multi.R") 
+gc()
+eval(parse(text = keep_after_file_run))
+
 
 #### Extroversion ####
 outcome_var_multi <- "outcome_bigfive_extraversion"
@@ -725,7 +712,12 @@ source("Scripts/11_b_DML_Multi.R")
 gc()
 eval(parse(text = keep_after_file_run))
 
-multi_model_algo <- "xgboost" # run only for MICE = 1
+multi_model_algo <- "lasso"
+model_post_sel <- FALSE
+source("Scripts/11_b_DML_Multi.R") 
+gc()
+eval(parse(text = keep_after_file_run))
+
 
 #### Openness ####
 outcome_var_multi <- "outcome_bigfive_openness"
@@ -735,10 +727,23 @@ source("Scripts/11_b_DML_Multi.R")
 gc()
 eval(parse(text = keep_after_file_run))
 
+multi_model_algo <- "lasso"
+model_post_sel <- FALSE
+source("Scripts/11_b_DML_Multi.R") 
+gc()
+eval(parse(text = keep_after_file_run))
+
+
 #### Neuroticism ####
 outcome_var_multi <- "outcome_bigfive_neuroticism"
 multi_model_algo <- "postlasso"
 model_post_sel <- TRUE
+source("Scripts/11_b_DML_Multi.R") 
+gc()
+eval(parse(text = keep_after_file_run))
+
+multi_model_algo <- "lasso"
+model_post_sel <- FALSE
 source("Scripts/11_b_DML_Multi.R") 
 gc()
 eval(parse(text = keep_after_file_run))
@@ -768,6 +773,7 @@ outcome_var_multi <- "outcome_grade"
 source("Scripts/11_c_DML_Chernozhukov_Function.R") 
 source("Scripts/11_d_DML_Knaus_Function.R") 
 
+
 #%%%%%%%%%%%%%%%%%%%%%%%#
 #### ANALYZE RESULTS ####
 #%%%%%%%%%%%%%%%%%%%%%%%#
@@ -794,6 +800,7 @@ model_s_rep <- 5
 source("Scripts/12_a_DML_Results.R") 
 eval(parse(text = keep_after_file_run))
 gc()
+
 
 #### Covariate Balance ####
 #+++++++++++++++++++++++++#
