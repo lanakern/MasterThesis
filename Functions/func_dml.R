@@ -13,11 +13,9 @@
 # sub-functions which are needed to obtain the final result.
 #+++
 # In this file, the following subfunctions are used:
-# -> Functions for predicting the nuisance parameters: func_ml_lasso, func_ml_postlasso,
-# func_ml_postlasso_tuning_binary, func_ml_postlasso_tuning_multi, 
-# func_ml_xgboost, func_ml_rf
+# -> Functions for predicting the nuisance parameters: func_ml_lasso, func_ml_xgboost, func_ml_rf
 # -> Function for trimming: func_dml_trimming
-# -> Function to plot common support: func_dml_common_support
+# -> Function to plot common support: func_dml_common_support (not used anymore)
 # -> Function for error metrics: func_dml_error_metrics
 # -> Function for calculating treatment effect and corresponding score: func_dml_theta_score
 # -> Function for inference (se, p-value etc.): func_dml_inference
@@ -36,34 +34,37 @@
 # -> mlalgo: Machine learning algorithm used for the prediction of the nuisance
 # parameters. Choices are: "lasso", "postlasso", "xgboost", and "randomforests"
 # -> trimming: Trimming threshold to drop observations with an extreme propensity
-# score estimate. Possible selections: 0.01, 0.1, and min-max.
-# -> save_trimming: If common support plot is saved.
+# score estimate. Possible selections: numeric value, "min-max", "min-max_001", "no".
+# -> save_trimming: If common support plot is saved (always no).
 # -> "probscore_separate": only relevant for multivalued treatment setting ->
 # if TRUE (default) multivalued treatment setting is split in binary treatment setting
-# and separate binary logistic regressions are performed. 
+# and separate binary logistic regressions are performed. Otherwise multiclass
+# classification is conducted.
 # -> "mice_sel": mice data frame
-#+++
-# OUTPUT: List containing the following elements
-# -> "final": data frame with aggregated mean and median treatment effect,
-# corresponding standard error, t- and p-value as well as confidence interval,
-# Aggregations are made across the K folds and S repetitions
-# -> "detail": same as final however not aggregated but for each repetition S
-# -> "error": error metrics across all K and S
-# -> "param": selected hyperparameters during K_tuning-CV for each K and S
-# -> "trimming": number of treatment periods after conducting trimming for each S
-# -> "predictors": number of predictors (X)
-# -> "pred": nuisance parameter predictions
-# -> "coef": if (post-)lasso algorithm is selected, all non-zero coefficients are returned
-# -> "cov_balance": if post-lasso is selected covariate balance assessment is returned
 # -> "hyperparam_sel": how to select hyperparameter combination in parameter tuning.
 # "best" according to smallest RMSE / highest AUC or "1SE" according to one standard
 # error rule in favor of more simpler model or "1SE_plus" in favor of more
 # complex model (used as sensitivity check).
 # -> "post": determines if normal LASSO or post-LASSO is performed (post = TRUE)
 #+++
+# OUTPUT: List containing the following elements
+# -> "final": data frame with aggregated mean and median treatment effect,
+# corresponding standard error, t- and p-value as well as confidence interval,
+# Aggregations are made across the K folds and S repetitions
+# -> "detail": same as final however not aggregated 
+# -> "error": error metrics across all K and S
+# -> "param": selected hyperparameters during K_tuning-CV for each K and S
+# -> "imp": for random forests and XGBoost importance scores are returned
+# -> "trimming": number of treatment periods after conducting trimming for each S
+# -> "predictors": number of predictors (X)
+# -> "pred": nuisance parameter predictions after trimming
+# -> "pred"_bef_trimming: nuisance parameter predictions before trimming
+# -> "coef": if (post-)lasso algorithm is selected, all non-zero coefficients are returned
+# -> "cov_balance": if post-lasso is selected covariate balance assessment is returned
+#+++
 # Further notes:
 # - The outcome variable is always standardized, i.e., to have mean zero and unit variance.
-# - If (post-)lasso is selected, all features are standardized by default. 
+# - If (post-)lasso is selected, all features are standardized. 
 #+++
 
 
@@ -128,11 +129,6 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
   
   ## (post-)lasso
   lambda_val <- 100
-  # if (mlalgo == "lasso") {
-  #   lambda_val <- 100
-  # } else {
-  #   lambda_val <- 20 # for post-lasso as it is computationally more expensive
-  # }
   
   ## xgboost
   xgb_grid <- expand.grid(
@@ -142,14 +138,6 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
     mtry = c(floor(sqrt(num_X)), round((round(480)/2 - floor(sqrt(480))) / 2), round(num_X)/2, round(num_X)), # default: p (X)
     min_n = c(1, 3) # default: 1
     )
-
-  # xgb_grid <- expand.grid(
-  #   tree_depth = c(6), # default: 6
-  #   trees = c(15), # default: 15
-  #   learn_rate = c(0.3), # default: 0.3
-  #   mtry = c(round(num_X)), # default: p (X)
-  #   min_n = c(1) # default: 1
-  # )
   
   ## random forests
   rf_grid <- expand.grid(
@@ -246,53 +234,21 @@ func_dml <- function(treatment_setting, data, outcome, treatment, group, K, K_tu
       #### PREDICT NUISANCE PARAMETER FUNCTIONS ####
       #++++++++++++++++++++++++++++++++++++++++++++#
       
-      # select machine learning algorithm based on user selection and make predictions
-      # if (mlalgo == "postlasso") {
-      #   
-      #   ## POST-LASSO ##
-      #   #++++++++++++++#
-      #   
-      #   # predict nuisance functions via lasso
-      #   pls_ml <- func_ml_postlasso(
-      #     treatment_setting = treatment_setting, data_train = data_train, data_test = data_test, 
-      #     outcome = outcome, treatment = treatment, group = group, K = K_tuning, lambda_val = lambda_val
-      #     )
-      #   
-      #   # append predictions to data frame
-      #   data_pred <- pls_ml$pred
-      #   data_pred <- data_pred %>% mutate(Repetition = S_rep, Fold = fold_sel)
-      #   df_pred_all <- rbind(df_pred_all, data_pred)
-      #   
-      #   # append tuning parameters to data frame
-      #   data_param <- pls_ml$param
-      #   data_param <- data_param %>% mutate(Fold = fold_sel, Repetition = S_rep) %>%
-      #     dplyr::select(Repetition, Fold, everything())
-      #   df_param_all <- rbind(df_param_all, data_param)
-      #   
-      #   # append non-zero coefficients to data frame
-      #   data_coef <- pls_ml$coef
-      #   data_coef <- data_coef %>% mutate(Fold = fold_sel, Repetition = S_rep) %>%
-      #     dplyr::select(Repetition, Fold, everything())
-      #   df_coef_all <- rbind(df_coef_all, data_coef)
-      #   
-      # } 
       if (str_detect(mlalgo, "lasso")) {
         
-        ## LASSO ##
-        #+++++++++#
+        ## (POST-)LASSO ##
+        #++++++++++++++++#
         
-        # predict nuisance functions via lasso
+        # predict nuisance functions via (post-)lasso (depends on selected "post" parameter)
         ls_ml <- func_ml_lasso(
           treatment_setting = treatment_setting, data_train = data_train, data_test = data_test, 
           outcome = outcome, treatment = treatment, group = group, K = K_tuning, lambda_val = lambda_val,
           hyperparam_sel = hyperparam_sel, post = post, prob_norm = prob_norm, probscore_separate = probscore_separate
           )
 
-        
         # append predictions to data frame
         data_pred <- ls_ml$pred
         data_pred <- data_pred %>% mutate(Repetition = S_rep, Fold = fold_sel)
-        # df_pred_all <- rbind(df_pred_all, data_pred)
         
         # append tuning parameters to data frame
         data_param <- ls_ml$param

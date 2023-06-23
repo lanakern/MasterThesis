@@ -18,6 +18,7 @@
 # -> "line_trimming" indicates if trimming line should be displayed: "yes" or "no".
 # -> "ml_algo": ML algorithm used to create the plot (only used in plot title)
 # -> "dec_places": number of decimal places
+# -> "bar_border": color of bar border (not used anymore - can be used if uncommented); default is black
 #+++
 # OUTPUT: Plot
 #+++
@@ -34,7 +35,7 @@ func_dml_common_support <- function(treatment_setting, data_pred, min_trimming,
     max_trimming <- min(max_trimming)
   }
 
-  # nice ml algo name
+  # rename ml algo name
   if (ml_algo == "xgboost" | ml_algo == "xgb") {
     ml_algo <- "XGBoost"
   } else if (ml_algo == "randomforests" | ml_algo == "rf") {
@@ -58,8 +59,6 @@ func_dml_common_support <- function(treatment_setting, data_pred, min_trimming,
       ggplot(aes(x = m, fill = treatment_label)) +
       # histogram
       geom_histogram(aes(y = ..density..), bins = 100,  alpha = 0.8, width = 0, size = 0,
-                     #color = bar_border, 
-                     #color="#00000000",
                      position = "identity") +
       scale_fill_manual(values = c("grey0", "grey88"))
       
@@ -246,9 +245,6 @@ func_dml_common_support <- function(treatment_setting, data_pred, min_trimming,
     
     # combine plots
     return(list(m1 = plot_m1, m2 = plot_m2, m3 = plot_m3))
-    # return(ggarrange(plot_m1 + ggtitle(bquote(bold(.(ml_algo)))),
-    #                  plot_m2 + ggtitle(""), plot_m3 + ggtitle(""), nrow = 3))
-    
     
   } # close else() over multi
   

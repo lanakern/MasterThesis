@@ -15,15 +15,8 @@
 # -> year: column name as character string of year variable in date (values must be numeric)
 # -> varname: variable name of generated variable as character string
 #++++
-# Output: The output is the dataset including the generated date variable
+# Output: The output is the dataset including the generated date variable.
 #++++
-
-
-## LOAD PACKAGES ##
-#+++++++++++++++++#
-
-library(lubridate) # for mdy() function
-library(dplyr) # for data manipulations
 
 
 ## WRITE FUNCTION ##

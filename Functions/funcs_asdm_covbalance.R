@@ -80,10 +80,10 @@ func_stand_factor <- function(data, treatment_var) {
 
 
 #%%%%%%%%%%%%#
-#### ASDM ####
+#### ASMD ####
 #%%%%%%%%%%%%#
 
-# Calculate Absolute Standardized Differences (Yang et al. 2006)
+# Calculate Absolute Standardized Mean Differences (Yang et al. 2006)
 # that is mean divided by standardization factor multiplied by 100
 # Input:
 # -> treatment_setting: "binary" of "multi" (only needed for data frame column)

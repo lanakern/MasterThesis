@@ -1946,7 +1946,6 @@ func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome,
         lasso_coef_all <- lasso_coef_all
       }
       
-      
       # propensity scores are normalized to sum to 1 within an individual
       if (prob_norm == "no") {
         df_pred <- df_pred

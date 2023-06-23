@@ -2,10 +2,15 @@
 #### FUNCTION: SAMPLE REDUCTION STEPS IN EXCEL ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-# this function saves the sample reduction steps in the individual files
-# in a excel file for a better overview-
+#+++
+# by Lana Kern
+#+++
+# This function saves the sample reduction steps for the GPA and personality
+# sample, respectively. 
+#+++
 # input: data frame which should be appended to excel file and outcome type (grades, personality)
-# output: data frame with appended data (for user checking)
+# output: data frame with appended data (for user checking) stored in .xlsx file
+#+++
 
 func_save_sample_reduction <- function(data, outcome) {
   

@@ -388,7 +388,7 @@ func_mean_comp <- function(df, y_variables, treatment_setting){
 # This function calculates standard errors for the GPA in the multivalued
 # treatment setting.
 # The input is simply the data frame containing the GPA across the treatment
-# frequencies.
+# frequencies. The outcome are the standard errors.
 
 func_mean_comp_se <- function(data) {
   

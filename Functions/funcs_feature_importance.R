@@ -14,12 +14,12 @@
 #### Feature Importance Score ####
 #++++++++++++++++++++++++++++++++#
 
-# This function calculated the feature importance score
+# This function calculates the feature importance score
 # Inputs:
 # - "ml_fitted_model": fitted machine learning model
 # - "num_features": number of features returned (default = 20)
 # Outputs:
-# - Data frame consisting of variable name and the respective importance score
+# - Data frame consisting of variable name sand the respective importance score
 
 func_feature_importance_score <- function(ml_fitted_model, num_features = 20) {
   # calculate feature importance score
@@ -39,7 +39,7 @@ func_feature_importance_score <- function(ml_fitted_model, num_features = 20) {
 # - "ml_algo": ml algorithm name (for plot title)
 # - "save_option": saved as one plot ("all in one") or separate plots
 # Output:
-# - Feature importance plots. If not one plot, they are contained in a list
+# - Feature importance plots. If not one plot is returned, they are stored in a list
 func_feature_importance_plot <- function(treatment_setting, df_score, ml_algo, save_option) {
   
   ## BINARY TREATMENT SETTING ##

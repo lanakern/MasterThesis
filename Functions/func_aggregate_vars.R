@@ -14,12 +14,12 @@
 # they can be identified via a starts_with("prefix_") expression. 
 # - varsel_prefix: prefix used to identify variables which should be aggregated, e.g. "stress".
 # - cr_alpha: if "yes" cronbach's alpha is calculated and variables used for 
-# aggregating are selected based on a cronbach's alpha bigger than 0.7. 
+# aggregation are selected based on a cronbach's alpha bigger than 0.7. 
 # Please only select this option if the questions have the same direction and 
 # same value ranges.
 # - method: "pca" vs. "mean" vs. "sum" vs "binary"
 #++++
-# OUTPUT: data frame with aggregated variables; single variables are dropped.
+# OUTPUT: data frame with aggregated variables; original variables are dropped.
 #+++++
 
 
@@ -99,36 +99,7 @@ func_aggregate_vars <- function(data, varsel_prefix, cr_alpha, method) {
     # for lagged variables
     # SO FAR THEY ARE ALWAYS AGGREGATED IF NON-LAGGED VARIABLES ARE
     vars_keep_lag <- data %>% dplyr::select(matches(paste0("^", varsel_prefix, ".*lag$"))) %>% colnames()
-    # if (!is.null(varsel_prefix_length_lag)) {
-    #   if (varsel_prefix_length_lag >= 2 & varsel_prefix_length_lag <= 20) {
-    #     
-    #     # calculate alpha
-    #     df_alpha <- psych::alpha(data %>% dplyr::select(matches(paste0("^", varsel_prefix, ".*lag$"))), check.keys = TRUE)
-    #     
-    #     # extract total alpha
-    #     alpha_total <- df_alpha$total$raw_alpha
-    #     
-    #     # when variables measure the same thing proceed
-    #     if (alpha_total >= 0.7) {
-    #       # only keep variables for which total alpha would decrease if they would be
-    #       # excluded
-    #       alpha_indiv <- df_alpha$alpha.drop %>% as.data.frame() %>% dplyr::select(raw_alpha)
-    #       alpha_indiv$vars_keep <- rownames(alpha_indiv)
-    #       vars_keep_lag <- alpha_indiv[alpha_indiv < alpha_total, "vars_keep"]
-    #       vars_keep_lag <- str_remove_all(vars_keep_lag, "-")
-    #     } else {
-    #       # ... otherwise do not aggregate the variables
-    #       vars_keep_lag <- c()
-    #     }
-    #     
-    #   } else {
-    #     # if less than two or more than 20 variables are kept, all variables are kept and
-    #     # no selected based on cronbach's alpha is made
-    #     vars_keep_lag <- data %>% dplyr::select(matches(paste0("^", varsel_prefix, ".*lag$"))) %>% colnames()
-    #   }
-    # } # close is.null(varsel_prefix_length_lag) (if lags are included)
-    
-    # if cronbach's alpha should not be calculated
+
   } else {
     vars_keep <- data %>% dplyr::select(matches(paste0("^", varsel_prefix, ".*[^lag]$"))) %>% colnames()
     if (is_empty(vars_keep)) {
@@ -361,9 +332,6 @@ func_aggregate_vars <- function(data, varsel_prefix, cr_alpha, method) {
         dplyr::select(-matches(column_names_drop))
     }
     
-    # replace all NaN with NA
-    #data_final <- data_final %>% mutate(across(matches(paste0("^", varsel_prefix)), list(~ifelse(is.nan(.), NA, .))))
-    
   }
   
   colnames_exist <- data_final %>% dplyr::select(starts_with(varsel_prefix)) %>% colnames()
@@ -375,7 +343,6 @@ func_aggregate_vars <- function(data, varsel_prefix, cr_alpha, method) {
   } else {
     data_final <- data_final
   }
-
 
   # return data
   return(list(data_final, vars_not_aggr, vars_not_aggr_lag))

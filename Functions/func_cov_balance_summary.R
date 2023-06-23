@@ -7,12 +7,14 @@
 #+++
 # This function calculates summary statistics for the ASMDs in the multivalued
 # treatment setting. The results can be used to asses covariata balance.
-# This function is only applied for the robustness checks.
+# This function is only applied for the robustness checks (thus, no binary 
+# treatment setting is considered).
 #+++
 # Inputs:
 # -> "list_estimation": estimation results in list format, as contained in the folder: DML/Estimation
 # -> "outcome": outcome variable (grades or bigfive_*)
 # -> "mice_num": number of mice iterations
+# Outcome: data frame containing summary statistics (min, mean, median, max and percentages)
 #+++
 
 func_cov_balance_summary <- function(list_estimation, outcome, mice_num) {

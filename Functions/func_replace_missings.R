@@ -3,10 +3,9 @@
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 
-#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
-
+#+++
 # by Lana Kern
-
+#+++
 # In this file a function is generated which replaces missing values.
 # This function is applied to all individual data sets in file 01.
   ## input: d
@@ -19,8 +18,7 @@
   ## (because of special characters it is less error prone to define them
   ## inside the script using instead within the function.
   ## output: data frame with correctly identified missing values
-#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
-
+#+++
 
 func_replace_missings <- function(dataframe, vec_missings_num, vec_missings_char){
   

@@ -5,7 +5,7 @@
 #+++
 # by Lana Kern
 #+++
-# This function generated NA dummies, i.e., a variable that ends with _NA
+# This function generates NA dummies, i.e., a variable that ends with _NA
 # and takes on the value 1 if value of variable is NA and 0 otherwise.
 #+++
 # Input:

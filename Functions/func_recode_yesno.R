@@ -2,19 +2,16 @@
 #### FUNCTION: RECODE YES-NO-VARIABLES ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
-
+#+++
 # by Lana Kern
-
+#+++
 # In this file a function is generated that labels all yes-no variables
 # correctly, that is yes = 1, and no = 0 (before no = 2).
 # This function is applied to all individual data sets in file 01.
-
-#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
-
-# Create Function
-  ## input: data frame
-  ## output: data frame with correct yes-no labelling
+#+++
+# Input: data frame that contains variables that should be recoded
+# Output: data frame with correct yes-no labelling
+#+++
 
 func_recode_yesno <- function(data) {
   
@@ -42,7 +39,6 @@ func_recode_yesno <- function(data) {
       # replace NaN with NA
       mutate_at(all_of(vars_recode), list(~ifelse(is.nan(.), NA, .)))
   }
-  
   
   # return data 
   return(data)
