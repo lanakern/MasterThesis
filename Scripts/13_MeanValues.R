@@ -22,7 +22,8 @@ if (cov_balance == "yes") {
 }
 
 # load main drivers of selection
-data_main_drivers <- readRDS("Output/DML/Covariate_Balancing/main_drivers.rds") 
+data_main_drivers <- readRDS("Output/DML/Covariate_Balancing/main_drivers.rds") %>%
+  arrange(desc(SD_before)) %>% head(30)
 
 # load ASDM before DML
 data_asdm_all <- readRDS("Output/DML/Covariate_Balancing/covariate_balancing_asdm_multi.rds") %>%
@@ -37,8 +38,6 @@ data_asdm_all <- readRDS("Output/DML/Covariate_Balancing/covariate_balancing_asd
 descr_vars <- readRDS("Output/Descriptives/descr_vars.rds") 
 descr_vars <- descr_vars[!descr_vars %in% unique(data_main_drivers$control_var)]
 descr_vars <- names(table(descr_vars)[table(descr_vars) >= 2])
-length(descr_vars)
-descr_vars
 
 # load data
 data_all_mice_grades_multi_noextra <- data.frame()
@@ -133,6 +132,15 @@ left_join(
   )) %>%
   as.data.frame()
 
+
+# ASDM in personality sample
+readRDS("Output/DML/Covariate_Balancing/covariate_balancing_asdm_multi.rds") %>%
+  filter(outcome != "grades") %>% dplyr::select(-outcome) %>%
+  arrange(-SD_before) %>%
+  group_by(control_var) %>% 
+  summarize_all(mean) %>%
+  filter(str_detect(control_var, "grade_current")) %>%
+  as.data.frame()
 
 #### PERSONALITY ####
 #+++++++++++++++++++#
@@ -251,9 +259,10 @@ saveRDS(df_descr_all, "Output/Descriptives/main_drivers_descr.rds")
 # variables exist
 descr_vars <- descr_vars[descr_vars %in% colnames(data_all_mice_grades_multi_noextra)]
 descr_vars <- c(descr_vars, "extracurricular_music", "interest_art_works", "interest_music_classic",
-                "partner_educ_years", "partner_living_ger", "partner_current",
+                "partner_educ_years", "partner_living_ger", "partner_current",  "mother_educ_years",
                 "bigfive_agreeableness", "bigfive_openness", "bigfive_conscientiousness",
-                "bigfive_neuroticism", "bigfive_extraversion", "interest_reading_num_books_more_than_500_books") %>% unique()
+                "bigfive_neuroticism", "bigfive_extraversion", "interest_reading_num_books_more_than_500_books",
+                "uni_fear_1_not", "uni_fear_1_not_lag", "motivation_degree_2") %>% unique()
 
 
 df_descr_imp_all <- data_all_mice_grades_multi_noextra %>%

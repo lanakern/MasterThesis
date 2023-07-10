@@ -423,37 +423,37 @@ rf_feature_imp_plot <- func_feature_importance_plot("binary", rf_binary_imp, "Ra
 # save
 pdf("Output/DML/Feature_Importance/rf_binary_feature_importance_grades_m.pdf",
     width = 8, height = 8, pointsize = 25, family = "Helvetica")
-print(rf_feature_imp_plot$m  + ggtitle("Random Forests") + theme_binary_grades_y_labels)
+print(rf_feature_imp_plot$m  + ggtitle("Random forests") + theme_binary_grades_y_labels)
 dev.off()
 
 
 pdf("Output/DML/Feature_Importance/rf_binary_feature_importance_grades_g0.pdf",
     width = 8, height = 8, pointsize = 25, family = "Helvetica")
-print(rf_feature_imp_plot$g0 + ggtitle("Random Forests") + theme_binary_grades_y_labels)
+print(rf_feature_imp_plot$g0 + ggtitle("Random forests") + theme_binary_grades_y_labels)
 dev.off()
 
 
 pdf("Output/DML/Feature_Importance/rf_binary_feature_importance_grades_g1.pdf",
     width = 8, height = 8, pointsize = 25, family = "Helvetica")
-print(rf_feature_imp_plot$g1 + ggtitle("Random Forests") + theme_binary_grades_y_labels)
+print(rf_feature_imp_plot$g1 + ggtitle("Random forests") + theme_binary_grades_y_labels)
 dev.off()
 
 
 pdf("Output/DML/Feature_Importance/rf_binary_feature_importance_grades_m_notext.pdf",
     width = 8, height = 8, pointsize = 25, family = "Helvetica")
-print(rf_feature_imp_plot$m  + ggtitle("Random Forests") + theme_binary_grades_no_y_labels)
+print(rf_feature_imp_plot$m  + ggtitle("Random forests") + theme_binary_grades_no_y_labels)
 dev.off()
 
 
 pdf("Output/DML/Feature_Importance/rf_binary_feature_importance_grades_g0_notext.pdf",
     width = 8, height = 8, pointsize = 25, family = "Helvetica")
-print(rf_feature_imp_plot$g0 + ggtitle("Random Forests") + theme_binary_grades_no_y_labels)
+print(rf_feature_imp_plot$g0 + ggtitle("Random forests") + theme_binary_grades_no_y_labels)
 dev.off()
 
 
 pdf("Output/DML/Feature_Importance/rf_binary_feature_importance_grades_g1_notext.pdf",
     width = 8, height = 8, pointsize = 25, family = "Helvetica")
-print(rf_feature_imp_plot$g1 + ggtitle("Random Forests") + 
+print(rf_feature_imp_plot$g1 + ggtitle("Random forests") + 
         theme_binary_grades_no_y_labels)
 dev.off()
 
@@ -618,6 +618,7 @@ postlasso_multi_coef <- postlasso_multi_coef %>%
   ungroup()
 
 var_names_descr <- c(var_names_descr, postlasso_multi_coef$Variable)
+saveRDS(var_names_descr, "Output/Descriptives/descr_vars.rds")
 
 postlasso_multi_feature_imp_plot <- func_feature_importance_plot(
   "multi", postlasso_multi_coef, "POST-LASSO", "separate")
@@ -625,65 +626,65 @@ postlasso_multi_feature_imp_plot <- func_feature_importance_plot(
 
 pdf("Output/DML/Feature_Importance/postlasso_multi_feature_importance_m1.pdf",
     width = 8, height = 8, pointsize = 25, family = "Helvetica")
-print(postlasso_multi_feature_imp_plot$m1 + ggtitle("Weekly") + theme_binary_grades_y_labels)
+print(postlasso_multi_feature_imp_plot$m1 + ggtitle("Weekly Sports") + theme_binary_grades_y_labels)
 dev.off()
 
 pdf("Output/DML/Feature_Importance/postlasso_multi_feature_importance_m2.pdf",
     width = 8, height = 8, pointsize = 25, family = "Helvetica")
-print(postlasso_multi_feature_imp_plot$m2 + ggtitle("Monthly") + theme_binary_grades_y_labels)
+print(postlasso_multi_feature_imp_plot$m2 + ggtitle("Monthly Sports") + theme_binary_grades_y_labels)
 dev.off()
 
 pdf("Output/DML/Feature_Importance/postlasso_multi_feature_importance_m3.pdf",
     width = 8, height = 8, pointsize = 25, family = "Helvetica")
-print(postlasso_multi_feature_imp_plot$m3 + ggtitle("Never") + theme_binary_grades_y_labels)
+print(postlasso_multi_feature_imp_plot$m3 + ggtitle("Never Sports") + theme_binary_grades_y_labels)
 dev.off()
 
 
 pdf("Output/DML/Feature_Importance/postlasso_multi_feature_importance_m1_notext.pdf",
     width = 8, height = 8, pointsize = 25, family = "Helvetica")
-print(postlasso_multi_feature_imp_plot$m1 + ggtitle("Weekly") + theme_binary_grades_no_y_labels)
+print(postlasso_multi_feature_imp_plot$m1 + ggtitle("Weekly Sports") + theme_binary_grades_no_y_labels)
 dev.off()
 
 pdf("Output/DML/Feature_Importance/postlasso_multi_feature_importance_m2_notext.pdf",
     width = 8, height = 8, pointsize = 25, family = "Helvetica")
-print(postlasso_multi_feature_imp_plot$m2 + ggtitle("Monthly") + theme_binary_grades_no_y_labels)
+print(postlasso_multi_feature_imp_plot$m2 + ggtitle("Monthly Sports") + theme_binary_grades_no_y_labels)
 dev.off()
 
 pdf("Output/DML/Feature_Importance/postlasso_multi_feature_importance_m3_notext.pdf",
     width = 8, height = 8, pointsize = 25, family = "Helvetica")
-print(postlasso_multi_feature_imp_plot$m3 + ggtitle("Never") + theme_binary_grades_no_y_labels)
+print(postlasso_multi_feature_imp_plot$m3 + ggtitle("Never Sports") + theme_binary_grades_no_y_labels)
 dev.off()
 
 
 pdf("Output/DML/Feature_Importance/postlasso_multi_feature_importance_g1.pdf",
     width = 8, height = 8, pointsize = 25, family = "Helvetica")
-print(postlasso_multi_feature_imp_plot$g1 + ggtitle("Outcome for Weekly") + theme_binary_grades_y_labels)
+print(postlasso_multi_feature_imp_plot$g1 + ggtitle("GPA for Weekly") + theme_binary_grades_y_labels)
 dev.off()
 
 pdf("Output/DML/Feature_Importance/postlasso_multi_feature_importance_g2.pdf",
     width = 8, height = 8, pointsize = 25, family = "Helvetica")
-print(postlasso_multi_feature_imp_plot$g2 + ggtitle("Outcome for Monthly") + theme_binary_grades_y_labels)
+print(postlasso_multi_feature_imp_plot$g2 + ggtitle("GPA for Monthly") + theme_binary_grades_y_labels)
 dev.off()
 
 pdf("Output/DML/Feature_Importance/postlasso_multi_feature_importance_g3.pdf",
     width = 8, height = 8, pointsize = 25, family = "Helvetica")
-print(postlasso_multi_feature_imp_plot$g3 + ggtitle("Outcome for Never") + theme_binary_grades_y_labels)
+print(postlasso_multi_feature_imp_plot$g3 + ggtitle("GPA for Never") + theme_binary_grades_y_labels)
 dev.off()
 
 
 pdf("Output/DML/Feature_Importance/postlasso_multi_feature_importance_g1_notext.pdf",
     width = 8, height = 8, pointsize = 25, family = "Helvetica")
-print(postlasso_multi_feature_imp_plot$g1 + ggtitle("Outcome for Weekly") + theme_binary_grades_no_y_labels)
+print(postlasso_multi_feature_imp_plot$g1 + ggtitle("GPA for Weekly") + theme_binary_grades_no_y_labels)
 dev.off()
 
 pdf("Output/DML/Feature_Importance/postlasso_multi_feature_importance_g2_notext.pdf",
     width = 8, height = 8, pointsize = 25, family = "Helvetica")
-print(postlasso_multi_feature_imp_plot$g2 + ggtitle("Outcome for Monthly") + theme_binary_grades_no_y_labels)
+print(postlasso_multi_feature_imp_plot$g2 + ggtitle("GPA for Monthly") + theme_binary_grades_no_y_labels)
 dev.off()
 
 pdf("Output/DML/Feature_Importance/postlasso_multi_feature_importance_g3_notext.pdf",
     width = 8, height = 8, pointsize = 25, family = "Helvetica")
-print(postlasso_multi_feature_imp_plot$g3 + ggtitle("Outcome for Never") + theme_binary_grades_no_y_labels)
+print(postlasso_multi_feature_imp_plot$g3 + ggtitle("GPA for Never") + theme_binary_grades_no_y_labels)
 dev.off()
 
 
@@ -750,6 +751,7 @@ rf_multi_imp <- rf_multi_imp %>%
 
 
 rf_multi_feature_imp_plot <- func_feature_importance_plot("multi", rf_multi_imp, "Random Forests", "separate")
+
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%#
