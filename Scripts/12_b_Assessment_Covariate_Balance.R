@@ -44,6 +44,7 @@ df_smd_all_binary <- data.frame()
 df_iterate <- data.frame("Rep" = c(rep(1,4), rep(2,4), rep(3,4), rep(4,4), rep(5,4)), "Fold" = rep(c(1:4), 5))
 
 # iterate over outcome variables
+print("BINARY TREATMENT SETTING:")
 for (outcome_var_sel in c("grades", "agreeableness", "extraversion", "conscientiousness", "neuroticism", "openness")) {
   
   print(paste("Start Outcome:", str_to_title(outcome_var_sel)))
@@ -115,7 +116,7 @@ for (outcome_var_sel in c("grades", "agreeableness", "extraversion", "conscienti
   df_smd_cov_func_all_binary <- df_smd_cov_func_all_binary %>%
     dplyr::select(-c("Fold", "Rep", "MICE")) %>%
     group_by(control_var) %>%
-    summarize(SD_before = mean(SD_before), SD_after = mean(SD_after))
+    summarize(SD_before = max(SD_before), SD_after = max(SD_after))
   
   # summary statisticst
   df_smd_cov_func_sum_binary <- 
@@ -183,6 +184,7 @@ df_smd_all_multi <- data.frame()
 df_iterate <- data.frame("Rep" = c(rep(1,4), rep(2,4), rep(3,4), rep(4,4), rep(5,4)), "Fold" = rep(c(1:4), 5))
 
 # iterate over outcome variables
+print("MULTIVALUED TREATMENT SETTING")
 for (outcome_var_sel in c("grades", "agreeableness", "extraversion", "conscientiousness", "neuroticism", "openness")) {
   
   print(paste("Start Outcome:", str_to_title(outcome_var_sel)))
@@ -291,15 +293,15 @@ for (outcome_var_sel in c("grades", "agreeableness", "extraversion", "conscienti
     ungroup() %>%
     dplyr::select(-c("Rep", "MICE", "Fold")) %>%
     group_by(control_var) %>%
-    summarize(SD_before = mean(SD_before), SD_after = mean(SD_after)) %>% 
+    summarize(SD_before = max(SD_before), SD_after = max(SD_after)) %>% 
     mutate(outcome = outcome_var_sel)
   
   df_smd_cov_func_all_detail_multi <- df_smd_cov_func_all_detail_multi %>%
     ungroup() %>%
     dplyr::select(-c("Rep", "MICE", "Fold")) %>%
     group_by(control_var) %>%
-    summarize(SD_before_D_1 = mean(SD_before_D_1), SD_before_D_2 = mean(SD_before_D_2), 
-              SD_before_D_3 = mean(SD_before_D_3)) %>% 
+    summarize(SD_before_D_1 = max(SD_before_D_1), SD_before_D_2 = max(SD_before_D_2), 
+              SD_before_D_3 = max(SD_before_D_3)) %>% 
     mutate(outcome = outcome_var_sel)
   
   # summary statistics
@@ -459,7 +461,7 @@ print(
     ggplot(aes(y = reorder(control_var, SD_before_D_1), x = SD_before_D_1)) +
     geom_bar(fill = "black", width = 0.3, stat = "identity") +
     xlab("\nASMD before DML\n") + ylab("") + 
-    scale_x_continuous(breaks = c(0.1, 0.2, 0.3, 0.4), limits = c(0, 0.45), expand = c(0,0)) +
+    scale_x_continuous(breaks = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6), limits = c(0, 0.65), expand = c(0,0)) +
     theme_bw() + ggtitle("\nWeekly") +
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(),
           axis.text = element_text(size = 46), axis.title = element_text(size = 46), 
@@ -477,7 +479,7 @@ print(
     ggplot(aes(y = reorder(control_var, SD_before_D_1), x = SD_before_D_1)) +
     geom_bar(fill = "black", width = 0.3, stat = "identity") +
     xlab("\nASMD before DML\n") + ylab("") + theme_bw() + ggtitle("\nWeekly") + 
-    scale_x_continuous(breaks = c(0, 0.1, 0.2, 0.3, 0.4), limits = c(0, 0.45), expand = c(0,0)) +
+    scale_x_continuous(breaks = c(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6), limits = c(0, 0.65), expand = c(0,0)) +
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(),
           axis.text.y = element_blank(), axis.text.x = element_text(size = 28), 
           axis.ticks.length.y = unit(.25, "cm"), axis.ticks.y = element_line(linewidth = 1),
@@ -496,7 +498,7 @@ print(
     ggplot(aes(y = reorder(control_var, SD_before_D_2), x = SD_before_D_2)) +
     geom_bar(fill = "black", width = 0.3, stat = "identity") +
     xlab("\nASMD before DML\n") + ylab("") + theme_bw() + ggtitle("\nMonthly") + 
-    scale_x_continuous(breaks = c(0.1, 0.2, 0.3, 0.4), limits = c(0, 0.45), expand = c(0,0)) +
+    scale_x_continuous(breaks = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6), limits = c(0, 0.65), expand = c(0,0)) +
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(),
           axis.text = element_text(size = 46), axis.title = element_text(size = 46), 
           plot.title = element_text(size = 48, hjust = 0.5))
@@ -513,7 +515,7 @@ print(
     ggplot(aes(y = reorder(control_var, SD_before_D_2), x = SD_before_D_2)) +
     geom_bar(fill = "black", width = 0.3, stat = "identity") +
     xlab("\nASMD before DML\n") + ylab("") + theme_bw() + ggtitle("\nMonthly") + 
-    scale_x_continuous(breaks = c(0, 0.1, 0.2, 0.3, 0.4), limits = c(0, 0.45), expand = c(0,0)) +
+    scale_x_continuous(breaks = c(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6), limits = c(0, 0.65), expand = c(0,0)) +
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(),
           axis.text.y = element_blank(), axis.text.x = element_text(size = 28), 
           axis.ticks.length.y = unit(.25, "cm"), axis.ticks.y = element_line(linewidth = 1),
@@ -532,7 +534,7 @@ print(
     ggplot(aes(y = reorder(control_var, SD_before_D_3), x = SD_before_D_3)) +
     geom_bar(fill = "black", width = 0.3, stat = "identity") +
     xlab("\nASMD before DML\n") + ylab("") + theme_bw() + ggtitle("\nNever") + 
-    scale_x_continuous(breaks = c(0, 0.1, 0.2, 0.3, 0.4), limits = c(0, 0.45), expand = c(0,0)) +
+    scale_x_continuous(breaks = c(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6), limits = c(0, 0.65), expand = c(0,0)) +
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(),
           axis.text = element_text(size = 46), axis.title = element_text(size = 46), 
           plot.title = element_text(size = 48, hjust = 0.5))
@@ -550,7 +552,7 @@ print(
     ggplot(aes(y = reorder(control_var, SD_before_D_3), x = SD_before_D_3)) +
     geom_bar(fill = "black", width = 0.3, stat = "identity") +
     xlab("\nASMD before DML\n") + ylab("") + theme_bw() + ggtitle("\nNever") + 
-    scale_x_continuous(breaks = c(0, 0.1, 0.2, 0.3, 0.4), limits = c(0, 0.45), expand = c(0,0)) +
+    scale_x_continuous(breaks = c(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6), limits = c(0, 0.65), expand = c(0,0)) +
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(),
           axis.text.y = element_blank(), axis.text.x = element_text(size = 28), 
           axis.ticks.length.y = unit(.25, "cm"), axis.ticks.y = element_line(linewidth = 1),
@@ -583,6 +585,7 @@ saveRDS(df_main_drivers %>% as.data.frame(), "Output/DML/Covariate_Balancing/mai
 df_covval_summary_rc <- data.frame()
 
 # no extracurricular activity (keeping inactive students)
+print("No extracurricular activity:")
 postlasso_grades_noextra <- 
   readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_", "postlasso", 
                  "_all_controlssameoutcome_", treatment_def, "_down_all_notreatmentoutcomelags_endogyes_trimming", 
@@ -592,6 +595,7 @@ df_covbal_summary_noextra  <- func_cov_balance_summary(postlasso_grades_noextra,
 df_covval_summary_rc <- rbind(df_covval_summary_rc, df_covbal_summary_noextra)
 
 # extracurricular activity within uni
+print("No extracurricular activity within university:")
 postlasso_grades_extrauni <- 
   readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_", "postlasso", 
                  "_all_controlssameoutcome_", treatment_def, "_down_extrauni_all_notreatmentoutcomelags_endogyes_trimming", 
@@ -601,6 +605,7 @@ df_covval_summary_rc <- rbind(df_covval_summary_rc, df_covbal_summary_extrauni)
 
 
 # control variables before treatment and outcome
+print("Control variables before treatment and outcome:")
 postlasso_grades_controls_bef_all <- 
   readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_", "postlasso", 
                  "_all_controlsbefall_", treatment_def, "_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming", 
@@ -609,6 +614,7 @@ df_covbal_summary_befall  <- func_cov_balance_summary(postlasso_grades_controls_
 df_covval_summary_rc <- rbind(df_covval_summary_rc, df_covbal_summary_befall)
 
 # no endogeneous variables
+print("No endogeneous variables:")
 postlasso_grades_noendog <- 
   readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_", "postlasso", 
                  "_all_controlssameoutcome_", treatment_def, "_down_extradrop_all_notreatmentoutcomelags_endogno_trimming", 
@@ -618,6 +624,7 @@ df_covbal_summary_noendog  <- func_cov_balance_summary(postlasso_grades_noendog,
 df_covval_summary_rc <- rbind(df_covval_summary_rc, df_covbal_summary_noendog)
 
 # only lags
+print("Only lags:")
 postlasso_grades_onlylags <- 
   readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_", "postlasso", 
                  "_all_controlssameoutcome_", treatment_def, 
@@ -627,7 +634,8 @@ df_covbal_summary_onlylags  <- func_cov_balance_summary(postlasso_grades_onlylag
   filter(adjustment == "after") %>% mutate(rc = "onlylag")
 df_covval_summary_rc <- rbind(df_covval_summary_rc, df_covbal_summary_onlylags)
 
-# polys
+# polysc
+print("Adding polynominals:")
 postlasso_grades_polys <- 
   readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_", "postlasso", 
                  "_allpoly_controlssameoutcome_", treatment_def, 
@@ -639,6 +647,7 @@ df_covval_summary_rc <- rbind(df_covval_summary_rc, df_covbal_summary_polys)
 
 
 # trimming
+print("Trimming:")
 postlasso_grades_trimming001 <- 
   readRDS(paste0("Output/DML/Estimation/Grades/multi_", "grades", 
                  "_postlasso_all_controlssameoutcome_all_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming",
@@ -666,6 +675,7 @@ df_covbal_summary_trimmingno  <- func_cov_balance_summary(postlasso_grades_trimm
 df_covval_summary_rc <- rbind(df_covval_summary_rc, df_covbal_summary_trimmingno)
 
 # penalty choice
+print("Penalty choice:")
 df_covbal_summary_hyper1SE <- 
   readRDS(paste0("Output/DML/Estimation/Grades/multi_", "grades", 
                  "_postlasso_all_controlssameoutcome_all_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming",
@@ -683,6 +693,7 @@ df_covbal_summary_1SEplus  <- func_cov_balance_summary(df_covbal_summary_hyper1S
 df_covval_summary_rc <- rbind(df_covval_summary_rc, df_covbal_summary_1SEplus)
  
 # multiclass classification
+print("Multiclass classification:")
 postlasso_grades_nonsep <- 
   readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_", "postlasso", 
                  "_all_controlssameoutcome_", treatment_def, "_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming", 
@@ -693,6 +704,7 @@ df_covval_summary_rc <- rbind(df_covval_summary_rc, df_covbal_summary_nonsep)
 
 
 # not normalizing treatment probs
+print("Not normalizing treatment probabilities:")
 postlasso_grades_nonnorm <- 
   readRDS(paste0("Output/DML/Estimation/Grades/multi_grades_", "postlasso", 
                  "_all_controlssameoutcome_", treatment_def, "_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming", 
