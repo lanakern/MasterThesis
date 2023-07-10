@@ -286,7 +286,7 @@ extra_act <- main_extra_act
 cohort_prep_sel <- c(main_cohort_prep, "controls_bef_outcome")
 for (cohort_prep_sel_loop in cohort_prep_sel) {
   cohort_prep <- cohort_prep_sel_loop
-  source("Scripts/Grades/9_Create_Interactions_Polys.R") 
+  source("Scripts/Grades/09_Create_Interactions_Polys.R") 
   print(paste0("FINISHED COMBINATION: ", cohort_prep))
   eval(parse(text = keep_after_file_run)) 
 }
