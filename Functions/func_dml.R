@@ -60,6 +60,7 @@
 # -> "pred": nuisance parameter predictions after trimming
 # -> "pred"_bef_trimming: nuisance parameter predictions before trimming
 # -> "coef": if (post-)lasso algorithm is selected, all non-zero coefficients are returned
+# -> "coef_lasso": if post-lasso algorithm is selected, the  coefficients from lasso regressions are stored here
 # -> "cov_balance": if post-lasso is selected covariate balance assessment is returned
 #+++
 # Further notes:

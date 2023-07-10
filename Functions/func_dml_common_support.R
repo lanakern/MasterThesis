@@ -67,15 +67,15 @@ func_dml_common_support <- function(treatment_setting, data_pred, min_trimming,
     if (text_trimming == "yes") {
       plot_trimming <- plot_trimming + 
         geom_textvline(label = paste("min:", sprintf(paste0("%.", dec_places, "f"), unique(min_trimming))),
-                       xintercept = min_trimming, vjust = 1.3, linetype = "longdash", size = 8) + # -0.7 for left hand side
+                       xintercept = min_trimming, vjust = 1.3, linetype = "dotted", size = 8) + # -0.7 for left hand side
         geom_textvline(label = paste("max:", sprintf(paste0("%.", dec_places, "f"), unique(max_trimming))),  
-                       xintercept = max_trimming, vjust = 1.3, linetype = "longdash", size = 8) +
+                       xintercept = max_trimming, vjust = 1.3, linetype = "dotted", size = 8) +
         scale_x_continuous(limits = c(0,1), expand = c(0, 0), breaks = c(0, 0.25, 0.5, 0.75, 1), labels = c("0", "0.25", "0.50", "0.75", "1"))
     } else if (line_trimming == "yes") {
       plot_trimming <- plot_trimming + 
-        geom_vline(xintercept = min_trimming, linetype = "longdash", 
+        geom_vline(xintercept = min_trimming, linetype = "dotted", 
                    color = "black", size = 0.5) +
-        geom_vline(xintercept = max_trimming, linetype = "longdash", 
+        geom_vline(xintercept = max_trimming, linetype = "dotted", 
                    color = "black", size = 0.5) +
         scale_x_continuous(limits = c(0,1), expand = c(0, 0), breaks = c(0, 0.25, 0.5, 0.75, 1), labels = c("0", "0.25", "0.50", "0.75", "1"))
     } else {
@@ -140,15 +140,15 @@ func_dml_common_support <- function(treatment_setting, data_pred, min_trimming,
       plot_m1 <- plot_m1 + 
         geom_textvline(label = paste("min. trimming:", sprintf(paste0("%.", dec_places, "f"), unique(data_pred_m1$min_trimming))), 
                        xintercept = unique(data_pred_m1$min_trimming), 
-                       vjust = -0.7, linetype = "longdash") +
+                       vjust = -0.7, linetype = "dotted") +
         geom_textvline(label = paste("max. trimming:", sprintf(paste0("%.", dec_places, "f"), unique(data_pred_m1$max_trimming))), 
                        xintercept = unique(data_pred_m1$max_trimming), 
-                       vjust = -0.7, linetype = "longdash") 
+                       vjust = -0.7, linetype = "dotted") 
     } else if (line_trimming == "yes") {
       plot_m1 <- plot_m1 + 
-        geom_vline(xintercept = unique(data_pred_m1$min_trimming), linetype = "longdash", 
+        geom_vline(xintercept = unique(data_pred_m1$min_trimming), linetype = "dotted", 
                    color = "black", size = 0.5) +
-        geom_vline(xintercept = unique(data_pred_m1$max_trimming), linetype = "longdash", 
+        geom_vline(xintercept = unique(data_pred_m1$max_trimming), linetype = "dotted", 
                    color = "black", size = 0.5)
     } else {
       plot_m1 <- plot_m1 + scale_x_continuous(breaks = c(0, 0.5, 1), labels = c("0", "0.5", "1"), limits = c(0,1), expand = c(0, 0))
@@ -178,15 +178,15 @@ func_dml_common_support <- function(treatment_setting, data_pred, min_trimming,
       plot_m2 <- plot_m2 + 
         geom_textvline(label = paste("min. trimming:", sprintf(paste0("%.", dec_places, "f"), unique(data_pred_m2$min_trimming))), 
                        xintercept = unique(data_pred_m2$min_trimming), 
-                       vjust = -0.7, linetype = "longdash") +
+                       vjust = -0.7, linetype = "dotted") +
         geom_textvline(label = paste("max. trimming:", sprintf(paste0("%.", dec_places, "f"), unique(data_pred_m2$max_trimming))), 
                        xintercept = unique(data_pred_m2$max_trimming), 
-                       vjust = -0.7, linetype = "longdash") 
+                       vjust = -0.7, linetype = "dotted") 
     } else if (line_trimming == "yes") {
       plot_m2 <- plot_m2 + 
-        geom_vline(xintercept = unique(data_pred_m2$min_trimming), linetype = "longdash", 
+        geom_vline(xintercept = unique(data_pred_m2$min_trimming), linetype = "dotted", 
                    color = "black", size = 0.5) +
-        geom_vline(xintercept = unique(data_pred_m2$max_trimming), linetype = "longdash", 
+        geom_vline(xintercept = unique(data_pred_m2$max_trimming), linetype = "dotted", 
                    color = "black", size = 0.5)
     } else {
       plot_m2 <- plot_m2 + scale_x_continuous(breaks = c(0, 0.5, 1), labels = c("0", "0.5", "1"), limits = c(0,1), expand = c(0, 0))
@@ -217,15 +217,15 @@ func_dml_common_support <- function(treatment_setting, data_pred, min_trimming,
       plot_m3 <- plot_m3 + 
         geom_textvline(label = paste("min. trimming:", sprintf(paste0("%.", dec_places, "f"), unique(data_pred_m3$min_trimming))), 
                        xintercept = unique(data_pred_m3$min_trimming), 
-                       vjust = -0.7, linetype = "longdash") +
+                       vjust = -0.7, linetype = "dotted") +
         geom_textvline(label = paste("max. trimming:", sprintf(paste0("%.", dec_places, "f"), unique(data_pred_m3$max_trimming))), 
                        xintercept = unique(data_pred_m3$max_trimming), 
-                       vjust = -0.7, linetype = "longdash") 
+                       vjust = -0.7, linetype = "dotted") 
     } else if (line_trimming == "yes") {
       plot_m3 <- plot_m3 + 
-        geom_vline(xintercept = unique(data_pred_m3$min_trimming), linetype = "longdash", 
+        geom_vline(xintercept = unique(data_pred_m3$min_trimming), linetype = "dotted", 
                    color = "black", size = 0.5) +
-        geom_vline(xintercept = unique(data_pred_m3$max_trimming), linetype = "longdash", 
+        geom_vline(xintercept = unique(data_pred_m3$max_trimming), linetype = "dotted", 
                    color = "black", size = 0.5)
     } else {
       plot_m3 <- plot_m3 + scale_x_continuous(breaks = c(0, 0.5, 1), labels = c("0", "0.5", "1"), limits = c(0,1), expand = c(0, 0))
