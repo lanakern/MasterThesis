@@ -1565,7 +1565,7 @@ binary_plot_common_support <- ggarrange(
           axis.text = element_text(size = 38), axis.title = element_text(size = 38),
           legend.text = element_text(size = 38), legend.title = element_text(size = 38)),
   list_binary_plot_common_support$grades$rf + ylab("") + 
-    ggtitle("Random Forests") +  scale_y_continuous(breaks = c(1, 3), limits = c(0, 4.2), expand = c(0, 0)) + 
+    ggtitle("Random forests") +  scale_y_continuous(breaks = c(1, 3), limits = c(0, 4.2), expand = c(0, 0)) + 
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
           panel.background = element_blank(),
           axis.text.y = element_blank(), axis.ticks.y = element_blank(),
@@ -1712,7 +1712,7 @@ binary_plot_common_support_fold <- ggarrange(
   list_binary_plot_common_support_fold$grades$postlasso + xlab("") + ylab("") + ggtitle("Post-LASSO") +
     scale_y_continuous(breaks = c(1, 3, 5),  limits = c(0, 5.2), expand = c(0, 0)) +
     theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()),
-  list_binary_plot_common_support_fold$grades$rf + ggtitle("Random Forests") +
+  list_binary_plot_common_support_fold$grades$rf + ggtitle("Random forests") +
     scale_y_continuous(breaks = c(1, 3, 5),  limits = c(0, 5.2), expand = c(0, 0)), 
   list_binary_plot_common_support_fold$grades$xgb + ylab("") + ggtitle("XGBoost") +
     scale_y_continuous(breaks = c(1, 3, 5),  limits = c(0, 5.2), expand = c(0, 0)) +
