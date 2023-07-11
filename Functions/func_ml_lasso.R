@@ -125,6 +125,11 @@ func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome,
     #### PARAMETER TUNING ####
     #%%%%%%%%%%%%%%%%%%%%%%%%#
 
+    # NOTE: the parameter tuning is only conducted for LASSO. The same parameters
+    # are then used in the post-LASSO algorithm. Actually the parameter tuning
+    # should be conducted for post-LASSO separately. However, due to limited
+    # computational resources this is not possible in this analysis!
+    
     # parameter tuning via 5-fold CV
     # this means that training data is again partitioned into 5 folds
     K_folds_inner_m <- rsample::group_vfold_cv(
@@ -1201,6 +1206,11 @@ func_ml_lasso <- function(treatment_setting, data_train, data_test, outcome,
       #%%%%%%%%%%%%%%%%%%%%%%%%#
       #### Parameter Tuning ####
       #%%%%%%%%%%%%%%%%%%%%%%%%#
+      
+      # NOTE: the parameter tuning is only conducted for LASSO. The same parameters
+      # are then used in the post-LASSO algorithm. Actually the parameter tuning
+      # should be conducted for post-LASSO separately. However, due to limited
+      # computational resources this is not possible in this analysis!
       
       # parameter tuning via k-fold CV
       # this means that training data is again partitioned into K-folds
