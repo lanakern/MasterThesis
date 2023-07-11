@@ -118,15 +118,15 @@ func_cov_balance_summary <- function(list_estimation, outcome, mice_num) {
       ungroup() %>%
       dplyr::select(-c("Rep", "MICE", "Fold")) %>%
       group_by(control_var) %>%
-      summarize(SD_before = mean(SD_before), SD_after = mean(SD_after)) %>% 
+      summarize(SD_before = max(SD_before), SD_after = max(SD_after)) %>% 
       mutate(outcome = outcome)
     
     df_smd_cov_func_all_detail_multi_rc <- df_smd_cov_func_all_detail_multi_rc %>%
       ungroup() %>%
       dplyr::select(-c("Rep", "MICE", "Fold")) %>%
       group_by(control_var) %>%
-      summarize(SD_before_D_1 = mean(SD_before_D_1), SD_before_D_2 = mean(SD_before_D_2), 
-                SD_before_D_3 = mean(SD_before_D_3)) %>% 
+      summarize(SD_before_D_1 = max(SD_before_D_1), SD_before_D_2 = max(SD_before_D_2), 
+                SD_before_D_3 = max(SD_before_D_3)) %>% 
       mutate(outcome = outcome)
     
     # summary statistics
