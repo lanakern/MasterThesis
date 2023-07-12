@@ -657,6 +657,14 @@ df_covbal_summary_trimming001  <- func_cov_balance_summary(postlasso_grades_trim
 df_covval_summary_rc <- rbind(df_covval_summary_rc, df_covbal_summary_trimming001)
 
 
+postlasso_grades_trimming001minmax <- 
+  readRDS(paste0("Output/DML/Estimation/Grades/multi_", "grades", 
+                 "_postlasso_all_controlssameoutcome_all_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming",
+                 "min-max_001", "_K4-2_Rep5_", "covbal.rds"))
+df_covbal_summary_trimming001minmax  <- func_cov_balance_summary(postlasso_grades_trimming001minmax, "grades", 5) %>% 
+  filter(adjustment == "after") %>% mutate(rc = "trimming_001-minmax")
+df_covval_summary_rc <- rbind(df_covval_summary_rc, df_covbal_summary_trimming001minmax)
+
 postlasso_grades_trimming01 <- 
   readRDS(paste0("Output/DML/Estimation/Grades/multi_", "grades", 
                  "_postlasso_all_controlssameoutcome_all_down_extradrop_all_notreatmentoutcomelags_endogyes_trimming",

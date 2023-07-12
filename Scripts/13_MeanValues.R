@@ -142,6 +142,7 @@ readRDS("Output/DML/Covariate_Balancing/covariate_balancing_asdm_multi.rds") %>%
   filter(str_detect(control_var, "grade_current")) %>%
   as.data.frame()
 
+
 #### PERSONALITY ####
 #+++++++++++++++++++#
 
@@ -179,6 +180,7 @@ df_descr_imp_pers <- left_join(
   dplyr::select(control_var, inactive, active, never, any, monthly, weekly)
 
 
+df_descr_imp_pers
 data_all_mice_pers_multi_noextra %>% filter(MICE == 1) %>% count(treatment_sport_freq)
 
 
