@@ -383,7 +383,7 @@ for (outcome_var_sel in c("grades", "personality")) {
               aes(x = var_num, y = SD_after, fill = "After DML")) +
     scale_fill_manual(" ", values = c('Before DML' = "grey70", 'After DML' = "grey20")) +
     scale_x_continuous(breaks = c(0, 200, 400), limits = c(0, 500), expand = c(0, 0)) +
-    scale_y_continuous(breaks = c(0.2, 0.4), limits = c(0, 0.5), expand = c(0, 0)) +
+    scale_y_continuous(breaks = c(0.2, 0.4, 0.6), limits = c(0, 0.65), expand = c(0, 0)) +
     ylab("ASMD\n") + xlab("\n ASMD Rank \n") +
     ggtitle(str_to_title(outcome_var_sel)) + 
     theme_bw() + 
@@ -415,7 +415,7 @@ for (outcome_var_sel in c("grades", "personality")) {
               aes(x = var_num, y = SD_after, fill = "After DML")) + 
     scale_fill_manual(" ", values = c('Before DML' = "grey70", 'After DML' = "grey20")) +
     scale_x_continuous(breaks = c(0, 200, 400), limits = c(0, 500), expand = c(0, 0)) +
-    scale_y_continuous(breaks = c(0.2, 0.4), limits = c(0, 0.5), expand = c(0, 0)) +
+    scale_y_continuous(breaks = c(0.2, 0.4, 0.6), limits = c(0, 0.65), expand = c(0, 0)) +
     ylab("ASMD\n") + xlab("\n ASMD Rank \n") +
     ggtitle(paste("\n", str_to_title(outcome_var_sel))) + 
     theme_bw() + 

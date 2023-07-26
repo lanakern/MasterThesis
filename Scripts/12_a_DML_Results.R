@@ -345,6 +345,7 @@ dml_boxplot_binary <-
   xlab("") + ylab("\nTreatment Effect Estimates\n") + 
   ylim(-0.1, 0) +
   facet_wrap(~ Type) + 
+  scale_y_continuous(limits = c(-0.1, 0), labels = scales::number_format(accuracy = 0.01)) +
   theme_bw() +
   theme(
     panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
@@ -395,8 +396,8 @@ dml_boxplot_binary_personality <-
                                           preserve = "single")) +
   #xlab("\nMachine Learning Algorithms\n") +
   xlab("") + ylab("\nTreatment Effect Estimates\n") + 
-  ylim(-0.15, 0.25) +
-  facet_wrap(~ Type) + 
+  facet_wrap(~ Type) +
+  scale_y_continuous(limits = c(-0.15, 0.25), labels = scales::number_format(accuracy = 0.01)) +
   theme_bw() +
   theme(
     panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
@@ -1261,6 +1262,7 @@ df_error_main_multi
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 #### ++NUMBER PREDICTORS++ ####
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
 
 ## Binary Treatment Setting ##
 df_predictors_all_binary <- data.frame()
